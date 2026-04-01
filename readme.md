@@ -84,11 +84,10 @@ Parameters:
   - The first author is assumed to be the **contact author**.
 
 - **Affiliations**
-  - Affiliations are extracted from OpenReview profiles (`profile.content["history"]`).
-  - Only the **most recent affiliation** (first entry in history) is used.
-  - Multiple affiliations are **not supported**.
-  - If no profile or affiliation data exists, fields are left empty.
+  - Affiliations are extracted from OpenReview profiles (`profile.content["history"]`). 
+  - Current affiliations are entries without an endDate (may not be accurate if not current but not filled by users) 
+  - If no current affiliation is found, the most recent entry is used as a fallback.
 
 - **Paper Submission and Decision Dates**
-  - The **submission date** is taken from `tcdate` (true creation date), which reflects the original submission time.
-  - The **decision date** is fixed as **02-APR-2026**. There might be a better more accurate way for this if it is important.
+  - The **submission date** is taken from `tcdate` (true creation date), which reflects the original submission date.
+  - The **approval date** is set to the last modification date (tmdate) as a proxy for the approval date. There might be a better more accurate way for this if it is important.

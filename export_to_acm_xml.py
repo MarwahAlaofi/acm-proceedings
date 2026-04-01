@@ -28,8 +28,7 @@ def indent(elem, level=0):
         elem.tail = i
 
 def get_submission_date(submission):
-    timestamp = getattr(submission, "tcdate", None)\
-                # or getattr(submission, "cdate", None)
+    timestamp = getattr(submission, "tcdate", None) or getattr(submission, "cdate", None)
     return format_date(timestamp)
 
 
@@ -70,59 +69,64 @@ def get_preferred_email(profile):
     except:
         return ""
 
-# ----------------------------
-# Extract author affiliation from OpenReview profile.
-#
-# OpenReview stores affiliations under `profile.content["history"]`.
-# We assume the most recent entry (index 0) represents the current affiliation,
-# which means that we cannot capture those with 2 or 3 affiliations.
-#
-# Each history entry has an `institution` key that is itself a nested dict
-# with keys: name, domain, country, stateProvince, city, department.
-# ----------------------------
-def get_affiliation(profile, author_id=""):
+def get_current_affiliations(profile, author_id=""):
+    """
+    Extracts all *current* affiliations from a profile.
+    An affiliation is considered current if it has no 'end' date.
+    Deduplicates identical institutions to prevent redundant XML blocks.
+    """
+    affiliations = []
+    default_aff = {"department": "", "institution": "", "city": "", "state": "", "country": ""}
+
     try:
         if not profile:
-            return {"department": "", "institution": "", "city": "", "state": "", "country": ""}
+            return [default_aff]
 
         content = getattr(profile, 'content', {})
-
-        if not content:
-            return {"department": "", "institution": "", "city": "", "state": "", "country": ""}
-
         history = content.get("history", [])
 
         if not history:
-            return {"department": "", "institution": "", "city": "", "state": "", "country": ""}
+            return [default_aff]
 
-        # assume index 0 is latest
-        latest = history[0]
+        # Filter for current affiliations (no endDate)
+        current_history = [h for h in history if not h.get("endDate")]
 
-        inst = latest.get("institution", {})
+        # If no active found, fallback to the most recent one
+        if not current_history:
+            current_history = [history[0]]
 
-        # Guard against institution being a plain string (older profiles)
-        if isinstance(inst, str):
-            return {
-                "department": "",
-                "institution": inst,
-                "city": "",
-                "state": "",
-                "country": "",
-            }
+        seen = set()
 
-        return {
-            "department": inst.get("department") or "",
-            "institution": inst.get("name") or "",
-            "city":        inst.get("city") or "",
-            "state":       inst.get("stateProvince") or "",
-            "country":     inst.get("country") or "",
-        }
+        for entry in current_history:
+            inst = entry.get("institution", {})
+
+            if isinstance(inst, str):
+                inst_name = inst
+                dept = city = state = country = ""
+            else:
+                inst_name = inst.get("name") or ""
+                dept = inst.get("department") or ""
+                city = inst.get("city") or ""
+                state = inst.get("stateProvince") or ""
+                country = inst.get("country") or ""
+
+            key = (inst_name.lower(), dept.lower())
+
+            if key not in seen and (inst_name or dept):
+                seen.add(key)
+                affiliations.append({
+                    "department": dept,
+                    "institution": inst_name,
+                    "city": city,
+                    "state": state,
+                    "country": country
+                })
+
+        return affiliations if affiliations else [default_aff]
 
     except Exception as e:
-        print(f"  [ERROR] Exception parsing affiliation for {author_id}: {e}")
-
-    return {"department": "", "institution": "", "city": "", "state": "", "country": ""}
-
+        print(f"  [ERROR] affiliation parsing for {author_id}: {e}")
+        return [default_aff]
 
 # ----------------------------
 # Profiles mapping (safe)
@@ -164,8 +168,6 @@ def get_profiles_map(client, author_ids):
 
     return id2profile
 
-
-
 # ----------------------------
 # Main export function
 # ----------------------------
@@ -174,8 +176,8 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
     if paper_type not in ["Full Paper", "Short Paper"]:
         raise ValueError("paper_type must be 'Full Paper' or 'Short Paper'")
 
-    client = openreview.Client(
-        baseurl="https://api.openreview.net",
+    client = openreview.api.OpenReviewClient(
+        baseurl="https://api2.openreview.net",
         username=os.getenv("OPENREVIEW_USERNAME"),
         password=os.getenv("OPENREVIEW_PASSWORD")
     )
@@ -187,7 +189,7 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
     print("Collecting author IDs...")
     author_ids = set()
     for s in submissions:
-        ids = s.content.get("authorids", [])
+        ids = s.content.get("authorids", {}).get("value", [])
         for aid in ids:
             if aid and isinstance(aid, str):
                 author_ids.add(aid)
@@ -218,17 +220,18 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
         # ----------------------------
         ET.SubElement(paper, "paper_type").text = paper_type
         ET.SubElement(paper, "art_submission_date").text = get_submission_date(s)
-        ET.SubElement(paper, "art_approval_date").text = "02-APR-2026"
-        ET.SubElement(paper, "paper_title").text = s.content.get("title", "")
+        # last modified which is an acceptable proxy for approval date
+        approval_ts = getattr(s, "tmdate", None) or getattr(s, "cdate", None)
+        ET.SubElement(paper, "art_approval_date").text = format_date(approval_ts)
+        ET.SubElement(paper, "paper_title").text = s.content.get("title", {}).get("value", "")
         ET.SubElement(paper, "event_tracking_number").text = s.id
         ET.SubElement(paper, "published_article_number").text = ""
         ET.SubElement(paper, "start_page").text = ""
         ET.SubElement(paper, "end_page").text = ""
-
         authors_xml = ET.SubElement(paper, "authors")
 
-        names = s.content.get("authors", [])
-        ids = s.content.get("authorids", [])
+        ids = s.content.get("authorids", {}).get("value", [])
+        names = s.content.get("authors", {}).get("value", [])
 
         for i, (name, aid) in enumerate(zip(names, ids), start=1):
             author_xml = ET.SubElement(authors_xml, "author")
@@ -241,20 +244,21 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
             ET.SubElement(author_xml, "last_name").text = last
             ET.SubElement(author_xml, "suffix").text = ""
 
-            # Affiliations
-            affs_xml = ET.SubElement(author_xml, "affiliations")
-            aff_xml = ET.SubElement(affs_xml, "affiliation")
-
             profile = id2profile.get(aid)
-            aff = get_affiliation(profile, aid) if profile else {}
 
-            ET.SubElement(aff_xml, "department").text = aff.get("department", "")
-            ET.SubElement(aff_xml, "institution").text = aff.get("institution", "")
-            ET.SubElement(aff_xml, "city").text = aff.get("city", "")
-            ET.SubElement(aff_xml, "state_province").text = aff.get("state", "")
-            ET.SubElement(aff_xml, "country").text = aff.get("country", "")
-            ET.SubElement(aff_xml, "sequence_no").text = "1"
+            affs_xml = ET.SubElement(author_xml, "affiliations")
+            # Affiliations
+            affiliations = get_current_affiliations(profile, aid)
 
+            for seq_no, aff in enumerate(affiliations, start=1):
+                aff_xml = ET.SubElement(affs_xml, "affiliation")
+
+                ET.SubElement(aff_xml, "department").text = aff.get("department", "")
+                ET.SubElement(aff_xml, "institution").text = aff.get("institution", "")
+                ET.SubElement(aff_xml, "city").text = aff.get("city", "")
+                ET.SubElement(aff_xml, "state_province").text = aff.get("state", "")
+                ET.SubElement(aff_xml, "country").text = aff.get("country", "")
+                ET.SubElement(aff_xml, "sequence_no").text = str(seq_no)
             # Email
             email = get_preferred_email(profile) if profile else (aid if "@" in aid else "")
             ET.SubElement(author_xml, "email_address").text = email
