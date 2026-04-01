@@ -23,7 +23,7 @@ This project is to host scripts used to prepare an ACM proceedings from OpenRevi
 Install dependencies:
 
 ```bash
-pip install openreview python-docx python-dotenv
+pip install openreview-py==1.30.0 python-docx python-dotenv
 ```
 
 Create a `.env` file with your OpenReview credentials:
