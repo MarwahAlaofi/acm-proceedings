@@ -41,9 +41,6 @@ def get_submission_date(submission):
 # - First token → first name
 # - Last token → last name
 # - Any tokens in between → middle name(s)
-#
-# This is a best-effort approach and preserves all parts
-# of the name.
 # ----------------------------
 def split_name(full_name):
     parts = full_name.strip().split()
@@ -157,7 +154,7 @@ def get_profiles_map(client, author_ids):
         except Exception as e:
             print(f"  [ERROR] Failed to fetch tilde ID profiles: {e}")
 
-    # For email-only IDs, we can attempt lookup, but most won't have profiles
+    # For email-only IDs, we can attempt lookup, but they may not have profiles
     # Skip them since they're not in OpenReview
     if email_ids:
         print(f"  Note: {len(email_ids)} email-only author IDs without OpenReview profiles (skipped)")
@@ -316,5 +313,3 @@ if __name__ == "__main__":
         paper_type=args.paper_type,
         output_file=args.output_file
     )
-
-    # python export_to_acm_xml.py --venue_id "ICLR.cc/2023/Conference" --paper_type "Full Paper" --output_file "iclr.xml"

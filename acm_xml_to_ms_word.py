@@ -79,5 +79,3 @@ if __name__ == "__main__":
 
     papers = extract_papers_from_xml(args.input_xml)
     create_word_doc(papers, args.output_docx)
-
-# python acm_xml_to_ms_word.py --input_xml "iclr.xml" --output_docx "papers.docx"
