@@ -1,8 +1,8 @@
 # Overview
 
-This project is to host scripts used to prepare an ACM proceedings from OpenReview following this XML format: https://cms.acm.org/paperLoad/paperLoadSAMPLE.xml. So far, it has the following (still under testing):
-
-1. Export accepted papers from OpenReview into ACM/Sheridan XML format  
+This project is to host scripts used to prepare ACM proceedings and relevant outputs from an OpenReview venue.
+It currently includes scripts (still under testing) that:
+1. Export accepted papers from OpenReview into ACM/Sheridan XML format: following this XML format: https://cms.acm.org/paperLoad/paperLoadSAMPLE.xml.   
 2. Convert the XML into an MS Word document listing titles and authors  
 
 
@@ -13,8 +13,11 @@ This project is to host scripts used to prepare an ACM proceedings from OpenRevi
 - `export_to_acm_xml.py`  
   Exports submissions from OpenReview into ACM-compatible XML  
 
+- `export_to_acm_xml.ipynb`
+  Jupyter notebook version of the script above, provided for easier setup
+
 - `acm_xml_to_ms_word.py`  
-  Reads the XML and generates a formatted `.docx` file  
+  Reads the generated XML and generates a formatted `.docx` file (for website use)  
 
 ---
 
@@ -23,7 +26,7 @@ This project is to host scripts used to prepare an ACM proceedings from OpenRevi
 Install dependencies:
 
 ```bash
-pip install openreview-py==1.30.0 python-docx python-dotenv
+pip install openreview-py python-docx python-dotenv
 ```
 
 Create a `.env` file with your OpenReview credentials:
@@ -35,13 +38,13 @@ OPENREVIEW_PASSWORD=your_password
 
 ---
 
-# Export XML from OpenReview
+# Export Accepted Papers from OpenReview
 
-Run the script with command-line arguments. Example to export ICLR'23 accepted papers:
+Run the script with command-line arguments. Example to export ICLR'24 accepted papers:
 
 ```bash
 python export_to_acm_xml.py \
-  --venue_id "ICLR.cc/2023/Conference" \
+  --venue_id "ICLR.cc/2024/Conference" \
   --paper_type "Full Paper" \
   --output_file "ICLR_acm_comp_output.xml"
 ```
@@ -53,21 +56,6 @@ Parameters:
 - `--output_file` (optional): Output XML file (default: acm_output.xml)  
 
 ---
-
-# Convert XML to Word
-
-Run the script with command-line arguments. Example to convert the ICLR papers into an MS Word listing:
-
-```bash
-python acm_xml_to_ms_word.py \
-  --input_xml "ICLR_acm_comp_output.xml" \
-  --output_docx "ICLR_papers_list.docx"
-```
-
-Parameters:
-
-- `--input_xml` (required): Path to input XML file  
-- `--output_docx` (optional): Output Word file (default: papers_list.docx)  
 
 # Notes and Assumptions
 
@@ -91,3 +79,20 @@ Parameters:
 - **Paper Submission and Decision Dates**
   - The **submission date** is taken from `tcdate` (true creation date), which reflects the original submission date.
   - The **approval date** is set to the last modification date (tmdate) as a proxy for the approval date. There might be a better more accurate way for this if it is important.
+  
+
+# Convert the XML file into .docx 
+
+Run the script with command-line arguments. Example to convert the ICLR papers into an MS Word doc:
+
+```bash
+python acm_xml_to_ms_word.py \
+  --input_xml "ICLR_acm_comp_output.xml" \
+  --output_docx "ICLR_papers_list.docx"
+```
+
+Parameters:
+
+- `--input_xml` (required): Path to input XML file  
+- `--output_docx` (optional): Output Word file (default: papers_list.docx)  
+
