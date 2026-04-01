@@ -1,9 +1,9 @@
-# Overview# Overview
+# Overview
 
 This project is to host scripts used to prepare an ACM proceedings from OpenReview. So far, it has the following (still under testing):
 
 1. Export accepted papers from OpenReview into ACM/Sheridan XML format  
-2. Convert the XML into a clean Word document listing titles and authors to be added to the website   
+2. Convert the XML into an MS Word document listing titles and authors  
 
 
 ---
@@ -56,7 +56,7 @@ Parameters:
 
 # Convert XML to Word
 
-Run the script with command-line arguments. Example to convert the ICLR papers into a MS word listing:
+Run the script with command-line arguments. Example to convert the ICLR papers into an MS Word listing:
 
 ```bash
 python acm_xml_to_ms_word.py \
