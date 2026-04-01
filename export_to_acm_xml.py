@@ -28,7 +28,8 @@ def indent(elem, level=0):
         elem.tail = i
 
 def get_submission_date(submission):
-    timestamp = getattr(submission, "tcdate", None) or getattr(submission, "cdate", None)
+    timestamp = getattr(submission, "tcdate", None)\
+                # or getattr(submission, "cdate", None)
     return format_date(timestamp)
 
 
@@ -217,7 +218,7 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
         # ----------------------------
         ET.SubElement(paper, "paper_type").text = paper_type
         ET.SubElement(paper, "art_submission_date").text = get_submission_date(s)
-        # ET.SubElement(paper, "art_approval_date").text = get_decision_date(decision_note)
+        ET.SubElement(paper, "art_approval_date").text = "02-APR-2026"
         ET.SubElement(paper, "paper_title").text = s.content.get("title", "")
         ET.SubElement(paper, "event_tracking_number").text = s.id
         ET.SubElement(paper, "published_article_number").text = ""
