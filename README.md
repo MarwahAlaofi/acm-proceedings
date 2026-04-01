@@ -1,97 +1,129 @@
-# **OpenReview to ACM/Sheridan XML Exporter**
+# OpenReview to ACM/Sheridan XML Exporter
+
+[](https://www.google.com/search?q=https://colab.research.google.com/github/MarwahAlaofi/acm-proceedings/blob/main/OpenReview_to_ACM_XML.ipynb)
 
 This repository provides tools to automate the extraction of accepted paper and author metadata from OpenReview venues, converting them into the strict XML schema required for ACM Digital Library ingestion and Sheridan publishing. It also includes utility scripts for generating human-readable document listings.
 
-## **🛠 Available Tools**
+## 🛠 Available Tools
 
-### **1\. Modern API V2 Exporter (Recommended)**
+### 1\. Modern API V2 Exporter (Recommended)
 
-**File:** OpenReview\_to\_ACM\_XML.ipynb
+**File:** `OpenReview_to_ACM_XML.ipynb`
 
 Built for modern OpenReview venues (2024+). This interactive notebook handles new nested content structures and provides:
 
-* **Robust Name Resolution:** Uses profile-preferred names with intelligent fallback logic for mononyms.  
-* **Affiliation Deduplication:** Cleans up redundant concurrent roles at the same institution.  
-* **Audit Logging:** Provides a detailed data-health summary (missing profiles, emails, etc.).
+  * **Robust Name Resolution:** Uses profile-preferred names with intelligent fallback logic for mononyms.
 
-### **2\. Legacy API V1 Exporter**
+  * **Affiliation Deduplication:** Cleans up redundant concurrent roles at the same institution.
 
-**File:** extract\_openreview.py
+  * **Audit Logging:** Provides a detailed data-health summary (missing profiles, emails, etc.).
+
+### 2\. Legacy API V1 Exporter
+
+**File:** `extract_openreview.py`
 
 Designed for older OpenReview venues (pre-2024) using the legacy API v1. Use this if the V2 client returns no results for historical conferences.
 
-### **3\. XML to MS Word Converter**
+### 3\. XML to MS Word Converter
 
-**File:** acm\_xml\_to\_ms\_word.py
+**File:** `acm_xml_to_ms_word.py`
 
-Reads the generated ACM XML and produces a formatted .docx file, useful for administrative review or generating physical paper listings.
+Reads the generated ACM XML and produces a formatted `.docx` file, useful for administrative review or generating physical paper listings.
 
-## **📋 Prerequisites**
+## 📋 Prerequisites
 
-* **OpenReview Account:** A valid username and password.  
-* **Access Level:** To extract full, unmasked **email addresses**, you must use an account with **Program Chair** or **Venue Chair** privileges. Otherwise, emails are masked as \*\*\*\*@domain.com.
+  * **OpenReview Account:** A valid username and password.
 
-## **🚀 Quick Start (Google Colab)**
+  * **Access Level:** To extract full, unmasked **email addresses**, you must use an account with **Program Chair** or **Venue Chair** privileges. Otherwise, emails are masked as `****@domain.com`.
 
-1. Click the **"Open in Colab"** badge at the top of this page.  
-2. Open the **Secrets** (🔑) tab in the left sidebar of the Colab interface.  
-3. Add your credentials as secrets:  
-   * OPENREVIEW\_USERNAME (Your email)  
-   * OPENREVIEW\_PASSWORD (Your password)  
-   * **Important:** Toggle "Notebook access" to **ON** for both.  
-4. In the final cell, update the configuration. Examples:  
-   * **Full Papers:** ICLR.cc/2024/Conference  
-   * **Short Papers:** ACM.org/SIGIR/2026/Short\_Papers\_Track  
-5. Select **Runtime \> Run all**.  
-6. Download the generated XML from the **Files** (📁) icon in the sidebar.
+## 🚀 Quick Start (Google Colab)
 
-## **💻 Local Usage**
+1.  Click the **"Open in Colab"** badge at the top of this page.
 
-1. **Clone the repository:**  
-   git clone \[https://github.com/MarwahAlaofi/acm-proceedings.git\](https://github.com/MarwahAlaofi/acm-proceedings.git)  
-   cd acm-proceedings
+2.  Open the **Secrets** (🔑) tab in the left sidebar of the Colab interface.
 
-2. **Install dependencies:**  
-   pip install openreview-py==1.30.0 python-docx python-dotenv tqdm
+3.  Add your credentials as secrets:
 
-3. **Configure Credentials:**  
-   Create a .env file in the root directory:  
-   OPENREVIEW\_USERNAME=your\_email@example.com  
-   OPENREVIEW\_PASSWORD=your\_password
+      * `OPENREVIEW_USERNAME` (Your email)
 
-4. **Run Legacy Extraction (V1):**  
-   python extract\_openreview.py
+      * `OPENREVIEW_PASSWORD` (Your password)
 
-### **📄 Convert XML to Word**
+      * **Important:** Toggle "Notebook access" to **ON** for both.
+
+4.  In the final cell, update the configuration. Examples:
+
+      * **Full Papers:** `ICLR.cc/2024/Conference`
+
+      * **Short Papers:** `ACM.org/SIGIR/2026/Short_Papers_Track`
+
+5.  Select **Runtime \> Run all**.
+
+6.  Download the generated XML from the **Files** (📁) icon in the sidebar.
+
+## 💻 Local Usage
+
+1.  **Clone the repository:**
+
+    ```bash
+    git clone https://github.com/MarwahAlaofi/acm-proceedings.git
+    cd acm-proceedings
+    ```
+
+2.  **Install dependencies:**
+
+    ```bash
+    pip install openreview-py==1.30.0 python-docx python-dotenv tqdm
+    ```
+
+3.  **Configure Credentials:**
+    Create a `.env` file in the root directory:
+
+    ```text
+    OPENREVIEW_USERNAME=your_email@example.com
+    OPENREVIEW_PASSWORD=your_password
+    ```
+
+4.  **Run Legacy Extraction (V1):**
+
+    ```bash
+    python extract_openreview.py
+    ```
+
+### 📄 Convert XML to Word
 
 Once you have generated your XML file, you can convert it to a formatted Word document:
 
-python acm\_xml\_to\_ms\_word.py \\  
-  \--input\_xml "iclr\_export.xml" \\  
-  \--output\_docx "ICLR\_papers\_list.docx"
+```bash
+python acm_xml_to_ms_word.py \
+  --input_xml "iclr_export.xml" \
+  --output_docx "ICLR_papers_list.docx"
+```
 
 **Parameters:**
 
-* \--input\_xml (required): Path to the input XML file generated by the exporters.  
-* \--output\_docx (optional): Output Word file path (default: papers\_list.docx).
+  * `--input_xml` (required): Path to the input XML file generated by the exporters.
 
-## **📊 Example Extraction Summary (V2 Notebook)**
+  * `--output_docx` (optional): Output Word file path (default: `papers_list.docx`).
+
+## 📊 Example Extraction Summary (V2 Notebook)
 
 The V2 notebook provides a comprehensive health check of the extracted data to help you identify missing profile information:
 
-\========================================  
-         DATA EXTRACTION SUMMARY          
-\========================================  
- Papers Processed         : 2260  
- Authors Processed        : 11999  
- \----------------------------------------  
- Missing OR Profiles      : 912  
- Missing First Names      : 0  
- Missing Last Names       : 1  
- Missing Email Addresses  : 849  
- Missing Institutions     : 913  
-\========================================
+```text
+========================================
+         DATA EXTRACTION SUMMARY        
+========================================
+ Papers Processed         : 2260
+ Authors Processed        : 11999
+ ----------------------------------------
+ Missing OR Profiles      : 912
+ Missing First Names      : 0
+ Missing Last Names       : 1
+ Missing Email Addresses  : 849
+ Missing Institutions     : 913
+========================================
+```
 
-## **📄 License**
+## 📄 License
 
-Distributed under the MIT License. See LICENSE for more information.
+Distributed under the MIT License. See `LICENSE` for more information.
