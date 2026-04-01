@@ -1,6 +1,6 @@
 # Overview
 
-This project is to host scripts used to prepare an ACM proceedings from OpenReview. So far, it has the following (still under testing):
+This project is to host scripts used to prepare an ACM proceedings from OpenReview following this XML format: https://cms.acm.org/paperLoad/paperLoadSAMPLE.xml. So far, it has the following (still under testing):
 
 1. Export accepted papers from OpenReview into ACM/Sheridan XML format  
 2. Convert the XML into an MS Word document listing titles and authors  
