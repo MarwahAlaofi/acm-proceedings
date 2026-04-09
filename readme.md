@@ -441,6 +441,24 @@ Log file saved to: sigir2026.log
     - Low Resource Environments → Low Resource Environment
   - If a track is not in the mapping, the cleaned track name is used as-is
 
+- **Event Tracking Numbers**
+  - Each paper gets a unique event tracking number with a paper type prefix
+  - Format: `{prefix}{submission_number}`
+  - Example: Submission #78 as Full Research Paper → `fp78`
+  - Prefix mapping:
+    - Full Research Paper → `fp`
+    - Short Research Paper → `sp`
+    - Resource Paper → `rr`
+    - Reproducibility Paper → `rp`
+    - Demo Short Paper → `de`
+    - Perspective Paper → `per`
+    - Industry Paper → `ip`
+    - Tutorial Paper → `tut`
+    - Low Resource Environment → `lre`
+    - Doctoral Abstract → `dc`
+    - Workshop Summary → `wk`
+  - This makes it easy to identify paper types at a glance in the XML file
+
 - **Author Data Consolidation**
   - Authors with multiple papers may have different information in different entries
   - The script consolidates by finding the most complete information across all entries
