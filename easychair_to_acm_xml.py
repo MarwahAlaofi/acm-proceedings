@@ -202,6 +202,23 @@ TRACK_TO_SECTION_MAP = {
     "Low Resource Environments": "Low Resource Environment",
 }
 
+# Paper type to event tracking number prefix mapping
+# Key: ACM paper type name
+# Value: Prefix for event_tracking_number (e.g., "fp78" for Full Research Paper #78)
+PAPER_TYPE_PREFIX_MAP = {
+    "Full Research Paper": "fp",
+    "Short Research Paper": "sp",
+    "Resource Paper": "rr",
+    "Reproducibility Paper": "rp",
+    "Demo Short Paper": "de",
+    "Perspective Paper": "per",
+    "Industry Paper": "ip",
+    "Tutorial Paper": "tut",
+    "Low Resource Environment": "lre",
+    "Doctoral Abstract": "dc",
+    "Workshop Summary": "wk",
+}
+
 
 def export_easychair_to_acm_xml(
     excel_file_path,
@@ -614,7 +631,11 @@ def export_easychair_to_acm_xml(
             approval_date or submission.get("Approval date", "")
         )
         ET.SubElement(paper, "paper_title").text = str(submission.get("Title", ""))
-        ET.SubElement(paper, "event_tracking_number").text = f"paper{submission_id}"
+
+        # Generate event tracking number with paper type prefix
+        # e.g., "fp78" for Full Research Paper #78, "de42" for Demo Short Paper #42
+        prefix = PAPER_TYPE_PREFIX_MAP.get(current_paper_type, "paper")
+        ET.SubElement(paper, "event_tracking_number").text = f"{prefix}{submission_id}"
         ET.SubElement(paper, "published_article_number").text = ""
         ET.SubElement(paper, "start_page").text = ""
         ET.SubElement(paper, "end_page").text = ""
