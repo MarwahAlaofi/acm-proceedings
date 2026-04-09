@@ -129,11 +129,17 @@ python easychair_to_acm_xml.py \
 ```
 
 This automatically assigns appropriate paper types based on track names:
-- Demo Papers Track → "Demo Paper"
-- Full Papers Track → "Full Paper"  
+- Full Papers Track → "Full Research Paper"
+- Short Papers Track → "Short Research Paper"
+- Demo Papers Track → "Demo Short Paper"
+- Resources Papers Track → "Resource Paper"
+- Reproducibility Track → "Reproducibility Paper"
+- Industry Papers Track → "Industry Paper"
+- Perspectives Paper Track → "Perspective Paper"
 - Workshop Proposals → "Workshop Summary"
-- Tutorial Proposals → "Tutorial"
-- etc.
+- Tutorial Proposals → "Tutorial Paper"
+- Doctoral Colloquium → "Doctoral Abstract"
+- Low Resource Environments Track → "Low Resource Environment"
 
 **Parameters:**
 
@@ -152,9 +158,11 @@ This automatically assigns appropriate paper types based on track names:
 
 - `--paper_type` (optional): Override paper type for ALL papers
   - **Default behavior (recommended):** Auto-derives from track/section name:
-    - "Demo Papers Track" → "Demo Paper"
-    - "Full Papers Track" → "Full Paper"
+    - "Full Papers Track" → "Full Research Paper"
+    - "Short Papers Track" → "Short Research Paper"
+    - "Demo Papers Track" → "Demo Short Paper"
     - "Workshop Proposals" → "Workshop Summary"
+    - See full mapping list above
   - **Only use `--paper_type` when:**
     - Exporting a single track with `--track` and want to override the auto-detected type, OR
     - You need all papers to have the same type regardless of track (rare)
@@ -189,7 +197,7 @@ python easychair_to_acm_xml.py \
   --input "SIGIR2026_export.xlsx" \
   --proceeding_id "2026-SIGIR-Demo" \
   --track "SIGIR 2026 Demo Papers Track" \
-  --paper_type "Demo Paper" \
+  --paper_type "Demo Short Paper" \
   --output "sigir2026_demos.xml"
 ```
 
@@ -315,9 +323,11 @@ EXPORT SUMMARY
 TRACK NAME MAPPING
 --------------------------------------------------------------------------------
   SIGIR 2026 Full Papers Track
-    → Full Paper (131 papers)
+    → Full Research Paper (131 papers)
+  SIGIR 2026 Short Papers Track
+    → Short Research Paper (58 papers)
   SIGIR 2026 Demo Papers Track
-    → Demo Paper (24 papers)
+    → Demo Short Paper (24 papers)
   SIGIR 2026 Workshop Proposals
     → Workshop Summary (10 papers)
   ...
@@ -326,17 +336,17 @@ TRACK NAME MAPPING
 TOP 5 MOST PROLIFIC AUTHORS
 --------------------------------------------------------------------------------
   1. John Smith (john@mit.edu): 5 paper(s)
-     Paper types: 3 Demo Paper, 2 Full Paper
+     Paper types: 3 Demo Short Paper, 2 Full Research Paper
      Papers: #78, #105, #110, #118, #128
   2. Jane Doe (jane@stanford.edu): 4 paper(s)
-     Paper types: 2 Full Paper, 1 Workshop Summary, 1 Tutorial
+     Paper types: 2 Full Research Paper, 1 Workshop Summary, 1 Tutorial Paper
      Papers: #162, #165, #169, #172
   3. Bob Wang: 3 paper(s)
      Paper types: 2 Industry Paper, 1 Resource Paper
   4. Alice Chen: 3 paper(s)
-     Paper types: 3 Full Paper
+     Paper types: 3 Full Research Paper
   5. Carol Lee: 3 paper(s)
-     Paper types: 2 Demo Paper, 1 Full Paper
+     Paper types: 2 Demo Short Paper, 1 Full Research Paper
 
 Note: If multiple authors are tied at the 5th position, all tied authors are included
 
@@ -407,16 +417,29 @@ Log file saved to: sigir2026.log
   - By default, paper type is **automatically derived** from the track/section name
   - This ensures correct paper types when exporting multiple tracks simultaneously
   - Examples:
-    - "Demo Papers Track" → paper_type: "Demo Paper"
-    - "Full Papers Track" → paper_type: "Full Paper"
+    - "Full Papers Track" → paper_type: "Full Research Paper"
+    - "Demo Papers Track" → paper_type: "Demo Short Paper"
     - "Workshop Proposals" → paper_type: "Workshop Summary"
+    - See complete mapping list above
   - Use `--paper_type` override only when all papers should have the same type
 
 - **Track Name Mapping**
   - EasyChair track names are automatically cleaned to match ACM section conventions
   - Conference prefix is auto-detected and removed (e.g., "SIGIR 2026 ")
-  - Plurals are normalized: "Papers" → "Paper"
-  - Special mappings: "Workshop Proposals" → "Workshop Summary", "Tutorial Proposals" → "Tutorial"
+  - " Track" suffix is removed
+  - Track names are mapped to ACM paper types using a predefined dictionary:
+    - Full Papers → Full Research Paper
+    - Short Papers → Short Research Paper
+    - Demo Papers → Demo Short Paper
+    - Resources Papers → Resource Paper
+    - Reproducibility → Reproducibility Paper
+    - Industry Papers → Industry Paper
+    - Perspectives Paper → Perspective Paper
+    - Workshop Proposals → Workshop Summary
+    - Tutorial Proposals → Tutorial Paper
+    - Doctoral Colloquium → Doctoral Abstract
+    - Low Resource Environments → Low Resource Environment
+  - If a track is not in the mapping, the cleaned track name is used as-is
 
 - **Author Data Consolidation**
   - Authors with multiple papers may have different information in different entries
