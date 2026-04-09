@@ -301,7 +301,7 @@ def export_easychair_to_acm_xml(
         if len(group) > 1:
             # Multiple entries - find the best (most complete) value for each field
             info = {}
-            for field in ['Email', 'Affiliation', 'Country', 'Web page', 'Corresponding?']:
+            for field in ['Email', 'Country', 'Web page']:
                 best_val = ''
                 for _, row in group.iterrows():
                     val = row.get(field, '')
