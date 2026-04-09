@@ -40,6 +40,7 @@ from collections import defaultdict
 # UTILITY FUNCTIONS
 # ============================================================================
 
+
 def indent(elem, level=0):
     """
     Add pretty-printing indentation to XML elements.
@@ -102,7 +103,7 @@ def parse_affiliation(affiliation_str):
     if pd.isna(affiliation_str) or not affiliation_str:
         return "", affiliation_str or ""
 
-    parts = [p.strip() for p in str(affiliation_str).split(',')]
+    parts = [p.strip() for p in str(affiliation_str).split(",")]
 
     if len(parts) >= 2:
         # Heuristic: First part is department (if < 100 chars), last part is institution
@@ -133,7 +134,7 @@ def setup_logging(log_file):
         logger: Configured logger instance
     """
     # Create logger
-    logger = logging.getLogger('easychair_to_acm')
+    logger = logging.getLogger("easychair_to_acm")
     logger.setLevel(logging.DEBUG)  # Capture all levels
 
     # Prevent duplicate handlers if function is called multiple times
@@ -143,13 +144,13 @@ def setup_logging(log_file):
     # Console handler - INFO and above
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
-    console_format = logging.Formatter('%(message)s')
+    console_format = logging.Formatter("%(message)s")
     console_handler.setFormatter(console_format)
 
     # File handler - DEBUG and above (all levels)
-    file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
+    file_handler = logging.FileHandler(log_file, mode="w", encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
-    file_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_format = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     file_handler.setFormatter(file_format)
 
     # Add handlers
@@ -189,7 +190,8 @@ def export_easychair_to_acm_xml(
     source="EasyChair",
     paper_type=None,
     output_file="acm_output.xml",
-    track_filter=None
+    approval_date=None,
+    track_filter=None,
 ):
     """
     Convert EasyChair export to ACM/Sheridan XML format.
@@ -202,6 +204,7 @@ def export_easychair_to_acm_xml(
                     from track/section name. Only use this when exporting a single
                     track or when all papers should have the same type.
         output_file: Output XML file name
+        approval_date: Date when papers were approved (optional, for metadata)
         track_filter: Optional track name to filter submissions (default: None, include all)
     """
 
@@ -209,12 +212,12 @@ def export_easychair_to_acm_xml(
     # SETUP LOGGING
     # ========================================================================
     # Create log file name based on output file name
-    log_file = output_file.rsplit('.', 1)[0] + '.log'
+    log_file = output_file.rsplit(".", 1)[0] + ".log"
     logger = setup_logging(log_file)
 
-    logger.info("="*80)
+    logger.info("=" * 80)
     logger.info("EASYCHAIR TO ACM XML CONVERSION")
-    logger.info("="*80)
+    logger.info("=" * 80)
     logger.debug(f"Loading Excel file: {excel_file_path}")
     logger.info(f"Proceeding ID: {proceeding_id}")
     logger.info(f"Output file: {output_file}")
@@ -224,20 +227,24 @@ def export_easychair_to_acm_xml(
     excel = pd.ExcelFile(excel_file_path)
 
     # Load dataframes
-    submissions_df = pd.read_excel(excel, 'Submissions')
-    authors_df = pd.read_excel(excel, 'Authors')
+    submissions_df = pd.read_excel(excel, "Submissions")
+    authors_df = pd.read_excel(excel, "Authors")
 
-    logger.info(f"Loaded {len(submissions_df)} submissions and {len(authors_df)} author records")
+    logger.info(
+        f"Loaded {len(submissions_df)} submissions and {len(authors_df)} author records"
+    )
 
     # Filter by track if specified
     if track_filter:
-        submissions_df = submissions_df[submissions_df['Track name'] == track_filter]
-        logger.info(f"Filtered to {len(submissions_df)} submissions in track: {track_filter}")
+        submissions_df = submissions_df[submissions_df["Track name"] == track_filter]
+        logger.info(
+            f"Filtered to {len(submissions_df)} submissions in track: {track_filter}"
+        )
 
     # Filter for accepted papers only
     submissions_df = submissions_df[
-        (submissions_df['Decision'] == 'Accept paper/proposal') |
-        (submissions_df['Decision'] == 'tentatively accepted')
+        (submissions_df["Decision"] == "Accept paper/proposal")
+        | (submissions_df["Decision"] == "tentatively accepted")
     ]
     logger.info(f"Found {len(submissions_df)} accepted submissions")
 
@@ -246,20 +253,20 @@ def export_easychair_to_acm_xml(
         """Remove line feeds, tabs, and extra whitespace."""
         if pd.isna(x):
             return ""
-        return ' '.join(str(x).split())
+        return " ".join(str(x).split())
 
     # Clean submission fields
-    submissions_df['Title'] = submissions_df['Title'].map(clean_text)
-    submissions_df['Track name'] = submissions_df['Track name'].map(clean_text)
-    submissions_df['Keywords'] = submissions_df['Keywords'].map(
-        lambda x: '; '.join(str(x).split('\n')) if pd.notna(x) and x else ""
+    submissions_df["Title"] = submissions_df["Title"].map(clean_text)
+    submissions_df["Track name"] = submissions_df["Track name"].map(clean_text)
+    submissions_df["Keywords"] = submissions_df["Keywords"].map(
+        lambda x: "; ".join(str(x).split("\n")) if pd.notna(x) and x else ""
     )
 
     # Identify conference name from track names
     # Assume format: "Conference Year Track Name"
     conference_prefix = ""
     if len(submissions_df) > 0:
-        first_track = submissions_df['Track name'].iloc[0]
+        first_track = submissions_df["Track name"].iloc[0]
         # Extract first two words (e.g., "SIGIR 2026")
         parts = first_track.split()
         if len(parts) >= 2:
@@ -267,11 +274,13 @@ def export_easychair_to_acm_xml(
             logger.info(f"Detected conference: {conference_prefix.strip()}")
 
     # Clean author fields
-    authors_df['First name'] = authors_df['First name'].map(clean_text)
-    authors_df['Last name'] = authors_df['Last name'].map(clean_text)
-    authors_df['Email'] = authors_df['Email'].map(lambda x: str(x).strip() if pd.notna(x) else "")
-    authors_df['Affiliation'] = authors_df['Affiliation'].map(clean_text)
-    authors_df['Country'] = authors_df['Country'].map(clean_text)
+    authors_df["First name"] = authors_df["First name"].map(clean_text)
+    authors_df["Last name"] = authors_df["Last name"].map(clean_text)
+    authors_df["Email"] = authors_df["Email"].map(
+        lambda x: str(x).strip() if pd.notna(x) else ""
+    )
+    authors_df["Affiliation"] = authors_df["Affiliation"].map(clean_text)
+    authors_df["Country"] = authors_df["Country"].map(clean_text)
 
     # ========================================================================
     # CONSOLIDATE DUPLICATE AUTHOR ENTRIES
@@ -286,25 +295,33 @@ def export_easychair_to_acm_xml(
 
     def get_author_key(row):
         """Create a unique key for grouping author entries."""
-        email = row['Email'].lower().strip() if pd.notna(row['Email']) and row['Email'] and row['Email'] != 'nan' else ''
-        return (row['First name'].lower().strip(), row['Last name'].lower().strip(), email)
+        email = (
+            row["Email"].lower().strip()
+            if pd.notna(row["Email"]) and row["Email"] and row["Email"] != "nan"
+            else ""
+        )
+        return (
+            row["First name"].lower().strip(),
+            row["Last name"].lower().strip(),
+            email,
+        )
 
     def is_empty_value(val):
         """Check if a field value is empty/missing."""
-        return pd.isna(val) or not str(val).strip() or str(val) == 'nan'
+        return pd.isna(val) or not str(val).strip() or str(val) == "nan"
 
     # Build consolidated info for each unique author
-    authors_df['_author_key'] = authors_df.apply(get_author_key, axis=1)
+    authors_df["_author_key"] = authors_df.apply(get_author_key, axis=1)
     consolidated_info = {}
 
-    for author_key, group in authors_df.groupby('_author_key'):
+    for author_key, group in authors_df.groupby("_author_key"):
         if len(group) > 1:
             # Multiple entries - find the best (most complete) value for each field
             info = {}
-            for field in ['Email', 'Country', 'Web page']:
-                best_val = ''
+            for field in ["Email", "Country", "Web page"]:
+                best_val = ""
                 for _, row in group.iterrows():
-                    val = row.get(field, '')
+                    val = row.get(field, "")
                     if not is_empty_value(val) and not best_val:
                         best_val = val
                         break
@@ -313,20 +330,24 @@ def export_easychair_to_acm_xml(
 
     # Apply consolidated info back to all rows
     for idx, row in authors_df.iterrows():
-        key = row['_author_key']
+        key = row["_author_key"]
         if key in consolidated_info:
             for field, value in consolidated_info[key].items():
-                old_val = row.get(field, '')
+                old_val = row.get(field, "")
                 if is_empty_value(old_val) and value:
-                    logger.debug(f"  → Filling {field} for {row['First name']} {row['Last name']} "
-                                 f"(Paper #{row['Submission #']}): '{old_val}' → '{value}'")
+                    logger.debug(
+                        f"  → Filling {field} for {row['First name']} {row['Last name']} "
+                        f"(Paper #{row['Submission #']}): '{old_val}' → '{value}'"
+                    )
                     authors_df.at[idx, field] = value
                     author_corrections += 1
 
-    authors_df = authors_df.drop(columns=['_author_key'])
+    authors_df = authors_df.drop(columns=["_author_key"])
 
     if author_corrections > 0:
-        logger.warning(f"✓ Made {author_corrections} field correction(s) across duplicate author entries")
+        logger.warning(
+            f"✓ Made {author_corrections} field correction(s) across duplicate author entries"
+        )
         logger.warning(f"  → Check log file for detailed list of corrections")
     else:
         logger.info("✓ No duplicate author entries requiring consolidation")
@@ -344,125 +365,151 @@ def export_easychair_to_acm_xml(
 
     # Check 1: Same email, different names
     # Note: Names are already cleaned (whitespace normalized), so we can compare directly
-    valid_emails = authors_df[authors_df['Email'].notna() &
-                               (authors_df['Email'] != '') &
-                               (authors_df['Email'] != 'nan')]
-    for email, group in valid_emails.groupby('Email'):
+    valid_emails = authors_df[
+        authors_df["Email"].notna()
+        & (authors_df["Email"] != "")
+        & (authors_df["Email"] != "nan")
+    ]
+    for email, group in valid_emails.groupby("Email"):
         if len(group) > 1:
             # Get unique name combinations (after cleaning)
-            first_names = group['First name'].unique()
-            last_names = group['Last name'].unique()
+            first_names = group["First name"].unique()
+            last_names = group["Last name"].unique()
 
             # Only flag if there are ACTUALLY different names (not just duplicates)
             if len(first_names) > 1 or len(last_names) > 1:
                 # Get unique name variants to avoid showing same name multiple times
-                unique_names = group[['First name', 'Last name', 'Submission #']].drop_duplicates(
-                    subset=['First name', 'Last name']
-                )
+                unique_names = group[
+                    ["First name", "Last name", "Submission #"]
+                ].drop_duplicates(subset=["First name", "Last name"])
 
                 # Double-check: if after deduplication we only have 1 unique name, skip
                 # This catches cases where slight variations (whitespace, etc.) were already cleaned
                 if len(unique_names) > 1:
                     for _, row in unique_names.iterrows():
-                        typo_warnings.append({
-                            'type': 'email_match_name_mismatch',
-                            'email': email,
-                            'first_name': row['First name'],
-                            'last_name': row['Last name'],
-                            'paper': row['Submission #'],
-                            'message': f"Same email '{email}' but different name"
-                        })
+                        typo_warnings.append(
+                            {
+                                "type": "email_match_name_mismatch",
+                                "email": email,
+                                "first_name": row["First name"],
+                                "last_name": row["Last name"],
+                                "paper": row["Submission #"],
+                                "message": f"Same email '{email}' but different name",
+                            }
+                        )
 
     # Check 2: Same name, different emails
-    for (first, last), group in authors_df.groupby(['First name', 'Last name']):
+    for (first, last), group in authors_df.groupby(["First name", "Last name"]):
         if len(group) > 1:
-            valid_group_emails = group[group['Email'].notna() &
-                                       (group['Email'] != '') &
-                                       (group['Email'] != 'nan')]
-            emails = valid_group_emails['Email'].unique()
+            valid_group_emails = group[
+                group["Email"].notna()
+                & (group["Email"] != "")
+                & (group["Email"] != "nan")
+            ]
+            emails = valid_group_emails["Email"].unique()
 
             if len(emails) > 1:
                 for _, row in valid_group_emails.iterrows():
-                    typo_warnings.append({
-                        'type': 'name_match_email_mismatch',
-                        'first_name': first,
-                        'last_name': last,
-                        'email': row['Email'],
-                        'paper': row['Submission #'],
-                        'affiliation': row.get('Affiliation', ''),
-                        'message': f"Same name '{first} {last}' but different emails"
-                    })
+                    typo_warnings.append(
+                        {
+                            "type": "name_match_email_mismatch",
+                            "first_name": first,
+                            "last_name": last,
+                            "email": row["Email"],
+                            "paper": row["Submission #"],
+                            "affiliation": row.get("Affiliation", ""),
+                            "message": f"Same name '{first} {last}' but different emails",
+                        }
+                    )
 
     # Print warnings grouped by type
     if typo_warnings:
         # Group by type
-        email_mismatches = [w for w in typo_warnings if w['type'] == 'email_match_name_mismatch']
-        name_mismatches = [w for w in typo_warnings if w['type'] == 'name_match_email_mismatch']
+        email_mismatches = [
+            w for w in typo_warnings if w["type"] == "email_match_name_mismatch"
+        ]
+        name_mismatches = [
+            w for w in typo_warnings if w["type"] == "name_match_email_mismatch"
+        ]
 
         # Summary at WARNING level (shown on console)
         logger.warning("")
-        logger.warning(f"⚠ Found {len(typo_warnings)} potential typo(s) or data inconsistencies:")
+        logger.warning(
+            f"⚠ Found {len(typo_warnings)} potential typo(s) or data inconsistencies:"
+        )
 
         if email_mismatches:
-            unique_emails = len(set(w['email'] for w in email_mismatches))
-            logger.warning(f"  • Same email, different names: {unique_emails} email(s) affected")
+            unique_emails = len(set(w["email"] for w in email_mismatches))
+            logger.warning(
+                f"  • Same email, different names: {unique_emails} email(s) affected"
+            )
 
         if name_mismatches:
-            unique_names = len(set((w['first_name'], w['last_name']) for w in name_mismatches))
-            logger.warning(f"  • Same name, different emails: {unique_names} name(s) affected")
+            unique_names = len(
+                set((w["first_name"], w["last_name"]) for w in name_mismatches)
+            )
+            logger.warning(
+                f"  • Same name, different emails: {unique_names} name(s) affected"
+            )
 
         logger.warning(f"  → Check log file for complete details")
 
         # Details at DEBUG level (only in log file)
         logger.debug("")
-        logger.debug("="*80)
+        logger.debug("=" * 80)
         logger.debug("DETAILED TYPO/INCONSISTENCY REPORT")
-        logger.debug("="*80)
+        logger.debug("=" * 80)
 
         if email_mismatches:
             # Count unique emails (not individual warnings)
-            unique_emails = len(set(w['email'] for w in email_mismatches))
+            unique_emails = len(set(w["email"] for w in email_mismatches))
             logger.debug("")
-            logger.debug(f"Same email, different names ({unique_emails} email(s) affected):")
-            logger.debug("-"*80)
+            logger.debug(
+                f"Same email, different names ({unique_emails} email(s) affected):"
+            )
+            logger.debug("-" * 80)
 
             # Group by email
             by_email = defaultdict(list)
             for w in email_mismatches:
-                by_email[w['email']].append(w)
+                by_email[w["email"]].append(w)
 
             for email, warnings in by_email.items():
                 logger.debug(f"  Email: {email}")
                 # Group warnings by unique name to show variants clearly
                 name_variants = {}
                 for w in warnings:
-                    name_key = (w['first_name'], w['last_name'])
+                    name_key = (w["first_name"], w["last_name"])
                     if name_key not in name_variants:
                         name_variants[name_key] = []
-                    name_variants[name_key].append(w['paper'])
+                    name_variants[name_key].append(w["paper"])
 
                 # Show each name variant with first/last split visible for easy comparison
                 for (first, last), papers in name_variants.items():
-                    paper_list = ', '.join(f"#{p}" for p in papers)
-                    logger.debug(f"    → First: '{first}' | Last: '{last}' (Papers: {paper_list})")
+                    paper_list = ", ".join(f"#{p}" for p in papers)
+                    logger.debug(
+                        f"    → First: '{first}' | Last: '{last}' (Papers: {paper_list})"
+                    )
 
         if name_mismatches:
             logger.debug("")
-            logger.debug(f"Same name, different emails ({len(name_mismatches)} case(s)):")
-            logger.debug("-"*80)
+            logger.debug(
+                f"Same name, different emails ({len(name_mismatches)} case(s)):"
+            )
+            logger.debug("-" * 80)
             # Group by name
             by_name = defaultdict(list)
             for w in name_mismatches:
-                by_name[(w['first_name'], w['last_name'])].append(w)
+                by_name[(w["first_name"], w["last_name"])].append(w)
 
             for (first, last), warnings in by_name.items():
                 logger.debug(f"  Name: {first} {last}")
                 for w in warnings:
-                    aff_str = f" - {w['affiliation']}" if w['affiliation'] else ""
+                    aff_str = f" - {w['affiliation']}" if w["affiliation"] else ""
                     logger.debug(f"    → Paper #{w['paper']}: {w['email']}{aff_str}")
 
         logger.debug("")
-        logger.debug("="*80)
+        logger.debug("=" * 80)
     else:
         logger.info("✓ No potential typos detected")
 
@@ -496,13 +543,17 @@ def export_easychair_to_acm_xml(
 
     # Process each accepted submission
     for _, submission in submissions_df.iterrows():
-        submission_id = submission['#']
+        submission_id = submission["#"]
 
         # Get authors for this submission
-        paper_authors = authors_df[authors_df['Submission #'] == submission_id].sort_values('Person #')
+        paper_authors = authors_df[
+            authors_df["Submission #"] == submission_id
+        ].sort_values("Person #")
 
         if len(paper_authors) == 0:
-            logger.error(f"No authors found for submission #{submission_id} - skipping paper")
+            logger.error(
+                f"No authors found for submission #{submission_id} - skipping paper"
+            )
             papers_with_no_authors += 1
             continue
 
@@ -512,12 +563,12 @@ def export_easychair_to_acm_xml(
         paper = ET.SubElement(root, "paper")
 
         # Determine section name first (needed for auto paper_type)
-        track_name = str(submission.get('Track name', ''))
+        track_name = str(submission.get("Track name", ""))
         section_name = track_name
 
         # Remove conference name prefix
         if conference_prefix and section_name.startswith(conference_prefix):
-            section_name = section_name[len(conference_prefix):]
+            section_name = section_name[len(conference_prefix) :]
 
         # Remove " Track" suffix and normalize plurals
         section_name = section_name.replace(" Track", "")
@@ -542,17 +593,23 @@ def export_easychair_to_acm_xml(
 
         # Paper metadata
         ET.SubElement(paper, "paper_type").text = current_paper_type
-        ET.SubElement(paper, "art_submission_date").text = format_date(submission.get('Submitted'))
-        ET.SubElement(paper, "art_approval_date").text = format_date(submission.get('Last updated'))
-        ET.SubElement(paper, "paper_title").text = str(submission.get('Title', ''))
+        ET.SubElement(paper, "art_submission_date").text = format_date(
+            submission.get("Submitted")
+        )
+        ET.SubElement(paper, "art_approval_date").text = format_date(
+            approval_date or submission.get("Approval date", "")
+        )
+        ET.SubElement(paper, "paper_title").text = str(submission.get("Title", ""))
         ET.SubElement(paper, "event_tracking_number").text = f"paper{submission_id}"
         ET.SubElement(paper, "published_article_number").text = ""
         ET.SubElement(paper, "start_page").text = ""
         ET.SubElement(paper, "end_page").text = ""
 
         # Check data quality issues for this paper
-        has_corresponding = any(str(auth.get('Corresponding?', '')) == '✔'
-                               for _, auth in paper_authors.iterrows())
+        has_corresponding = any(
+            str(auth.get("Corresponding?", "")) == "✔"
+            for _, auth in paper_authors.iterrows()
+        )
         if not has_corresponding:
             papers_with_no_corresponding += 1
 
@@ -565,11 +622,11 @@ def export_easychair_to_acm_xml(
             author_xml = ET.SubElement(authors_xml, "author")
 
             # Track author paper count and types
-            first_name = str(author.get('First name', ''))
-            last_name = str(author.get('Last name', ''))
-            email = str(author.get('Email', '')).lower().strip()
-            if email == 'nan':
-                email = ''
+            first_name = str(author.get("First name", ""))
+            last_name = str(author.get("Last name", ""))
+            email = str(author.get("Email", "")).lower().strip()
+            if email == "nan":
+                email = ""
             author_key = (first_name, last_name, email)
             if author_key not in author_paper_count:
                 author_paper_count[author_key] = []
@@ -588,7 +645,7 @@ def export_easychair_to_acm_xml(
             affiliations_xml = ET.SubElement(author_xml, "affiliations")
             affiliation_xml = ET.SubElement(affiliations_xml, "affiliation")
 
-            affiliation_str = author.get('Affiliation')
+            affiliation_str = author.get("Affiliation")
             if pd.isna(affiliation_str) or not str(affiliation_str).strip():
                 paper_has_missing_affiliation = True
 
@@ -598,21 +655,25 @@ def export_easychair_to_acm_xml(
             ET.SubElement(affiliation_xml, "institution").text = institution
             ET.SubElement(affiliation_xml, "city").text = ""
             ET.SubElement(affiliation_xml, "state_province").text = ""
-            ET.SubElement(affiliation_xml, "country").text = str(author.get('Country', ''))
+            ET.SubElement(affiliation_xml, "country").text = str(
+                author.get("Country", "")
+            )
             ET.SubElement(affiliation_xml, "sequence_no").text = "1"
 
             # Author metadata
-            email = str(author.get('Email', ''))
-            if not email or email == 'nan' or not email.strip():
+            email = str(author.get("Email", ""))
+            if not email or email == "nan" or not email.strip():
                 authors_with_missing_emails += 1
             ET.SubElement(author_xml, "email_address").text = email
             ET.SubElement(author_xml, "sequence_no").text = str(author_seq)
 
             # Corresponding author - check if marked with ✔, or default to first author
-            is_corresponding = str(author.get('Corresponding?', '')) == '✔'
+            is_corresponding = str(author.get("Corresponding?", "")) == "✔"
             if not has_corresponding and author_seq == 1:
                 is_corresponding = True  # Default first author as corresponding
-            ET.SubElement(author_xml, "contact_author").text = "Y" if is_corresponding else "N"
+            ET.SubElement(author_xml, "contact_author").text = (
+                "Y" if is_corresponding else "N"
+            )
 
             ET.SubElement(author_xml, "ACM_profile_id").text = ""
             ET.SubElement(author_xml, "ACM_client_no").text = ""
@@ -644,9 +705,9 @@ def export_easychair_to_acm_xml(
     # PRINT DETAILED SUMMARY
     # ========================================================================
     logger.info("")
-    logger.info("="*80)
+    logger.info("=" * 80)
     logger.info("EXPORT SUMMARY")
-    logger.info("="*80)
+    logger.info("=" * 80)
 
     total_papers = paper_seq - 1
     unique_authors = len(author_paper_count)
@@ -654,31 +715,37 @@ def export_easychair_to_acm_xml(
     logger.info("")
     logger.info(f"✓ XML generated: {output_file}")
     logger.info(f"✓ Total papers exported: {total_papers}")
-    logger.info(f"✓ Total author entries: {total_authors}")  # Sum of all authors across all papers
+    logger.info(
+        f"✓ Total author entries: {total_authors}"
+    )  # Sum of all authors across all papers
     logger.info(f"✓ Unique authors: {unique_authors}")  # Distinct individuals
     logger.info(f"✓ Average authors per paper: {total_authors / total_papers:.1f}")
     # Average papers per author = total author entries / unique authors
     # This tells us how many papers each unique author contributes to on average
-    logger.info(f"✓ Average papers per author: {total_authors / unique_authors if unique_authors > 0 else 0:.2f}")
+    logger.info(
+        f"✓ Average papers per author: {total_authors / unique_authors if unique_authors > 0 else 0:.2f}"
+    )
 
     logger.info("")
-    logger.info("-"*80)
+    logger.info("-" * 80)
     logger.info("TRACK NAME MAPPING")
-    logger.info("-"*80)
+    logger.info("-" * 80)
     for original, cleaned in sorted(track_mapping.items()):
         count = papers_by_track[cleaned]
         logger.info(f"  {original}")
         logger.info(f"    → {cleaned} ({count} paper{'s' if count != 1 else ''})")
 
     logger.info("")
-    logger.info("-"*80)
+    logger.info("-" * 80)
     logger.info("PAPERS BY SECTION")
-    logger.info("-"*80)
-    for section, count in sorted(papers_by_track.items(), key=lambda x: x[1], reverse=True):
+    logger.info("-" * 80)
+    for section, count in sorted(
+        papers_by_track.items(), key=lambda x: x[1], reverse=True
+    ):
         logger.info(f"  {section}: {count}")
 
     logger.info("")
-    logger.info("-"*80)
+    logger.info("-" * 80)
     # ========================================================================
     # Show top authors with their paper type distribution
     # Logic: Show top 5 authors, but if there are ties at the 5th position,
@@ -686,7 +753,9 @@ def export_easychair_to_acm_xml(
     #
     # Example: If positions 4, 5, 6, 7 all have 3 papers each, we show all 7.
     # ========================================================================
-    sorted_authors = sorted(author_paper_count.items(), key=lambda x: len(x[1]), reverse=True)
+    sorted_authors = sorted(
+        author_paper_count.items(), key=lambda x: len(x[1]), reverse=True
+    )
 
     if sorted_authors:
         # Determine cutoff: include at least top 5, plus all ties at the 5th position
@@ -713,8 +782,10 @@ def export_easychair_to_acm_xml(
             logger.info("TOP 5 MOST PROLIFIC AUTHORS")
         else:
             # More than 5 due to ties at the 5th position
-            logger.info(f"TOP {len(authors_to_show)} MOST PROLIFIC AUTHORS (including ties)")
-        logger.info("-"*80)
+            logger.info(
+                f"TOP {len(authors_to_show)} MOST PROLIFIC AUTHORS (including ties)"
+            )
+        logger.info("-" * 80)
 
         for i, ((first, last, email), papers) in enumerate(authors_to_show, 1):
             email_str = f" ({email})" if email else ""
@@ -726,7 +797,9 @@ def export_easychair_to_acm_xml(
                 type_counts[ptype] = type_counts.get(ptype, 0) + 1
 
             # Format paper type distribution
-            type_str = ", ".join(f"{count} {ptype}" for ptype, count in sorted(type_counts.items()))
+            type_str = ", ".join(
+                f"{count} {ptype}" for ptype, count in sorted(type_counts.items())
+            )
 
             logger.info(f"  {i}. {first} {last}{email_str}: {len(papers)} paper(s)")
             logger.info(f"     Paper types: {type_str}")
@@ -734,25 +807,37 @@ def export_easychair_to_acm_xml(
                 logger.info(f"     Papers: {', '.join(f'#{p}' for p in papers)}")
 
     logger.info("")
-    logger.info("-"*80)
+    logger.info("-" * 80)
     logger.info("DATA QUALITY WARNINGS")
-    logger.info("-"*80)
+    logger.info("-" * 80)
     if papers_with_no_authors > 0:
-        logger.warning(f"  ⚠ {papers_with_no_authors} paper(s) skipped due to missing authors")
+        logger.warning(
+            f"  ⚠ {papers_with_no_authors} paper(s) skipped due to missing authors"
+        )
     if papers_with_no_corresponding > 0:
-        logger.warning(f"  ⚠ {papers_with_no_corresponding} paper(s) had no corresponding author marked")
+        logger.warning(
+            f"  ⚠ {papers_with_no_corresponding} paper(s) had no corresponding author marked"
+        )
         logger.warning(f"     → First author was automatically set as corresponding")
     if papers_with_missing_affiliations > 0:
-        logger.warning(f"  ⚠ {papers_with_missing_affiliations} paper(s) have at least one author with missing affiliation")
+        logger.warning(
+            f"  ⚠ {papers_with_missing_affiliations} paper(s) have at least one author with missing affiliation"
+        )
     if authors_with_missing_emails > 0:
-        logger.warning(f"  ⚠ {authors_with_missing_emails} author(s) have missing or invalid email addresses")
+        logger.warning(
+            f"  ⚠ {authors_with_missing_emails} author(s) have missing or invalid email addresses"
+        )
 
-    if (papers_with_no_authors == 0 and papers_with_no_corresponding == 0 and
-        papers_with_missing_affiliations == 0 and authors_with_missing_emails == 0):
+    if (
+        papers_with_no_authors == 0
+        and papers_with_no_corresponding == 0
+        and papers_with_missing_affiliations == 0
+        and authors_with_missing_emails == 0
+    ):
         logger.info("  ✓ No data quality issues detected")
 
     logger.info("")
-    logger.info("="*80)
+    logger.info("=" * 80)
     logger.info(f"Log file saved to: {log_file}")
 
 
@@ -774,14 +859,14 @@ Examples:
     --paper_type "Full Paper" --output all_as_full.xml
 
 Note: Track name must be EXACT match (case-sensitive) from EasyChair's "Track name" column.
-        """
+        """,
     )
 
     parser.add_argument(
         "--input",
         required=True,
         metavar="FILE",
-        help="Path to EasyChair Excel export file (must contain 'Submissions' and 'Authors' sheets)"
+        help="Path to EasyChair Excel export file (must contain 'Submissions' and 'Authors' sheets)",
     )
 
     parser.add_argument(
@@ -789,13 +874,13 @@ Note: Track name must be EXACT match (case-sensitive) from EasyChair's "Track na
         required=True,
         metavar="ID",
         help="ACM proceeding ID (e.g., '2026-SIGIR', '2018-1234.1234'). "
-             "Use different IDs for different tracks if submitting separately."
+        "Use different IDs for different tracks if submitting separately.",
     )
 
     parser.add_argument(
         "--source",
         default="EasyChair",
-        help="Source system name for XML metadata (default: 'EasyChair')"
+        help="Source system name for XML metadata (default: 'EasyChair')",
     )
 
     parser.add_argument(
@@ -803,16 +888,24 @@ Note: Track name must be EXACT match (case-sensitive) from EasyChair's "Track na
         default=None,
         metavar="TYPE",
         help="Override paper type for ALL papers. By default (recommended), paper type is "
-             "automatically derived from track/section name (e.g., 'Demo Paper', 'Full Paper', "
-             "'Workshop Summary'). Only use --paper_type to force all papers to the same type, "
-             "typically when exporting a single track with --track."
+        "automatically derived from track/section name (e.g., 'Demo Paper', 'Full Paper', "
+        "'Workshop Summary'). Only use --paper_type to force all papers to the same type, "
+        "typically when exporting a single track with --track.",
     )
 
     parser.add_argument(
         "--output",
         default="acm_output.xml",
         metavar="FILE",
-        help="Output XML file name (default: 'acm_output.xml')"
+        help="Output XML file name (default: 'acm_output.xml')",
+    )
+
+    parser.add_argument(
+        "--approval_date",
+        default=None,
+        metavar="DATE",
+        help="Set the same approval date for all papers (format: YYYY-MM-DD). By default, "
+        "leaves approval date empty in XML. Use this if you want to set a uniform approval date for all papers.",
     )
 
     parser.add_argument(
@@ -820,11 +913,11 @@ Note: Track name must be EXACT match (case-sensitive) from EasyChair's "Track na
         default=None,
         metavar="NAME",
         help="Export ONLY papers from this specific track (all other tracks are excluded). "
-             "Track name must be EXACT match (case-sensitive) from EasyChair's 'Track name' column. "
-             "Examples: 'SIGIR 2026 Demo Papers Track', 'SIGIR 2026 Full Papers Track'. "
-             "Use this to: (1) generate separate XML files per track, (2) test with a small track first, "
-             "or (3) use different proceeding IDs for different paper types. "
-             "To see available track names, check the 'Track name' column in your Excel export."
+        "Track name must be EXACT match (case-sensitive) from EasyChair's 'Track name' column. "
+        "Examples: 'SIGIR 2026 Demo Papers Track', 'SIGIR 2026 Full Papers Track'. "
+        "Use this to: (1) generate separate XML files per track, (2) test with a small track first, "
+        "or (3) use different proceeding IDs for different paper types. "
+        "To see available track names, check the 'Track name' column in your Excel export.",
     )
 
     args = parser.parse_args()
@@ -835,5 +928,6 @@ Note: Track name must be EXACT match (case-sensitive) from EasyChair's "Track na
         source=args.source,
         paper_type=args.paper_type,
         output_file=args.output,
-        track_filter=args.track
+        track_filter=args.track,
+        approval_date=args.approval_date,
     )
