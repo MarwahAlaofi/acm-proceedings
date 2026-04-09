@@ -168,20 +168,39 @@ def setup_logging(log_file):
 # Transformation rules (applied in order):
 # 1. Auto-detect and remove conference prefix (e.g., "SIGIR 2026 ")
 # 2. Remove " Track" suffix
-# 3. Normalize plurals: " Papers" -> " Paper"
-# 4. Special case mappings:
-#    - "Resources Paper" -> "Resource Paper" (grammar correction)
-#    - "Workshop Proposals" -> "Workshop Summary" (ACM convention)
-#    - "Tutorial Proposals" -> "Tutorial" (ACM convention)
+# 3. Apply specific track-to-section mappings from TRACK_TO_SECTION_MAP
+# 4. If no mapping found, use cleaned track name as-is
 #
-# Example transformations:
-#   "SIGIR 2026 Full Papers Track"      -> "Full Paper"
-#   "SIGIR 2026 Demo Papers Track"      -> "Demo Paper"
-#   "SIGIR 2026 Resources Papers Track" -> "Resource Paper"
-#   "SIGIR 2026 Workshop Proposals"     -> "Workshop Summary"
-#   "SIGIR 2026 Tutorial Proposals"     -> "Tutorial"
-#   "SIGIR 2026 Doctoral Colloquium"    -> "Doctoral Colloquium"
+# Transformations:
+#   "SIGIR 2026 Full Papers Track"               -> "Full Research Paper"
+#   "SIGIR 2026 Short Papers Track"              -> "Short Research Paper"
+#   "SIGIR 2026 Demo Papers Track"               -> "Demo Short Paper"
+#   "SIGIR 2026 Resources Papers Track"          -> "Resource Paper"
+#   "SIGIR 2026 Reproducibility Track"           -> "Reproducibility Paper"
+#   "SIGIR 2026 Industry Papers Track"           -> "Industry Paper"
+#   "SIGIR 2026 Perspectives Paper Track"        -> "Perspective Paper"
+#   "SIGIR 2026 Workshop Proposals"              -> "Workshop Summary"
+#   "SIGIR 2026 Tutorial Proposals"              -> "Tutorial Paper"
+#   "SIGIR 2026 Doctoral Colloquium"             -> "Doctoral Abstract"
+#   "SIGIR 2026 Low Resource Environments Track" -> "Low Resource Environment"
 # ============================================================================
+
+# Track name to ACM section name mapping
+# Key: Track name after removing conference prefix and " Track" suffix
+# Value: ACM section/paper type name
+TRACK_TO_SECTION_MAP = {
+    "Full Papers": "Full Research Paper",
+    "Short Papers": "Short Research Paper",
+    "Demo Papers": "Demo Short Paper",
+    "Resources Papers": "Resource Paper",
+    "Reproducibility": "Reproducibility Paper",
+    "Industry Papers": "Industry Paper",
+    "Perspectives Paper": "Perspective Paper",
+    "Workshop Proposals": "Workshop Summary",
+    "Tutorial Proposals": "Tutorial Paper",
+    "Doctoral Colloquium": "Doctoral Abstract",
+    "Low Resource Environments": "Low Resource Environment",
+}
 
 
 def export_easychair_to_acm_xml(
@@ -570,16 +589,11 @@ def export_easychair_to_acm_xml(
         if conference_prefix and section_name.startswith(conference_prefix):
             section_name = section_name[len(conference_prefix) :]
 
-        # Remove " Track" suffix and normalize plurals
+        # Remove " Track" suffix
         section_name = section_name.replace(" Track", "")
-        section_name = section_name.replace(" Papers", " Paper")
-        section_name = section_name.replace("Resources Paper", "Resource Paper")
 
-        # Specific mappings for proposal types
-        if section_name == "Workshop Proposals":
-            section_name = "Workshop Summary"
-        elif section_name == "Tutorial Proposals":
-            section_name = "Tutorial"
+        # Apply track-to-section mapping (use original name if not in map)
+        section_name = TRACK_TO_SECTION_MAP.get(section_name, section_name)
 
         # Determine paper type: use override if provided, otherwise derive from section
         # This ensures correct paper types when exporting multiple tracks:
