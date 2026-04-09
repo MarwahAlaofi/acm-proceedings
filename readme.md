@@ -1,20 +1,34 @@
 # Overview
 
-This project is to host scripts used to prepare ACM proceedings and relevant outputs from an OpenReview venue.
-It currently includes scripts (still under testing) that:
-1. Export accepted papers from OpenReview into ACM/Sheridan XML format: following this XML format: https://cms.acm.org/paperLoad/paperLoadSAMPLE.xml.   
-2. Convert the XML into an MS Word document listing titles and authors  
+This project hosts scripts for preparing ACM proceedings from conference management systems.
 
+**Supported sources:**
+1. **OpenReview** - Export accepted papers from OpenReview venues
+2. **EasyChair** - Export accepted papers from EasyChair exports (Excel format)
+
+**Output formats:**
+- ACM/Sheridan XML format (following: https://cms.acm.org/paperLoad/paperLoadSAMPLE.xml)
+- MS Word document listing titles and authors
 
 ---
 
 # Files
 
+## OpenReview Export
+
 - `export_to_acm_xml.py`  
   Exports submissions from OpenReview into ACM-compatible XML  
 
-- `export_to_acm_xml.ipynb`
+- `export_to_acm_xml.ipynb`  
   Jupyter notebook version of the script above, provided for easier setup
+
+## EasyChair Export
+
+- `easychair_to_acm_xml.py`  
+  Exports accepted papers from EasyChair Excel export into ACM-compatible XML  
+  Includes data quality checks, duplicate consolidation, and typo detection
+
+## Utilities
 
 - `acm_xml_to_ms_word.py`  
   Reads the generated XML and generates a formatted `.docx` file (for website use)  
@@ -22,6 +36,8 @@ It currently includes scripts (still under testing) that:
 ---
 
 # Requirements
+
+## For OpenReview Export
 
 Install dependencies:
 
@@ -35,6 +51,16 @@ Create a `.env` file with your OpenReview credentials:
 OPENREVIEW_USERNAME=your_email
 OPENREVIEW_PASSWORD=your_password
 ```
+
+## For EasyChair Export
+
+Install dependencies:
+
+```bash
+pip install pandas openpyxl
+```
+
+No credentials needed - works with Excel export files.
 
 ---
 
@@ -79,7 +105,339 @@ Parameters:
 - **Paper Submission and Decision Dates**
   - The **submission date** is taken from `tcdate` (true creation date), which reflects the original submission date.
   - The **approval date** is set to the last modification date (tmdate) as a proxy for the approval date. There might be a better more accurate way for this if it is important.
+
+---
+
+# Export Accepted Papers from EasyChair
+
+## Step 1: Export Data from EasyChair
+
+1. Log in to EasyChair as conference administrator
+2. Go to your conference management page
+3. Navigate to **Data** → **Export** → **Excel format**
+4. Download the Excel file (contains Submissions, Authors, and Summary sheets)
+
+## Step 2: Run the Conversion Script
+
+**Basic usage (all tracks, auto-detect paper types):**
+
+```bash
+python easychair_to_acm_xml.py \
+  --input "path/to/EasyChair_export.xlsx" \
+  --proceeding_id "2026-SIGIR" \
+  --output "sigir2026.xml"
+```
+
+This automatically assigns appropriate paper types based on track names:
+- Demo Papers Track → "Demo Paper"
+- Full Papers Track → "Full Paper"  
+- Workshop Proposals → "Workshop Summary"
+- Tutorial Proposals → "Tutorial"
+- etc.
+
+**Parameters:**
+
+- `--input` (required): Path to EasyChair Excel export file
+  - Must contain 'Submissions' and 'Authors' sheets
+
+- `--proceeding_id` (required): ACM proceeding ID
+  - Examples: `"2026-SIGIR"`, `"2018-1234.1234"`
+  - Can use different IDs for different tracks if submitting separately
+
+- `--output` (optional): Output XML file name
+  - Default: `"acm_output.xml"`
+
+- `--source` (optional): Source system name for XML metadata
+  - Default: `"EasyChair"`
+
+- `--paper_type` (optional): Override paper type for ALL papers
+  - **Default behavior (recommended):** Auto-derives from track/section name:
+    - "Demo Papers Track" → "Demo Paper"
+    - "Full Papers Track" → "Full Paper"
+    - "Workshop Proposals" → "Workshop Summary"
+  - **Only use `--paper_type` when:**
+    - Exporting a single track with `--track` and want to override the auto-detected type, OR
+    - You need all papers to have the same type regardless of track (rare)
+
+- `--track` (optional): **Export ONLY papers from this specific track**
+  - Excludes all papers from other tracks
+  - Track name must be **EXACT match** (case-sensitive) from EasyChair's "Track name" column
+  - Examples:
+    - `"SIGIR 2026 Demo Papers Track"`
+    - `"SIGIR 2026 Full Papers Track"`
+    - `"SIGIR 2026 Workshop Proposals"`
+  - **Use cases:**
+    - Generate separate XML files per track for separate ACM submissions
+    - Test with a small track (e.g., 10 workshops) before exporting all 300+ papers
+    - Use different proceeding IDs for different paper types
+  - **To find available track names:** Open your Excel file and check the "Track name" column
+
+**Example: Export specific track only**
+
+When exporting a single track, paper type is auto-detected, but you can override if needed:
+
+```bash
+# Auto-detect paper type from track name (recommended)
+python easychair_to_acm_xml.py \
+  --input "SIGIR2026_export.xlsx" \
+  --proceeding_id "2026-SIGIR-Demo" \
+  --track "SIGIR 2026 Demo Papers Track" \
+  --output "sigir2026_demos.xml"
+
+# Or explicitly set paper type (optional)
+python easychair_to_acm_xml.py \
+  --input "SIGIR2026_export.xlsx" \
+  --proceeding_id "2026-SIGIR-Demo" \
+  --track "SIGIR 2026 Demo Papers Track" \
+  --paper_type "Demo Paper" \
+  --output "sigir2026_demos.xml"
+```
+
+**Example: Generate separate XML files for each track**
+
+```bash
+# Export each track separately with different proceeding IDs
+python easychair_to_acm_xml.py \
+  --input "SIGIR2026.xlsx" \
+  --proceeding_id "2026-SIGIR-Demo" \
+  --track "SIGIR 2026 Demo Papers Track" \
+  --output "sigir2026_demos.xml"
+
+python easychair_to_acm_xml.py \
+  --input "SIGIR2026.xlsx" \
+  --proceeding_id "2026-SIGIR-Full" \
+  --track "SIGIR 2026 Full Papers Track" \
+  --output "sigir2026_full.xml"
+
+python easychair_to_acm_xml.py \
+  --input "SIGIR2026.xlsx" \
+  --proceeding_id "2026-SIGIR-Workshops" \
+  --track "SIGIR 2026 Workshop Proposals" \
+  --output "sigir2026_workshops.xml"
+```
+
+**How to find available track names:**
+
+Method 1 - Open Excel and check "Track name" column in Submissions sheet
+
+Method 2 - Use Python to list all tracks:
+```python
+import pandas as pd
+df = pd.read_excel("your_export.xlsx", sheet_name="Submissions")
+print("\nAvailable tracks:")
+for track in sorted(df['Track name'].unique()):
+    count = len(df[df['Track name'] == track])
+    print(f"  - {track} ({count} submissions)")
+```
+
+Method 3 - Run the script without --track to see track mapping in the summary output
+
+## Features
+
+The script automatically:
+
+✅ **Filters accepted papers only** (status: "Accept paper/proposal" or "tentatively accepted")  
+✅ **Cleans text fields** - removes line feeds, tabs, extra whitespace from all fields  
+✅ **Auto-detects conference name** - extracts from track names (e.g., "SIGIR 2026")  
+✅ **Maps track names to ACM sections** - removes conference prefix, normalizes format  
+✅ **Consolidates duplicate authors** - fills missing fields across multiple paper entries  
+✅ **Detects typos** - flags same email with different names, same name with different emails  
+✅ **Sets corresponding author** - uses marked author or defaults to first author  
+✅ **Generates detailed statistics** - track mapping, author counts, quality warnings  
+✅ **Shows top prolific authors** - displays top 5 authors with paper type breakdown, includes all ties  
+✅ **Comprehensive logging** - saves detailed log file alongside XML output for debugging and audit  
+
+## Logging and Output
+
+The script provides comprehensive logging to both console and file:
+
+**Console output (INFO level and above):**
+- Summary statistics and progress
+- Data quality warnings (summary counts only)
+- Typo detection results (summary counts only)
+- References to log file for complete details
+
+**Log file (ALL levels including DEBUG):**
+- Everything shown on console
+- **Detailed field corrections** - Complete list of which fields were filled for which authors
+- **Detailed typo listings** - Full list of all email/name mismatches with paper numbers
+- Processing details for debugging
+- Complete audit trail with timestamps
+
+**Log file location:**
+- Automatically created alongside the XML output
+- Named: `<output_filename>.log`
+- Example: If output is `sigir2026.xml`, log is `sigir2026.log`
+
+**Log levels used:**
+- `DEBUG` - Detailed field corrections, full typo listings, internal processing steps
+- `INFO` - Progress updates, summary statistics, successful operations
+- `WARNING` - Data quality issue summaries with log file references
+- `ERROR` - Critical errors (e.g., papers with no authors)
+
+## Output Summary
+
+The script prints a detailed summary including:
+
+```
+================================================================================
+EASYCHAIR TO ACM XML CONVERSION
+================================================================================
+Loading Excel file: SIGIR2026.xlsx
+Loaded 304 submissions and 3958 author records
+Found 304 accepted submissions
+Detected conference: SIGIR 2026
+
+Consolidating duplicate author entries...
+✓ Made 15 field correction(s) across duplicate author entries
+  → Check log file for detailed list of corrections
+
+Checking for potential typos in author data...
+⚠ Found 12 potential typo(s) or data inconsistencies:
+  • Same email, different names: 3 email(s) affected
+  • Same name, different emails: 5 name(s) affected
+  → Check log file for complete details
+
+Generating ACM XML...
+
+================================================================================
+EXPORT SUMMARY
+================================================================================
+
+✓ XML generated: sigir2026.xml
+✓ Total papers exported: 304
+✓ Total author entries: 1,234
+✓ Unique authors: 987
+✓ Average authors per paper: 4.1
+✓ Average papers per author: 1.25
+
+--------------------------------------------------------------------------------
+TRACK NAME MAPPING
+--------------------------------------------------------------------------------
+  SIGIR 2026 Full Papers Track
+    → Full Paper (131 papers)
+  SIGIR 2026 Demo Papers Track
+    → Demo Paper (24 papers)
+  SIGIR 2026 Workshop Proposals
+    → Workshop Summary (10 papers)
+  ...
+
+--------------------------------------------------------------------------------
+TOP 5 MOST PROLIFIC AUTHORS
+--------------------------------------------------------------------------------
+  1. John Smith (john@mit.edu): 5 paper(s)
+     Paper types: 3 Demo Paper, 2 Full Paper
+     Papers: #78, #105, #110, #118, #128
+  2. Jane Doe (jane@stanford.edu): 4 paper(s)
+     Paper types: 2 Full Paper, 1 Workshop Summary, 1 Tutorial
+     Papers: #162, #165, #169, #172
+  3. Bob Wang: 3 paper(s)
+     Paper types: 2 Industry Paper, 1 Resource Paper
+  4. Alice Chen: 3 paper(s)
+     Paper types: 3 Full Paper
+  5. Carol Lee: 3 paper(s)
+     Paper types: 2 Demo Paper, 1 Full Paper
+
+Note: If multiple authors are tied at the 5th position, all tied authors are included
+
+Examples:
+  • Normal case (no ties): Shows exactly 5 authors
+    Title: "TOP 5 MOST PROLIFIC AUTHORS"
   
+  • With ties at 5th place: Paper counts [10, 8, 7, 3, 3, 3, 2, 1...]
+    Shows 6 authors (top 3 + three authors tied with 3 papers)
+    Title: "TOP 6 MOST PROLIFIC AUTHORS (including ties)"
+  
+  • Fewer than 5 authors: Shows all authors (e.g., 3 total)
+    Title: "TOP 3 MOST PROLIFIC AUTHORS"
+
+--------------------------------------------------------------------------------
+DATA QUALITY WARNINGS
+--------------------------------------------------------------------------------
+  ⚠ 15 paper(s) had no corresponding author marked
+     → First author was automatically set as corresponding
+  ⚠ 8 paper(s) have at least one author with missing affiliation
+  ⚠ 3 author(s) have missing or invalid email addresses
+================================================================================
+Log file saved to: sigir2026.log
+```
+
+**Note:** All detailed corrections and typo listings are logged to the `.log` file but only summaries are shown on console to keep output concise.
+
+**Example log file content (showing DEBUG details):**
+```
+2026-04-09 14:23:15 - INFO - ================================================================================
+2026-04-09 14:23:15 - INFO - EASYCHAIR TO ACM XML CONVERSION
+2026-04-09 14:23:15 - INFO - ================================================================================
+2026-04-09 14:23:15 - INFO - Loading Excel file: SIGIR2026.xlsx
+2026-04-09 14:23:15 - DEBUG - Proceeding ID: 2026-SIGIR
+2026-04-09 14:23:15 - DEBUG - Output file: sigir2026.xml
+2026-04-09 14:23:15 - DEBUG - Log file: sigir2026.log
+2026-04-09 14:23:16 - INFO - Loaded 304 submissions and 3958 author records
+2026-04-09 14:23:16 - INFO - Found 304 accepted submissions
+2026-04-09 14:23:16 - INFO - Detected conference: SIGIR 2026
+
+2026-04-09 14:23:17 - INFO - Consolidating duplicate author entries...
+2026-04-09 14:23:17 - DEBUG -   → Filling Affiliation for John Smith (Paper #123): '' → 'MIT'
+2026-04-09 14:23:17 - DEBUG -   → Filling Email for Jane Doe (Paper #456): 'nan' → 'jane@example.com'
+2026-04-09 14:23:17 - WARNING - ✓ Made 15 field correction(s) across duplicate author entries
+2026-04-09 14:23:17 - WARNING -   → Check log file for detailed list of corrections
+
+2026-04-09 14:23:18 - INFO - Checking for potential typos in author data...
+2026-04-09 14:23:18 - WARNING - ⚠ Found 12 potential typo(s) or data inconsistencies:
+2026-04-09 14:23:18 - WARNING -   • Same email, different names: 3 email(s) affected
+2026-04-09 14:23:18 - WARNING -   • Same name, different emails: 5 name(s) affected
+2026-04-09 14:23:18 - WARNING -   → Check log file for complete details
+2026-04-09 14:23:18 - DEBUG - 
+2026-04-09 14:23:18 - DEBUG - ================================================================================
+2026-04-09 14:23:18 - DEBUG - DETAILED TYPO/INCONSISTENCY REPORT
+2026-04-09 14:23:18 - DEBUG - ================================================================================
+2026-04-09 14:23:18 - DEBUG - 
+2026-04-09 14:23:18 - DEBUG - Same email, different names (3 email(s) affected):
+2026-04-09 14:23:18 - DEBUG - --------------------------------------------------------------------------------
+2026-04-09 14:23:18 - DEBUG -   Email: john@example.com
+2026-04-09 14:23:18 - DEBUG -     → First: 'John' | Last: 'Smith' (Papers: #100)
+2026-04-09 14:23:18 - DEBUG -     → First: 'Jon' | Last: 'Smith' (Papers: #200)
+...
+```
+
+## Notes and Assumptions (EasyChair)
+
+- **Paper Type Assignment**
+  - By default, paper type is **automatically derived** from the track/section name
+  - This ensures correct paper types when exporting multiple tracks simultaneously
+  - Examples:
+    - "Demo Papers Track" → paper_type: "Demo Paper"
+    - "Full Papers Track" → paper_type: "Full Paper"
+    - "Workshop Proposals" → paper_type: "Workshop Summary"
+  - Use `--paper_type` override only when all papers should have the same type
+
+- **Track Name Mapping**
+  - EasyChair track names are automatically cleaned to match ACM section conventions
+  - Conference prefix is auto-detected and removed (e.g., "SIGIR 2026 ")
+  - Plurals are normalized: "Papers" → "Paper"
+  - Special mappings: "Workshop Proposals" → "Workshop Summary", "Tutorial Proposals" → "Tutorial"
+
+- **Author Data Consolidation**
+  - Authors with multiple papers may have different information in different entries
+  - The script consolidates by finding the most complete information across all entries
+  - All corrections are printed during execution for review
+
+- **Affiliation Parsing**
+  - EasyChair stores affiliations as a single string
+  - The script attempts to split "Department, Institution" format
+  - If no comma, entire string is treated as institution name
+
+- **Corresponding Author**
+  - Uses EasyChair's "Corresponding?" column (marked with ✔)
+  - If no corresponding author is marked, first author is automatically designated
+  - This is clearly indicated in the summary output
+
+- **Accepted Papers**
+  - Only papers with decision "Accept paper/proposal" or "tentatively accepted" are included
+  - All other submissions are filtered out
+
+---
 
 # Convert the XML file into .docx 
 
