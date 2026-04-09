@@ -215,10 +215,10 @@ def export_easychair_to_acm_xml(
     logger.info("="*80)
     logger.info("EASYCHAIR TO ACM XML CONVERSION")
     logger.info("="*80)
-    logger.info(f"Loading Excel file: {excel_file_path}")
-    logger.debug(f"Proceeding ID: {proceeding_id}")
-    logger.debug(f"Output file: {output_file}")
-    logger.debug(f"Log file: {log_file}")
+    logger.debug(f"Loading Excel file: {excel_file_path}")
+    logger.info(f"Proceeding ID: {proceeding_id}")
+    logger.info(f"Output file: {output_file}")
+    logger.info(f"Log file: {log_file}")
 
     # Load the Excel sheets
     excel = pd.ExcelFile(excel_file_path)
