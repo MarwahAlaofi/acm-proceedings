@@ -69,6 +69,16 @@ def validate_text_format(excel_file, text_file):
     """
     Validate that author order and affiliations in text/markdown file match Excel data.
 
+    Text/MD format is:
+        Track Name (or # Track Name for MD)
+        Paper Title (or ## Paper Title for MD)
+        Author Name, Affiliation
+        Author Name2, Affiliation2
+
+    Note: Affiliations can contain commas (e.g., "Meta Platforms, Inc."), so we split
+    at the FIRST comma only: "Min Zhang, Meta Platforms, Inc." becomes:
+        name="Min Zhang", affiliation="Meta Platforms, Inc."
+
     Args:
         excel_file: Path to EasyChair Excel export
         text_file: Path to generated text or markdown file
@@ -180,8 +190,11 @@ def validate_text_format(excel_file, text_file):
                 # Author line
                 if current_paper_title:
                     # Parse "Name, Affiliation" or just "Name"
+                    # Use split (not rsplit) to split at FIRST comma, so
+                    # "Min Zhang, Meta Platforms, Inc." becomes:
+                    #   name="Min Zhang", affiliation="Meta Platforms, Inc."
                     if ", " in line_stripped:
-                        parts = line_stripped.rsplit(", ", 1)
+                        parts = line_stripped.split(", ", 1)
                         current_authors.append((parts[0], parts[1]))
                     else:
                         current_authors.append((line_stripped, ""))
@@ -197,7 +210,8 @@ def validate_text_format(excel_file, text_file):
             # Lines with ", " as authors
             if ", " in line_stripped:
                 # Author line
-                parts = line_stripped.rsplit(", ", 1)
+                # Use split (not rsplit) to split at FIRST comma
+                parts = line_stripped.split(", ", 1)
                 current_authors.append((parts[0], parts[1]))
             else:
                 # Could be track, title, or author without affiliation
