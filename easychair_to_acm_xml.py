@@ -1,9 +1,10 @@
 """
-EasyChair to ACM/Sheridan XML Converter
-========================================
+EasyChair to ACM/Sheridan XML/Text/Markdown Converter
+======================================================
 
 This script converts EasyChair conference export data (Excel format) into
-ACM/Sheridan XML format for proceedings submission.
+ACM/Sheridan XML format for proceedings submission, or into text/markdown
+format for human-readable listings.
 
 Features:
 - Loads EasyChair Submissions and Authors sheets
@@ -13,17 +14,31 @@ Features:
 - Cleans text fields (removes line feeds, extra whitespace)
 - Maps EasyChair track names to ACM section names
 - Auto-detects conference name from track data
-- Generates detailed statistics and quality warnings
+- Generates detailed statistics and quality warnings (XML format)
+- Exports to XML, plain text, or markdown format
 
 Requirements:
 - pandas library for data processing
 - EasyChair Excel export with 'Submissions' and 'Authors' sheets
 
 Usage:
+    # XML format (for ACM submission)
     python easychair_to_acm_xml.py \
         --input "path/to/easychair_export.xlsx" \
         --proceeding_id "2026-SIGIR" \
         --output "sigir2026.xml"
+
+    # Text format (human-readable)
+    python easychair_to_acm_xml.py \
+        --input "path/to/easychair_export.xlsx" \
+        --format txt \
+        --output "papers.txt"
+
+    # Markdown format (human-readable)
+    python easychair_to_acm_xml.py \
+        --input "path/to/easychair_export.xlsx" \
+        --format md \
+        --output "papers.md"
 
 Author: Generated for ACM proceedings preparation
 """
@@ -189,6 +204,320 @@ PAPER_TYPE_PREFIX_MAP = {
 }
 
 
+def export_easychair_to_text(
+    excel_file_path,
+    output_file="acm_output.txt",
+    track_filter=None,
+    format_type="txt",
+):
+    """
+    Convert EasyChair export to text or markdown format.
+
+    Args:
+        excel_file_path: Path to EasyChair Excel export
+        output_file: Output file name
+        track_filter: Optional track name to filter submissions (default: None, include all)
+        format_type: Output format type ("txt" or "md")
+    """
+    # ========================================================================
+    # SETUP LOGGING
+    # ========================================================================
+    log_file = output_file + ".log"
+    logger = setup_logging(log_file)
+
+    logger.info("=" * 80)
+    logger.info(f"EASYCHAIR TO {format_type.upper()} CONVERSION")
+    logger.info("=" * 80)
+    logger.debug(f"Loading Excel file: {excel_file_path}")
+    logger.info(f"Output file: {output_file}")
+    logger.info(f"Log file: {log_file}")
+
+    # Load the Excel sheets
+    excel = pd.ExcelFile(excel_file_path)
+    submissions_df = pd.read_excel(excel, "Submissions")
+    authors_df = pd.read_excel(excel, "Authors")
+
+    logger.info(
+        f"Loaded {len(submissions_df)} submissions and {len(authors_df)} author records"
+    )
+
+    # Filter by track if specified
+    if track_filter:
+        submissions_df = submissions_df[submissions_df["Track name"] == track_filter]
+        logger.info(
+            f"Filtered to {len(submissions_df)} submissions in track: {track_filter}"
+        )
+
+    # Filter for accepted papers only
+    submissions_df = submissions_df[
+        (submissions_df["Decision"] == "Accept paper/proposal")
+        | (submissions_df["Decision"] == "tentatively accepted")
+    ]
+    logger.info(f"Found {len(submissions_df)} accepted submissions")
+
+    # Clean up text fields
+    def clean_text(x):
+        if pd.isna(x):
+            return ""
+        return " ".join(str(x).split())
+
+    submissions_df["Title"] = submissions_df["Title"].map(clean_text)
+    submissions_df["Track name"] = submissions_df["Track name"].map(clean_text)
+    authors_df["First name"] = authors_df["First name"].map(clean_text)
+    authors_df["Last name"] = authors_df["Last name"].map(clean_text)
+    authors_df["Affiliation"] = authors_df["Affiliation"].map(clean_text)
+
+    # Identify conference prefix
+    conference_prefix = ""
+    if len(submissions_df) > 0:
+        first_track = submissions_df["Track name"].iloc[0]
+        parts = first_track.split()
+        if len(parts) >= 2:
+            conference_prefix = f"{parts[0]} {parts[1]} "
+            logger.info(f"Detected conference: {conference_prefix.strip()}")
+
+    # Initialize statistics
+    total_authors = 0
+    papers_with_no_authors = 0
+    papers_with_missing_affiliations = 0
+    author_name_mismatches = 0
+    track_mapping = {}
+    papers_by_track_count = {}
+
+    # Group papers by track
+    papers_by_track = {}
+    for _, submission in submissions_df.iterrows():
+        track_name = str(submission.get("Track name", ""))
+
+        # Get section name
+        section_name = track_name
+        if conference_prefix and section_name.startswith(conference_prefix):
+            section_name = section_name[len(conference_prefix):]
+        section_name = section_name.replace(" Track", "")
+        section_name = TRACK_TO_SECTION_MAP.get(section_name, section_name)
+
+        if section_name not in papers_by_track:
+            papers_by_track[section_name] = []
+
+        # Track mapping statistics
+        if track_name not in track_mapping:
+            track_mapping[track_name] = section_name
+
+        # Get authors for this submission in correct order
+        submission_id = submission["#"]
+        authors_str = str(submission.get("Authors", ""))
+        authors_str = " ".join(authors_str.split())
+        authors_str = authors_str.replace(" and ", ", ")
+        correct_order = [name.strip() for name in authors_str.split(",") if name.strip()]
+
+        # Get all authors for this paper from Authors sheet
+        paper_authors_unsorted = authors_df[
+            authors_df["Submission #"] == submission_id
+        ].copy()
+
+        if len(paper_authors_unsorted) == 0:
+            logger.error(
+                f"No authors found for submission #{submission_id} - skipping paper"
+            )
+            papers_with_no_authors += 1
+            continue
+
+        # Create a mapping of full names to their position
+        name_to_position = {}
+        for idx, name in enumerate(correct_order):
+            name_to_position[name.lower()] = idx
+
+        # Sort authors by correct order
+        def get_author_sequence(row):
+            nonlocal author_name_mismatches
+            full_name = f"{row['First name']} {row['Last name']}".lower()
+            if full_name in name_to_position:
+                return name_to_position[full_name]
+            for correct_name, pos in name_to_position.items():
+                if full_name in correct_name or correct_name in full_name:
+                    return pos
+            # Name mismatch
+            author_name_mismatches += 1
+            logger.warning(
+                f"⚠ Author name mismatch in Paper #{submission_id}: "
+                f"'{row['First name']} {row['Last name']}' from Authors sheet "
+                f"not found in Submissions.Authors column."
+            )
+            return row["Person #"] + 1000
+
+        paper_authors_unsorted["_sequence"] = paper_authors_unsorted.apply(
+            get_author_sequence, axis=1
+        )
+        paper_authors = paper_authors_unsorted.sort_values("_sequence")
+
+        total_authors += len(paper_authors)
+
+        # Build author list and check for missing affiliations
+        author_list = []
+        paper_has_missing_affiliation = False
+        for _, author in paper_authors.iterrows():
+            first_name = str(author.get("First name", ""))
+            last_name = str(author.get("Last name", ""))
+            affiliation = str(author.get("Affiliation", ""))
+            if pd.isna(affiliation) or affiliation == "nan" or not affiliation.strip():
+                affiliation = ""
+                paper_has_missing_affiliation = True
+            author_list.append((f"{first_name} {last_name}", affiliation))
+
+        if paper_has_missing_affiliation:
+            papers_with_missing_affiliations += 1
+
+        papers_by_track[section_name].append({
+            "title": str(submission.get("Title", "")),
+            "authors": author_list,
+            "submission_id": submission_id
+        })
+
+    # Count papers by track
+    for section, papers in papers_by_track.items():
+        papers_by_track_count[section] = len(papers)
+
+    # ========================================================================
+    # WRITE OUTPUT FILE
+    # ========================================================================
+    logger.info("")
+    logger.info(f"Generating {format_type.upper()} output...")
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        for track_idx, (track_name, papers) in enumerate(sorted(papers_by_track.items())):
+            # Track header
+            if format_type == "md":
+                f.write(f"# {track_name}\n")
+            else:
+                f.write(f"{track_name}\n")
+
+            # Papers
+            for paper in papers:
+                if format_type == "md":
+                    f.write(f"## {paper['title']}\n")
+                else:
+                    f.write(f"{paper['title']}\n")
+
+                for author_name, affiliation in paper["authors"]:
+                    if affiliation:
+                        f.write(f"{author_name}, {affiliation}\n")
+                    else:
+                        f.write(f"{author_name}\n")
+
+                f.write("\n")
+
+            # Extra blank line between tracks (but not after the last track)
+            if track_idx < len(papers_by_track) - 1:
+                f.write("\n")
+
+    # ========================================================================
+    # PRINT SUMMARY
+    # ========================================================================
+    total_papers = sum(len(papers) for papers in papers_by_track.values())
+
+    logger.info("")
+    logger.info("=" * 80)
+    logger.info("EXPORT SUMMARY")
+    logger.info("=" * 80)
+    logger.info("")
+    logger.info(f"✓ {format_type.upper()} file generated: {output_file}")
+    logger.info(f"✓ Total papers exported: {total_papers}")
+    logger.info(f"✓ Total author entries: {total_authors}")
+    if total_papers > 0:
+        logger.info(f"✓ Average authors per paper: {total_authors / total_papers:.1f}")
+
+    logger.info("")
+    logger.info("-" * 80)
+    logger.info("TRACK NAME MAPPING")
+    logger.info("-" * 80)
+    for original, cleaned in sorted(track_mapping.items()):
+        count = papers_by_track_count[cleaned]
+        logger.info(f"  {original}")
+        logger.info(f"    → {cleaned} ({count} paper{'s' if count != 1 else ''})")
+
+    logger.info("")
+    logger.info("-" * 80)
+    logger.info("PAPERS BY SECTION")
+    logger.info("-" * 80)
+    for section, count in sorted(
+        papers_by_track_count.items(), key=lambda x: x[1], reverse=True
+    ):
+        logger.info(f"  {section}: {count}")
+
+    logger.info("")
+    logger.info("-" * 80)
+    logger.info("DATA QUALITY WARNINGS")
+    logger.info("-" * 80)
+    if papers_with_no_authors > 0:
+        logger.warning(
+            f"  ⚠ {papers_with_no_authors} paper(s) skipped due to missing authors"
+        )
+    if papers_with_missing_affiliations > 0:
+        logger.warning(
+            f"  ⚠ {papers_with_missing_affiliations} paper(s) have at least one author with missing affiliation"
+        )
+    if author_name_mismatches > 0:
+        logger.warning(
+            f"  ⚠ {author_name_mismatches} author(s) had name mismatches between Submissions and Authors sheets"
+        )
+        logger.warning(f"     → Check log file for details")
+
+    if (
+        papers_with_no_authors == 0
+        and papers_with_missing_affiliations == 0
+        and author_name_mismatches == 0
+    ):
+        logger.info("  ✓ No data quality issues detected")
+
+    logger.info("")
+    logger.info("=" * 80)
+    logger.info(f"Log file saved to: {log_file}")
+
+    # ========================================================================
+    # RUN AUTHOR ORDER VALIDATION TEST
+    # ========================================================================
+    logger.info("")
+    logger.info("=" * 80)
+    logger.info("RUNNING AUTHOR ORDER VALIDATION TEST")
+    logger.info("=" * 80)
+
+    import subprocess
+
+    try:
+        # Run the validation test script
+        test_script = "test_author_order.py"
+        result = subprocess.run(
+            ["python", test_script, excel_file_path, output_file],
+            capture_output=True,
+            text=True,
+            timeout=300,  # 5 minute timeout
+        )
+
+        # Print test output
+        if result.stdout:
+            for line in result.stdout.splitlines():
+                logger.info(line)
+
+        if result.returncode == 0:
+            logger.info("")
+            logger.info("✓ Author order validation test PASSED")
+        else:
+            logger.error("")
+            logger.error("✗ Author order validation test FAILED")
+            logger.error("Please review the issues above and fix the data if needed")
+            if result.stderr:
+                logger.error("Test error output:")
+                for line in result.stderr.splitlines():
+                    logger.error(f"  {line}")
+
+    except FileNotFoundError:
+        logger.warning(f"Warning: Test script '{test_script}' not found - skipping validation")
+    except subprocess.TimeoutExpired:
+        logger.error("Error: Validation test timed out after 5 minutes")
+    except Exception as e:
+        logger.warning(f"Warning: Could not run validation test: {e}")
+
+
 def export_easychair_to_acm_xml(
     excel_file_path,
     proceeding_id,
@@ -217,7 +546,7 @@ def export_easychair_to_acm_xml(
     # SETUP LOGGING
     # ========================================================================
     # Create log file name based on output file name
-    log_file = output_file.rsplit(".", 1)[0] + ".log"
+    log_file = output_file + ".log"
     logger = setup_logging(log_file)
 
     logger.info("=" * 80)
@@ -952,14 +1281,20 @@ def export_easychair_to_acm_xml(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Convert EasyChair export to ACM/Sheridan XML format",
+        description="Convert EasyChair export to ACM/Sheridan XML, text, or markdown format",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Export all tracks with auto-detected paper types
+  # Export all tracks to XML with auto-detected paper types
   python easychair_to_acm_xml.py --input export.xlsx --proceeding_id "2026-SIGIR" --output all.xml
 
-  # Export only demo papers
+  # Export to text format
+  python easychair_to_acm_xml.py --input export.xlsx --format txt --output papers.txt
+
+  # Export to markdown format
+  python easychair_to_acm_xml.py --input export.xlsx --format md --output papers.md
+
+  # Export only demo papers to XML
   python easychair_to_acm_xml.py --input export.xlsx --proceeding_id "2026-SIGIR-Demo" \\
     --track "SIGIR 2026 Demo Papers Track" --output demos.xml
 
@@ -979,17 +1314,23 @@ Note: Track name must be EXACT match (case-sensitive) from EasyChair's "Track na
     )
 
     parser.add_argument(
+        "--format",
+        choices=["xml", "txt", "md"],
+        default="xml",
+        help="Output format: xml (ACM/Sheridan XML), txt (plain text), or md (markdown). Default: xml",
+    )
+
+    parser.add_argument(
         "--proceeding_id",
-        required=True,
         metavar="ID",
         help="ACM proceeding ID (e.g., '2026-SIGIR', '2018-1234.1234'). "
-        "Use different IDs for different tracks if submitting separately.",
+        "Required for XML format. Use different IDs for different tracks if submitting separately.",
     )
 
     parser.add_argument(
         "--source",
         default="EasyChair",
-        help="Source system name for XML metadata (default: 'EasyChair')",
+        help="Source system name for XML metadata (default: 'EasyChair'). Only used for XML format.",
     )
 
     parser.add_argument(
@@ -999,14 +1340,14 @@ Note: Track name must be EXACT match (case-sensitive) from EasyChair's "Track na
         help="Override paper type for ALL papers. By default (recommended), paper type is "
         "automatically derived from track/section name (e.g., 'Demo Paper', 'Full Paper', "
         "'Workshop Summary'). Only use --paper_type to force all papers to the same type, "
-        "typically when exporting a single track with --track.",
+        "typically when exporting a single track with --track. Only used for XML format.",
     )
 
     parser.add_argument(
         "--output",
-        default="acm_output.xml",
+        default=None,
         metavar="FILE",
-        help="Output XML file name (default: 'acm_output.xml')",
+        help="Output file name (default: 'acm_output.xml', 'acm_output.txt', or 'acm_output.md' based on format)",
     )
 
     parser.add_argument(
@@ -1014,7 +1355,8 @@ Note: Track name must be EXACT match (case-sensitive) from EasyChair's "Track na
         default=None,
         metavar="DATE",
         help="Set the same approval date for all papers (format: YYYY-MM-DD). By default, "
-        "leaves approval date empty in XML. Use this if you want to set a uniform approval date for all papers.",
+        "leaves approval date empty in XML. Use this if you want to set a uniform approval date for all papers. "
+        "Only used for XML format.",
     )
 
     parser.add_argument(
@@ -1024,19 +1366,41 @@ Note: Track name must be EXACT match (case-sensitive) from EasyChair's "Track na
         help="Export ONLY papers from this specific track (all other tracks are excluded). "
         "Track name must be EXACT match (case-sensitive) from EasyChair's 'Track name' column. "
         "Examples: 'SIGIR 2026 Demo Papers Track', 'SIGIR 2026 Full Papers Track'. "
-        "Use this to: (1) generate separate XML files per track, (2) test with a small track first, "
+        "Use this to: (1) generate separate files per track, (2) test with a small track first, "
         "or (3) use different proceeding IDs for different paper types. "
         "To see available track names, check the 'Track name' column in your Excel export.",
     )
 
     args = parser.parse_args()
 
-    export_easychair_to_acm_xml(
-        excel_file_path=args.input,
-        proceeding_id=args.proceeding_id,
-        source=args.source,
-        paper_type=args.paper_type,
-        output_file=args.output,
-        track_filter=args.track,
-        approval_date=args.approval_date,
-    )
+    # Set default output filename based on format if not specified
+    if args.output is None:
+        if args.format == "xml":
+            args.output = "acm_output.xml"
+        elif args.format == "txt":
+            args.output = "acm_output.txt"
+        else:  # md
+            args.output = "acm_output.md"
+
+    # Handle different output formats
+    if args.format in ["txt", "md"]:
+        export_easychair_to_text(
+            excel_file_path=args.input,
+            output_file=args.output,
+            track_filter=args.track,
+            format_type=args.format,
+        )
+    else:  # xml
+        # Validate that proceeding_id is provided for XML format
+        if args.proceeding_id is None:
+            parser.error("--proceeding_id is required when --format is 'xml'")
+
+        export_easychair_to_acm_xml(
+            excel_file_path=args.input,
+            proceeding_id=args.proceeding_id,
+            source=args.source,
+            paper_type=args.paper_type,
+            output_file=args.output,
+            track_filter=args.track,
+            approval_date=args.approval_date,
+        )

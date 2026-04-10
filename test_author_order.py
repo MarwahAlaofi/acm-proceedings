@@ -2,16 +2,22 @@
 Author Order and Affiliation Validation Test
 =============================================
 
-This script validates that the generated ACM XML file correctly matches
-the EasyChair export data:
+This script validates that the generated output file (XML, TXT, or MD)
+correctly matches the EasyChair export data:
 - Author order matches the Submissions.Authors column
-- Affiliations match the Authors sheet (no parsing/assumptions)
+- Affiliations match the Authors sheet
+
+For XML format:
 - Department field is empty (as expected)
 - Institution field matches Affiliation field exactly
 - Country field matches Country field exactly
 
+For TXT/MD format:
+- Author names and affiliations are correctly formatted
+- Author order is preserved
+
 Usage:
-    python test_author_order.py <excel_file> <xml_file>
+    python test_author_order.py <excel_file> <output_file>
 
 Returns:
     Exit code 0 if all validations pass
@@ -22,6 +28,7 @@ import sys
 import pandas as pd
 import xml.etree.ElementTree as ET
 from collections import defaultdict
+import re
 
 
 def parse_authors_from_string(authors_str):
@@ -58,6 +65,277 @@ def clean_text(x):
     return " ".join(str(x).split())
 
 
+def validate_text_format(excel_file, text_file):
+    """
+    Validate that author order and affiliations in text/markdown file match Excel data.
+
+    Args:
+        excel_file: Path to EasyChair Excel export
+        text_file: Path to generated text or markdown file
+
+    Returns:
+        tuple: (is_valid, mismatches) where is_valid is bool and mismatches is list of dicts
+    """
+    print("=" * 80)
+    print("AUTHOR ORDER AND AFFILIATION VALIDATION TEST (TEXT FORMAT)")
+    print("=" * 80)
+    print(f"Excel file: {excel_file}")
+    print(f"Text file: {text_file}")
+    print()
+
+    # Load Excel data
+    print("Loading Excel data...")
+    excel = pd.ExcelFile(excel_file)
+    submissions_df = pd.read_excel(excel, "Submissions")
+    authors_df = pd.read_excel(excel, "Authors")
+
+    # Filter accepted papers
+    accepted_submissions = submissions_df[
+        (submissions_df["Decision"] == "Accept paper/proposal")
+        | (submissions_df["Decision"] == "tentatively accepted")
+    ].copy()
+
+    print(f"Found {len(accepted_submissions)} accepted submissions in Excel")
+
+    # Clean text fields
+    submissions_df["Title"] = submissions_df["Title"].apply(clean_text)
+    authors_df["First name"] = authors_df["First name"].apply(clean_text)
+    authors_df["Last name"] = authors_df["Last name"].apply(clean_text)
+    authors_df["Affiliation"] = authors_df["Affiliation"].apply(clean_text)
+
+    # Build expected data structure
+    expected_papers = {}
+    for _, submission in accepted_submissions.iterrows():
+        paper_id = submission["#"]
+        title = clean_text(submission.get("Title", ""))
+
+        # Get expected author order
+        authors_str = submission.get("Authors", "")
+        author_names = parse_authors_from_string(authors_str)
+
+        # Get author details from Authors sheet
+        paper_authors = authors_df[authors_df["Submission #"] == paper_id]
+
+        # Match authors to get affiliations in correct order
+        authors_with_aff = []
+        for author_name in author_names:
+            matched = False
+            for _, auth_row in paper_authors.iterrows():
+                auth_full = f"{auth_row['First name']} {auth_row['Last name']}"
+                if normalize_name(author_name) == normalize_name(auth_full):
+                    affiliation = clean_text(auth_row.get("Affiliation", ""))
+                    authors_with_aff.append((auth_full, affiliation))
+                    matched = True
+                    break
+            if not matched:
+                authors_with_aff.append((author_name, ""))
+
+        expected_papers[title] = {
+            "paper_id": paper_id,
+            "authors": authors_with_aff
+        }
+
+    # Read and parse text file
+    print(f"Loading text file...")
+    with open(text_file, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Parse text file to extract papers and authors
+    # Detect format by checking for markdown headers
+    is_markdown = "# " in content or "## " in content
+
+    actual_papers = {}
+    current_track = None
+    current_paper_title = None
+    current_authors = []
+
+    lines = content.split("\n")
+    for line in lines:
+        line_stripped = line.strip()
+
+        if not line_stripped:
+            # Empty line - save current paper if any
+            if current_paper_title and current_authors:
+                actual_papers[current_paper_title] = current_authors
+                current_authors = []
+                current_paper_title = None
+            continue
+
+        if is_markdown:
+            # Markdown format
+            if line_stripped.startswith("# "):
+                # Track header
+                current_track = line_stripped[2:].strip()
+                if current_paper_title and current_authors:
+                    actual_papers[current_paper_title] = current_authors
+                    current_authors = []
+                current_paper_title = None
+            elif line_stripped.startswith("## "):
+                # Paper title
+                if current_paper_title and current_authors:
+                    actual_papers[current_paper_title] = current_authors
+                    current_authors = []
+                current_paper_title = line_stripped[3:].strip()
+            else:
+                # Author line
+                if current_paper_title:
+                    # Parse "Name, Affiliation" or just "Name"
+                    if ", " in line_stripped:
+                        parts = line_stripped.rsplit(", ", 1)
+                        current_authors.append((parts[0], parts[1]))
+                    else:
+                        current_authors.append((line_stripped, ""))
+        else:
+            # Plain text format - need to differentiate between track, title, and author
+            # Track lines don't start with capital followed by lowercase (heuristic)
+            # Paper titles are followed by author lines with commas or are first after track
+            # This is tricky - let's use a simple heuristic:
+            # If previous line was empty or track, this might be title or track
+            # If line contains comma after a name, it's likely an author
+
+            # Simple approach: treat lines without commas as titles/tracks
+            # Lines with ", " as authors
+            if ", " in line_stripped:
+                # Author line
+                parts = line_stripped.rsplit(", ", 1)
+                current_authors.append((parts[0], parts[1]))
+            else:
+                # Could be track, title, or author without affiliation
+                # If we have a current paper with authors, save it
+                if current_paper_title and current_authors:
+                    actual_papers[current_paper_title] = current_authors
+                    current_authors = []
+
+                # Check if this looks like an author (name format) or a title/track
+                # If it looks like "Firstname Lastname", treat as author
+                # Otherwise, treat as title
+                words = line_stripped.split()
+                if len(words) >= 2 and all(w[0].isupper() for w in words[:2]):
+                    # Could be author name
+                    if current_paper_title:
+                        # We have a paper, so this is an author
+                        current_authors.append((line_stripped, ""))
+                    else:
+                        # No current paper, could be title or track
+                        # Check if next iteration clarifies
+                        current_paper_title = line_stripped
+                else:
+                    # Track or title
+                    current_paper_title = line_stripped
+
+    # Save last paper
+    if current_paper_title and current_authors:
+        actual_papers[current_paper_title] = current_authors
+
+    print(f"Found {len(actual_papers)} papers in text file")
+    print()
+
+    # Compare
+    print("Validating author order and affiliations...")
+    print("-" * 80)
+
+    mismatches = []
+    papers_checked = 0
+
+    for title, expected_data in expected_papers.items():
+        if title not in actual_papers:
+            mismatches.append({
+                "paper_id": expected_data["paper_id"],
+                "title": title,
+                "error": "Paper not found in output file",
+                "expected": expected_data["authors"],
+                "actual": [],
+            })
+            continue
+
+        actual_authors = actual_papers[title]
+        expected_authors = expected_data["authors"]
+
+        papers_checked += 1
+
+        if len(expected_authors) != len(actual_authors):
+            mismatches.append({
+                "paper_id": expected_data["paper_id"],
+                "title": title,
+                "error": f"Author count mismatch (expected {len(expected_authors)}, got {len(actual_authors)})",
+                "expected": expected_authors,
+                "actual": actual_authors,
+            })
+            continue
+
+        # Check author order and affiliations
+        for idx, (exp_auth, act_auth) in enumerate(zip(expected_authors, actual_authors)):
+            exp_name, exp_aff = exp_auth
+            act_name, act_aff = act_auth
+
+            if normalize_name(exp_name) != normalize_name(act_name):
+                mismatches.append({
+                    "paper_id": expected_data["paper_id"],
+                    "title": title,
+                    "error": f"Author #{idx+1} name mismatch",
+                    "detail": f"Expected: '{exp_name}', Got: '{act_name}'",
+                    "expected": expected_authors,
+                    "actual": actual_authors,
+                })
+                break
+
+            # Check affiliation (allow empty if both are empty)
+            if exp_aff != act_aff:
+                if exp_aff or act_aff:  # Only flag if at least one is non-empty
+                    mismatches.append({
+                        "paper_id": expected_data["paper_id"],
+                        "title": title,
+                        "error": f"Author '{exp_name}' affiliation mismatch",
+                        "detail": f"Expected: '{exp_aff}', Got: '{act_aff}'",
+                        "expected": [],
+                        "actual": [],
+                    })
+                    break
+
+    # Print results
+    print(f"Papers checked: {papers_checked}")
+    print()
+
+    if mismatches:
+        print("=" * 80)
+        print(f"❌ VALIDATION FAILED: {len(mismatches)} issue(s) found")
+        print("=" * 80)
+        print()
+
+        # Show first 10 mismatches in detail
+        for i, mismatch in enumerate(mismatches[:10], 1):
+            print(f"Paper #{mismatch['paper_id']}: {mismatch.get('title', 'N/A')}")
+            print(f"  Error: {mismatch['error']}")
+
+            if 'detail' in mismatch and mismatch['detail']:
+                print(f"  {mismatch['detail']}")
+
+            if mismatch['expected'] and mismatch['actual']:
+                if len(mismatch['expected']) > 0:
+                    print(f"  Expected authors ({len(mismatch['expected'])}):")
+                    for j, (name, aff) in enumerate(mismatch['expected'], 1):
+                        aff_str = f", {aff}" if aff else ""
+                        print(f"    {j}. {name}{aff_str}")
+
+                    print(f"  Actual authors ({len(mismatch['actual'])}):")
+                    for j, (name, aff) in enumerate(mismatch['actual'], 1):
+                        aff_str = f", {aff}" if aff else ""
+                        print(f"    {j}. {name}{aff_str}")
+
+            print()
+
+        if len(mismatches) > 10:
+            print(f"... and {len(mismatches) - 10} more paper(s) with issues")
+            print()
+
+        return False, mismatches
+    else:
+        print("=" * 80)
+        print(f"✅ VALIDATION PASSED: All {papers_checked} papers have correct author order and affiliations")
+        print("=" * 80)
+        return True, []
+
+
 def validate_author_order(excel_file, xml_file):
     """
     Validate that author order and affiliations in XML match the data from Excel.
@@ -70,7 +348,7 @@ def validate_author_order(excel_file, xml_file):
         tuple: (is_valid, mismatches) where is_valid is bool and mismatches is list of dicts
     """
     print("=" * 80)
-    print("AUTHOR ORDER AND AFFILIATION VALIDATION TEST")
+    print("AUTHOR ORDER AND AFFILIATION VALIDATION TEST (XML FORMAT)")
     print("=" * 80)
     print(f"Excel file: {excel_file}")
     print(f"XML file: {xml_file}")
@@ -333,14 +611,22 @@ def validate_author_order(excel_file, xml_file):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("Usage: python test_author_order.py <excel_file> <xml_file>")
+        print("Usage: python test_author_order.py <excel_file> <output_file>")
         sys.exit(1)
 
     excel_file = sys.argv[1]
-    xml_file = sys.argv[2]
+    output_file = sys.argv[2]
 
     try:
-        is_valid, mismatches = validate_author_order(excel_file, xml_file)
+        # Detect file type by extension
+        if output_file.endswith(".xml"):
+            is_valid, mismatches = validate_author_order(excel_file, output_file)
+        elif output_file.endswith(".txt") or output_file.endswith(".md"):
+            is_valid, mismatches = validate_text_format(excel_file, output_file)
+        else:
+            print(f"❌ ERROR: Unsupported file format. Expected .xml, .txt, or .md")
+            sys.exit(1)
+
         sys.exit(0 if is_valid else 1)
     except Exception as e:
         print(f"❌ ERROR: {e}")
