@@ -125,8 +125,8 @@ def get_current_affiliations(profile, author_id=""):
         if not history:
             return [default_aff]
 
-        # Filter for current affiliations (no endDate)
-        current_history = [h for h in history if not h.get("endDate")]
+        # Filter for current affiliations (no end date)
+        current_history = [h for h in history if not h.get("end")]
 
         # If no active found, fallback to the most recent one
         if not current_history:
