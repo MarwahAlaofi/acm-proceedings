@@ -563,6 +563,7 @@ def export_easychair_to_acm_xml(
     papers_with_missing_affiliations = 0
     papers_with_no_corresponding = 0
     authors_with_missing_emails = 0
+    author_name_mismatches = 0  # Authors that couldn't be matched to Submissions.Authors
     author_paper_count = {}  # (first, last, email) -> list of paper IDs
     author_paper_types = {}  # (first, last, email) -> list of paper types
 
@@ -581,10 +582,61 @@ def export_easychair_to_acm_xml(
     for _, submission in submissions_df.iterrows():
         submission_id = submission["#"]
 
-        # Get authors for this submission
-        paper_authors = authors_df[
+        # Get authors for this submission in the correct order
+        # Parse the "Authors" column from Submissions to get the correct order
+        authors_str = str(submission.get("Authors", ""))
+
+        # Clean the text: remove line breaks and extra whitespace
+        authors_str = " ".join(authors_str.split())
+
+        # Split by comma or "and" to get individual author names
+        # Replace " and " with ", " to normalize separators
+        authors_str = authors_str.replace(" and ", ", ")
+        correct_order = [name.strip() for name in authors_str.split(",") if name.strip()]
+
+        # Get all authors for this paper from Authors sheet
+        paper_authors_unsorted = authors_df[
             authors_df["Submission #"] == submission_id
-        ].sort_values("Person #")
+        ].copy()
+
+        # Create a mapping of full names to their position in correct_order
+        name_to_position = {}
+        for idx, name in enumerate(correct_order):
+            # Try to match "First Last" format
+            name_to_position[name.lower()] = idx
+
+        # Assign sequence numbers based on correct order
+        def get_author_sequence(row):
+            """Determine the correct sequence for an author."""
+            nonlocal author_name_mismatches
+            full_name = f"{row['First name']} {row['Last name']}".lower()
+
+            # Try exact match first
+            if full_name in name_to_position:
+                return name_to_position[full_name]
+
+            # Try partial match (useful for names with middle initials, etc.)
+            for correct_name, pos in name_to_position.items():
+                if full_name in correct_name or correct_name in full_name:
+                    return pos
+
+            # Fallback: use Person # if no match found
+            # This indicates a data quality issue - name mismatch between sheets
+            author_name_mismatches += 1
+            logger.warning(
+                f"⚠ Author name mismatch in Paper #{submission_id}: "
+                f"'{row['First name']} {row['Last name']}' from Authors sheet "
+                f"not found in Submissions.Authors column. Using Person # as fallback."
+            )
+            logger.warning(
+                f"  → Expected authors: {', '.join(correct_order)}"
+            )
+            return row["Person #"] + 1000  # Large offset to put unmatched at end
+
+        paper_authors_unsorted["_sequence"] = paper_authors_unsorted.apply(
+            get_author_sequence, axis=1
+        )
+        paper_authors = paper_authors_unsorted.sort_values("_sequence")
 
         if len(paper_authors) == 0:
             logger.error(
@@ -862,18 +914,68 @@ def export_easychair_to_acm_xml(
         logger.warning(
             f"  ⚠ {authors_with_missing_emails} author(s) have missing or invalid email addresses"
         )
+    if author_name_mismatches > 0:
+        logger.warning(
+            f"  ⚠ {author_name_mismatches} author(s) had name mismatches between Submissions and Authors sheets"
+        )
+        logger.warning(f"     → Check log file for details and fix the data if needed")
 
     if (
         papers_with_no_authors == 0
         and papers_with_no_corresponding == 0
         and papers_with_missing_affiliations == 0
         and authors_with_missing_emails == 0
+        and author_name_mismatches == 0
     ):
         logger.info("  ✓ No data quality issues detected")
 
     logger.info("")
     logger.info("=" * 80)
     logger.info(f"Log file saved to: {log_file}")
+
+    # ========================================================================
+    # RUN AUTHOR ORDER VALIDATION TEST
+    # ========================================================================
+    logger.info("")
+    logger.info("=" * 80)
+    logger.info("RUNNING AUTHOR ORDER VALIDATION TEST")
+    logger.info("=" * 80)
+
+    import subprocess
+
+    try:
+        # Run the validation test script
+        test_script = "test_author_order.py"
+        result = subprocess.run(
+            ["python", test_script, excel_file_path, output_file],
+            capture_output=True,
+            text=True,
+            timeout=300,  # 5 minute timeout
+        )
+
+        # Print test output
+        if result.stdout:
+            for line in result.stdout.splitlines():
+                logger.info(line)
+
+        if result.returncode == 0:
+            logger.info("")
+            logger.info("✓ Author order validation test PASSED")
+        else:
+            logger.error("")
+            logger.error("✗ Author order validation test FAILED")
+            logger.error("Please review the issues above and fix the data if needed")
+            if result.stderr:
+                logger.error("Test error output:")
+                for line in result.stderr.splitlines():
+                    logger.error(f"  {line}")
+
+    except FileNotFoundError:
+        logger.warning(f"Warning: Test script '{test_script}' not found - skipping validation")
+    except subprocess.TimeoutExpired:
+        logger.error("Error: Validation test timed out after 5 minutes")
+    except Exception as e:
+        logger.warning(f"Warning: Could not run validation test: {e}")
 
 
 if __name__ == "__main__":
