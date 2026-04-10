@@ -1,8 +1,8 @@
 import openreview
 import xml.etree.ElementTree as ET
-from datetime import datetime
 from dotenv import load_dotenv
 import os
+import re
 import argparse
 
 load_dotenv()
@@ -10,11 +10,6 @@ load_dotenv()
 # ----------------------------
 # format/data helpers
 # ----------------------------
-def format_date(timestamp):
-    if not timestamp:
-        return ""
-    return datetime.utcfromtimestamp(timestamp / 1000).strftime("%d-%b-%Y").upper()
-
 def indent(elem, level=0):
     i = "\n" + level * "  "
     if len(elem):
@@ -27,47 +22,89 @@ def indent(elem, level=0):
     if level and (not elem.tail or not elem.tail.strip()):
         elem.tail = i
 
-def get_submission_date(submission):
-    timestamp = getattr(submission, "tcdate", None) or getattr(submission, "cdate", None)
-    return format_date(timestamp)
-
 
 # ----------------------------
-# OpenReview stores author names as a single string.
-# To match the ACM XML schema, we split the name into
-# first, middle, and last components based on whitespace.
-#
-# Rules:
-# - First token → first name
-# - Last token → last name
-# - Any tokens in between → middle name(s)
+# Name splitting: profile fields > TSV overrides > naive split
 # ----------------------------
-def split_name(full_name):
+def load_name_splits(tsv_path):
+    """Load manual name splits from a TSV file. Returns dict: profile_id -> (first, middle, last)."""
+    splits = {}
+    if not tsv_path or not os.path.exists(tsv_path):
+        return splits
+    with open(tsv_path) as f:
+        header = f.readline()  # skip header
+        for line in f:
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) >= 5:
+                splits[parts[0]] = (parts[2], parts[3], parts[4])
+    return splits
+
+def split_name_naive(full_name):
+    """Fallback: first token = first, last token = last, rest = middle."""
     parts = full_name.strip().split()
-
     if len(parts) == 0:
         return "", "", ""
-
     if len(parts) == 1:
         return parts[0], "", ""
-
     if len(parts) == 2:
         return parts[0], "", parts[1]
+    return parts[0], " ".join(parts[1:-1]), parts[-1]
 
-    first = parts[0]
-    last = parts[-1]
-    middle = " ".join(parts[1:-1])
+def get_author_name(profile, full_name, name_splits):
+    """
+    Get (first, middle, last) for an author.
+    1. Use profile's explicit first/middle/last if available.
+    2. Look up in name_splits TSV by profile ID (and all aliases).
+    3. Fall back to naive whitespace split.
+    """
+    if profile:
+        # Try profile's structured name fields
+        name_entry = profile.content.get("names", [{}])[0]
+        for ne in profile.content.get("names", []):
+            if ne.get("preferred"):
+                name_entry = ne
+                break
+        first = (name_entry.get("first") or "").strip()
+        middle = (name_entry.get("middle") or "").strip()
+        last = (name_entry.get("last") or "").strip()
+        if first and last:
+            return first, middle, last
 
-    return first, middle, last
+        # Try TSV lookup by canonical ID and all aliases
+        if profile.id in name_splits:
+            return name_splits[profile.id]
+        for ne in profile.content.get("names", []):
+            un = ne.get("username", "")
+            if un and un in name_splits:
+                return name_splits[un]
+
+    return split_name_naive(full_name)
 
 # ----------------------------
 # Safe helpers
 # ----------------------------
-def get_preferred_email(profile):
+def get_preferred_emails_bulk(client, venue_id):
+    """
+    Fetch all unmasked preferred emails for the venue in a single API call.
+    Returns dict: profile_id -> email.
+    """
+    email_map = {}
     try:
-        return profile.get_preferred_email()
-    except:
-        return ""
+        edges = client.get_grouped_edges(
+            invitation=f"{venue_id}/-/Preferred_Emails",
+            groupby="head", select="tail"
+        )
+        for group in edges:
+            profile_id = group["id"]["head"]
+            values = group.get("values", [])
+            if values:
+                email = values[0].get("tail", "")
+                if email and not email.startswith("****"):
+                    email_map[profile_id] = email
+        print(f"  Fetched {len(email_map)} preferred emails via bulk API call")
+    except Exception as e:
+        print(f"  [WARNING] Could not fetch preferred emails: {e}")
+    return email_map
 
 def get_current_affiliations(profile, author_id=""):
     """
@@ -150,8 +187,13 @@ def get_profiles_map(client, author_ids):
             print(f"  Successfully fetched {len(profiles)} profiles")
 
             for p in profiles:
-                # Map by Tilde ID
+                # Map by canonical ID
                 id2profile[p.id] = p
+                # Map by all usernames (including aliases)
+                for name_entry in p.content.get("names", []):
+                    username = name_entry.get("username", "")
+                    if username:
+                        id2profile[username] = p
                 # Map by all associated emails
                 for email in p.content.get("emails", []):
                     id2profile[email] = p
@@ -171,10 +213,10 @@ def get_profiles_map(client, author_ids):
 # ----------------------------
 # Main export function
 # ----------------------------
-def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xml"):
+def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xml", submissions_file=None, name_splits_file=None, submission_date=None, approval_date=None):
 
-    if paper_type not in ["Full Paper", "Short Paper"]:
-        raise ValueError("paper_type must be 'Full Paper' or 'Short Paper'")
+    if paper_type not in ["Full Paper", "Short Paper", "N/A"]:
+        raise ValueError("paper_type must be 'Full Paper', 'Short Paper', or 'N/A'")
 
     client = openreview.api.OpenReviewClient(
         baseurl="https://api2.openreview.net",
@@ -182,9 +224,34 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
         password=os.getenv("OPENREVIEW_PASSWORD")
     )
 
-    print("Fetching submissions...")
-    submissions = client.get_all_notes(content={"venueid": venue_id})
-    print(f"Found {len(submissions)} submissions")
+    # Fetch unmasked preferred emails in one bulk API call
+    preferred_emails = get_preferred_emails_bulk(client, venue_id)
+
+    # Load manual name splits
+    name_splits = load_name_splits(name_splits_file)
+    if name_splits:
+        print(f"  Loaded {len(name_splits)} manual name splits")
+
+    if submissions_file:
+        # Read submission IDs from file (one URL per line)
+        note_ids = []
+        with open(submissions_file) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                m = re.search(r'[?&]id=([A-Za-z0-9_-]+)', line)
+                if m:
+                    note_ids.append(m.group(1))
+                else:
+                    note_ids.append(line)  # assume bare ID
+        print(f"Fetching {len(note_ids)} submissions from file...")
+        submissions = [client.get_note(nid) for nid in note_ids]
+        print(f"Fetched {len(submissions)} submissions")
+    else:
+        print("Fetching submissions...")
+        submissions = list(client.get_all_notes(content={"venueid": venue_id}))
+        print(f"Found {len(submissions)} submissions")
 
     print("Collecting author IDs...")
     author_ids = set()
@@ -219,10 +286,8 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
         # Paper fields
         # ----------------------------
         ET.SubElement(paper, "paper_type").text = paper_type
-        ET.SubElement(paper, "art_submission_date").text = get_submission_date(s)
-        # last modified which is an acceptable proxy for approval date
-        approval_ts = getattr(s, "tmdate", None) or getattr(s, "cdate", None)
-        ET.SubElement(paper, "art_approval_date").text = format_date(approval_ts)
+        ET.SubElement(paper, "art_submission_date").text = submission_date
+        ET.SubElement(paper, "art_approval_date").text = approval_date
         ET.SubElement(paper, "paper_title").text = s.content.get("title", {}).get("value", "")
         ET.SubElement(paper, "event_tracking_number").text = s.id
         ET.SubElement(paper, "published_article_number").text = ""
@@ -236,15 +301,14 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
         for i, (name, aid) in enumerate(zip(names, ids), start=1):
             author_xml = ET.SubElement(authors_xml, "author")
 
-            first, middle, last = split_name(name)
+            profile = id2profile.get(aid)
+            first, middle, last = get_author_name(profile, name, name_splits)
 
             ET.SubElement(author_xml, "prefix").text = ""
             ET.SubElement(author_xml, "first_name").text = first
             ET.SubElement(author_xml, "middle_name").text = middle
             ET.SubElement(author_xml, "last_name").text = last
             ET.SubElement(author_xml, "suffix").text = ""
-
-            profile = id2profile.get(aid)
 
             affs_xml = ET.SubElement(author_xml, "affiliations")
             # Affiliations
@@ -259,8 +323,14 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
                 ET.SubElement(aff_xml, "state_province").text = aff.get("state", "")
                 ET.SubElement(aff_xml, "country").text = aff.get("country", "")
                 ET.SubElement(aff_xml, "sequence_no").text = str(seq_no)
-            # Email
-            email = get_preferred_email(profile) if profile else (aid if "@" in aid else "")
+            # Email: prefer bulk preferred emails, fall back to raw aid if it's an email
+            email = ""
+            if aid in preferred_emails:
+                email = preferred_emails[aid]
+            elif profile and profile.id in preferred_emails:
+                email = preferred_emails[profile.id]
+            elif "@" in aid:
+                email = aid
             ET.SubElement(author_xml, "email_address").text = email
 
             ET.SubElement(author_xml, "sequence_no").text = str(i)
@@ -312,10 +382,39 @@ if __name__ == "__main__":
         help="Output XML file name (default: acm_output.xml)"
     )
 
+    parser.add_argument(
+        "--submissions",
+        default=None,
+        help="File with submission URLs (one per line), e.g. https://openreview.net/forum?id=JpspflvG6J"
+    )
+
+    parser.add_argument(
+        "--manual_name_splits",
+        default=None,
+        help="TSV file with manual first/middle/last name splits for authors whose names "
+             "cannot be split automatically (columns: profile, fullname, firstname, middlename, lastname)"
+    )
+
+    parser.add_argument(
+        "--submission_date",
+        required=True,
+        help="Submission deadline for all papers, e.g. 22-JAN-2026"
+    )
+
+    parser.add_argument(
+        "--approval_date",
+        required=True,
+        help="Notification/approval date for all papers, e.g. 02-APR-2026"
+    )
+
     args = parser.parse_args()
 
     export_acm_xml(
         venue_id=args.venue_id,
         paper_type=args.paper_type,
-        output_file=args.output_file
+        output_file=args.output_file,
+        submissions_file=args.submissions,
+        name_splits_file=args.manual_name_splits,
+        submission_date=args.submission_date,
+        approval_date=args.approval_date,
     )
