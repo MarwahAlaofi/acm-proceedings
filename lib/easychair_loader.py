@@ -20,7 +20,7 @@ import logging
 from collections import defaultdict
 from datetime import datetime
 
-from easychair_models import (
+from .easychair_models import (
     Author, Paper, Track, ProceedingsExport, ValidationIssue,
     validate_proceedings_export
 )
@@ -211,19 +211,34 @@ def consolidate_duplicate_authors(
     logger: logging.Logger
 ) -> pd.DataFrame:
     """
-    Consolidate duplicate author entries by filling missing fields.
+    Fill missing fields for the same author across different papers.
+
+    This function identifies the same person across multiple papers (by name + email)
+    and fills ONLY EMPTY fields. It NEVER overwrites existing values, allowing authors
+    to legitimately have different affiliations/emails/countries for different papers.
+
+    Example:
+    - Paper 1: John Doe (john@mit.edu), affiliation="MIT", country="USA"
+    - Paper 2: John Doe (john@mit.edu), affiliation="", country=""
+    → Paper 2 gets filled: affiliation="MIT", country="USA"
+
+    - Paper 3: John Doe (john@mit.edu), affiliation="Stanford", country="USA"
+    → Paper 3 is NOT changed (existing affiliation is kept)
 
     Args:
         authors_df: DataFrame with author data
         logger: Logger instance
 
     Returns:
-        Cleaned DataFrame
+        Cleaned DataFrame with missing fields filled
     """
     author_corrections = 0
 
     def get_author_key(row):
-        """Create a unique key for grouping author entries."""
+        """
+        Create a unique key for identifying the same person across papers.
+        Uses name + email to identify individuals.
+        """
         email = (
             row["Email"].lower().strip()
             if pd.notna(row["Email"]) and row["Email"] and row["Email"] != "nan"
@@ -239,29 +254,35 @@ def consolidate_duplicate_authors(
         """Check if a field value is empty/missing."""
         return pd.isna(val) or not str(val).strip() or str(val) == "nan"
 
-    # Build consolidated info
+    # Group by author identity (across all papers)
     authors_df["_author_key"] = authors_df.apply(get_author_key, axis=1)
+
+    # For each unique author, collect all non-empty values for each field
+    # We'll use the first non-empty value found
     consolidated_info = {}
 
     for author_key, group in authors_df.groupby("_author_key"):
         if len(group) > 1:
+            # Author appears in multiple papers
             info = {}
             for field in ["Email", "Country", "Web page", "Affiliation"]:
+                # Find first non-empty value for this field
                 best_val = ""
                 for _, row in group.iterrows():
                     val = row.get(field, "")
-                    if not is_empty_value(val) and not best_val:
+                    if not is_empty_value(val):
                         best_val = val
-                        break
+                        break  # Use first non-empty value found
                 info[field] = best_val
             consolidated_info[author_key] = info
 
-    # Apply consolidated info
+    # Apply consolidated info ONLY to empty fields (never overwrite)
     for idx, row in authors_df.iterrows():
         key = row["_author_key"]
         if key in consolidated_info:
             for field, value in consolidated_info[key].items():
                 old_val = row.get(field, "")
+                # Only fill if current value is empty AND we have a value to fill
                 if is_empty_value(old_val) and value:
                     logger.debug(
                         f"Filling {field} for {row['First name']} {row['Last name']} "
@@ -273,7 +294,10 @@ def consolidate_duplicate_authors(
     authors_df = authors_df.drop(columns=["_author_key"])
 
     if author_corrections > 0:
-        logger.info(f"Made {author_corrections} field correction(s) across duplicate author entries")
+        logger.info(f"Made {author_corrections} field correction(s) by filling empty fields across papers")
+        logger.info("Note: Existing values were never overwritten (authors can have different affiliations per paper)")
+    else:
+        logger.info("No empty author fields to fill from other papers")
 
     return authors_df
 

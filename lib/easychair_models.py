@@ -314,7 +314,17 @@ class ProceedingsExport(BaseModel):
 
 def validate_author_name_consistency(export: ProceedingsExport) -> List[ValidationIssue]:
     """
-    Check for potential typos: same email with different names, or same name with different emails.
+    Check for potential typos: same email with different names.
+
+    Note: This validation is smart about legitimate variations:
+    - Same email with different names: WARNING (likely typo)
+    - Same name with different emails: INFO (often legitimate - multiple email addresses)
+    - Same name with different affiliations: NOT FLAGGED (completely legitimate - changed institutions)
+
+    Authors can legitimately have:
+    - Different affiliations across papers (changed institutions)
+    - Different emails across papers (multiple addresses, moved institutions)
+    - Different countries across papers (relocated)
 
     Args:
         export: ProceedingsExport to validate
@@ -331,7 +341,7 @@ def validate_author_name_consistency(export: ProceedingsExport) -> List[Validati
             for author in paper.authors:
                 all_authors.append((author, paper.submission_id))
 
-    # Check 1: Same email, different names
+    # Check 1: Same email, different names (LIKELY TYPO - flag as warning)
     email_to_names = {}
     for author, paper_id in all_authors:
         if author.email:
@@ -347,11 +357,11 @@ def validate_author_name_consistency(export: ProceedingsExport) -> List[Validati
             issues.append(ValidationIssue(
                 severity="warning",
                 category="name_consistency",
-                message=f"Same email '{email}' used with different names: {names_str}",
+                message=f"Same email '{email}' used with different names: {names_str} (likely typo)",
                 details={"email": email, "names": list(unique_names), "papers": papers_str}
             ))
 
-    # Check 2: Same name, different emails
+    # Check 2: Same name, different emails (OFTEN LEGITIMATE - flag as info only)
     name_to_emails = {}
     for author, paper_id in all_authors:
         full_name = author.full_name
@@ -364,12 +374,22 @@ def validate_author_name_consistency(export: ProceedingsExport) -> List[Validati
         unique_emails = set(email for email, _, _ in emails_and_data)
         if len(unique_emails) > 1:
             emails_str = ", ".join(f"'{email}'" for email in unique_emails)
+            # Show affiliations to help determine if this is legitimate
+            aff_info = {}
+            for email, paper_id, affiliation in emails_and_data:
+                if email not in aff_info:
+                    aff_info[email] = affiliation if affiliation else "(no affiliation)"
+            aff_str = ", ".join(f"{email} ({aff})" for email, aff in aff_info.items())
+
             issues.append(ValidationIssue(
-                severity="warning",
+                severity="info",
                 category="email_consistency",
-                message=f"Same name '{name}' used with different emails: {emails_str}",
-                details={"name": name, "emails": list(unique_emails)}
+                message=f"Same name '{name}' used with different emails: {aff_str} (often legitimate)",
+                details={"name": name, "emails": list(unique_emails), "context": "Multiple emails can be legitimate if author changed institutions or uses different addresses"}
             ))
+
+    # Note: We do NOT flag different affiliations - this is completely legitimate!
+    # Authors often change institutions between papers or have multiple affiliations.
 
     return issues
 

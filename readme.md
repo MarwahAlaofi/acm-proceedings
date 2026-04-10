@@ -8,9 +8,47 @@ This project hosts scripts for preparing ACM proceedings from conference managem
 
 **Output formats:**
 - ACM/Sheridan XML format (following: https://cms.acm.org/paperLoad/paperLoadSAMPLE.xml)
+- Plain text (TXT) - Human-readable listing of papers and authors
+- Markdown (MD) - Formatted listing with headers
 - MS Word document listing titles and authors
 
 ---
+
+# Repository Structure
+
+```
+.
+├── readme.md                           # This file
+├── requirements.txt                    # Python dependencies
+│
+├── export_to_acm_xml.py               # OpenReview export script
+├── export_to_acm_xml.ipynb            # OpenReview export (Jupyter)
+│
+├── easychair_to_acm_xml.py            # EasyChair v1 (original)
+├── easychair_to_acm_xml_v2.py         # EasyChair v2 (Pydantic)
+├── acm_xml_to_ms_word.py              # XML to Word converter
+│
+├── lib/                                # Core library modules (v2)
+│   ├── README.md                      # Library documentation
+│   ├── easychair_models.py            # Pydantic models
+│   ├── easychair_loader.py            # Data loader
+│   ├── easychair_exporters.py         # Export formatters
+│   └── __init__.py                    # Package init
+│
+├── tests/                              # Test scripts
+│   ├── README.md                      # Test documentation
+│   ├── test_pydantic_validation.py    # Unit tests
+│   └── test_author_order.py           # Integration tests
+│
+└── docs/                               # Documentation
+    ├── README.md                      # Documentation index
+    ├── VALIDATION_README.md           # Validation guide
+    ├── MULTI_AFFILIATION_SUPPORT.md   # Multi-affiliation docs
+    ├── VALIDATION_IMPROVEMENTS.md     # v1 vs v2 comparison
+    ├── FINAL_SUMMARY.md               # Complete summary
+    ├── IMPLEMENTATION_CHECKLIST.md    # Feature checklist
+    └── EasyChair_MATCHING_EXPLANATION.md
+```
 
 # Files
 
@@ -24,14 +62,32 @@ This project hosts scripts for preparing ACM proceedings from conference managem
 
 ## EasyChair Export
 
-- `easychair_to_acm_xml.py`  
-  Exports accepted papers from EasyChair Excel export into ACM-compatible XML  
+- `easychair_to_acm_xml.py` **(v1 - Original)**  
+  Exports accepted papers from EasyChair Excel export into ACM-compatible XML/TXT/MD  
   Includes data quality checks, duplicate consolidation, and typo detection
+
+- `easychair_to_acm_xml_v2.py` **(v2 - Enhanced with Pydantic Validation)**  
+  Same functionality as v1 with enhanced runtime validation using Pydantic models  
+  Provides structured error/warning/info reporting and better data quality checks  
+  **Recommended for new work**
+
+- `lib/` - Supporting modules for v2
+  - See [`lib/README.md`](lib/README.md) for details
 
 ## Utilities
 
 - `acm_xml_to_ms_word.py`  
-  Reads the generated XML and generates a formatted `.docx` file (for website use)  
+  Reads the generated XML and generates a formatted `.docx` file (for website use)
+
+## Documentation
+
+- `docs/` - Detailed documentation
+  - See [`docs/README.md`](docs/README.md) for complete documentation index
+
+## Tests
+
+- `tests/` - Unit and integration tests
+  - See [`tests/README.md`](tests/README.md) for running tests  
 
 ---
 
@@ -54,13 +110,25 @@ OPENREVIEW_PASSWORD=your_password
 
 ## For EasyChair Export
 
-Install dependencies:
+**v1 (Original Script):**
 
 ```bash
 pip install pandas openpyxl
 ```
 
+**v2 (Enhanced with Pydantic):**
+
+```bash
+pip install -r requirements.txt
+# Or manually:
+pip install pandas openpyxl pydantic email-validator
+```
+
 No credentials needed - works with Excel export files.
+
+**Which version to use?**
+- **v1**: Simple, no extra dependencies, production-ready
+- **v2**: Enhanced validation, better error messages, recommended for new work
 
 ---
 
@@ -110,6 +178,22 @@ Parameters:
 
 # Export Accepted Papers from EasyChair
 
+## Quick Reference
+
+**Choose your version:**
+- `easychair_to_acm_xml.py` (v1) - Simple, no extra dependencies ✓
+- `easychair_to_acm_xml_v2.py` (v2) - Enhanced validation, recommended for new work ✓
+
+**Choose your format:**
+- `--format xml` - ACM/Sheridan XML for proceedings submission
+- `--format txt` - Plain text listing (human-readable)
+- `--format md` - Markdown listing (human-readable with headers)
+
+**Detailed documentation:**
+- `VALIDATION_README.md` - Complete validation system guide (v2)
+- `MULTI_AFFILIATION_SUPPORT.md` - Multi-affiliation details
+- `VALIDATION_IMPROVEMENTS.md` - v1 vs v2 comparison
+
 ## Step 1: Export Data from EasyChair
 
 1. Log in to EasyChair as conference administrator
@@ -122,7 +206,26 @@ Parameters:
 **Basic usage (all tracks, auto-detect paper types):**
 
 ```bash
+# XML format (both v1 and v2 work)
 python easychair_to_acm_xml.py \
+  --input "path/to/EasyChair_export.xlsx" \
+  --proceeding_id "2026-SIGIR" \
+  --output "sigir2026.xml"
+
+# Plain text format (human-readable)
+python easychair_to_acm_xml.py \
+  --input "path/to/EasyChair_export.xlsx" \
+  --format txt \
+  --output "papers.txt"
+
+# Markdown format
+python easychair_to_acm_xml.py \
+  --input "path/to/EasyChair_export.xlsx" \
+  --format md \
+  --output "papers.md"
+
+# Using v2 with enhanced validation (same interface)
+python easychair_to_acm_xml_v2.py \
   --input "path/to/EasyChair_export.xlsx" \
   --proceeding_id "2026-SIGIR" \
   --output "sigir2026.xml"
@@ -141,12 +244,36 @@ This automatically assigns appropriate paper types based on track names:
 - Doctoral Colloquium → "Doctoral Abstract"
 - Low Resource Environments Track → "Low Resource Environment"
 
+**Output Format Options:**
+
+The script supports three output formats via the `--format` parameter:
+
+1. **XML** (default) - ACM/Sheridan XML format for proceedings submission
+2. **TXT** - Plain text listing (track name, paper title, authors with affiliations)
+3. **MD** - Markdown format with headers (same structure as TXT, easier to read)
+
+**Example TXT/MD output:**
+```
+Full Research Paper
+First Paper Title
+John Doe, MIT
+Jane Smith, Stanford
+
+Second Paper Title
+Alice Brown, CMU
+Bob Wilson, University of Washington
+```
+
 **Parameters:**
 
 - `--input` (required): Path to EasyChair Excel export file
   - Must contain 'Submissions' and 'Authors' sheets
 
-- `--proceeding_id` (required): ACM proceeding ID
+- `--format` (optional): Output format - `xml`, `txt`, or `md`
+  - Default: `xml`
+  - For TXT/MD formats, `--proceeding_id` is not required
+
+- `--proceeding_id` (required for XML): ACM proceeding ID
   - Examples: `"2026-SIGIR"`, `"2018-1234.1234"`
   - Can use different IDs for different tracks if submitting separately
 
@@ -248,12 +375,28 @@ The script automatically:
 ✅ **Cleans text fields** - removes line feeds, tabs, extra whitespace from all fields  
 ✅ **Auto-detects conference name** - extracts from track names (e.g., "SIGIR 2026")  
 ✅ **Maps track names to ACM sections** - removes conference prefix, normalizes format  
-✅ **Consolidates duplicate authors** - fills missing fields across multiple paper entries  
-✅ **Detects typos** - flags same email with different names, same name with different emails  
+✅ **Consolidates duplicate authors** - fills ONLY empty fields, never overwrites existing values  
+✅ **Multi-affiliation support** - authors can have different affiliations/emails across papers  
+✅ **Detects typos** - flags same email with different names (warning), same name with different emails (info)  
 ✅ **Sets corresponding author** - uses marked author or defaults to first author  
 ✅ **Generates detailed statistics** - track mapping, author counts, quality warnings  
 ✅ **Shows top prolific authors** - displays top 5 authors with paper type breakdown, includes all ties  
-✅ **Comprehensive logging** - saves detailed log file alongside XML output for debugging and audit  
+✅ **Comprehensive logging** - saves detailed log file (`.xml.log`, `.txt.log`, `.md.log`) for debugging and audit  
+✅ **Multiple output formats** - XML (ACM submission), TXT (human-readable), MD (markdown)  
+
+### Multi-Affiliation Support
+
+Authors can legitimately have different information across papers:
+- ✅ Different affiliations (changed institutions)
+- ✅ Different emails (multiple addresses, moved institutions)
+- ✅ Different countries (relocated)
+
+**How it works:**
+- Empty fields are filled from other papers (same author)
+- Existing values are NEVER overwritten
+- Example: Paper 1: "John, MIT" | Paper 2: "John, Stanford" → Both preserved ✓
+
+See `MULTI_AFFILIATION_SUPPORT.md` for details.  
 
 ## Logging and Output
 
@@ -460,9 +603,11 @@ Log file saved to: sigir2026.log
   - This makes it easy to identify paper types at a glance in the XML file
 
 - **Author Data Consolidation**
-  - Authors with multiple papers may have different information in different entries
-  - The script consolidates by finding the most complete information across all entries
-  - All corrections are printed during execution for review
+  - Authors with multiple papers may have missing information in some entries
+  - The script fills ONLY empty fields using data from other papers by the same author
+  - **Existing values are NEVER overwritten** - authors can have different affiliations per paper
+  - Example: Paper 1: "John Doe, MIT" | Paper 2: "John Doe, Stanford" → Both kept unchanged
+  - All corrections are logged for review (see `.log` file)
 
 - **Affiliation Parsing**
   - EasyChair stores affiliations as a single string

@@ -155,20 +155,56 @@ paper = Paper(
 
 The system automatically checks for:
 
-- **Name Consistency**: Same email with different names
+- **Name Consistency**: Same email with different names (WARNING - likely typo)
   ```
   ⚠ Same email 'john@example.com' used with different names: 'John Doe', 'J. Doe'
   ```
 
-- **Email Consistency**: Same name with different emails
+- **Email Consistency**: Same name with different emails (INFO - often legitimate)
   ```
-  ⚠ Same name 'John Doe' used with different emails: 'john@uni1.edu', 'john@uni2.edu'
+  ℹ Same name 'John Doe' used with different emails: john@mit.edu (MIT), john@stanford.edu (Stanford)
+  Note: Multiple emails can be legitimate if author changed institutions
   ```
 
-- **Missing Data**: Authors without affiliations or emails
+- **Missing Data**: Authors without affiliations or emails (WARNING)
   ```
   ⚠ Paper #123 has at least one author with missing affiliation
   ```
+
+### 4. Smart Field Consolidation
+
+**Authors can have different information for different papers!**
+
+The system intelligently fills ONLY empty fields across papers:
+
+✅ **Supported Scenarios:**
+
+```
+Paper 1: John Doe (john@mit.edu), affiliation="MIT", country="USA"
+Paper 2: John Doe (john@mit.edu), affiliation="Stanford", country="USA"
+→ BOTH kept as-is (legitimate institution change)
+
+Paper 3: John Doe (john@mit.edu), affiliation="", country=""
+→ Filled from Paper 1: affiliation="MIT", country="USA"
+```
+
+**Key Rules:**
+- ✅ Empty fields are filled from other papers (same author)
+- ✅ Existing values are NEVER overwritten
+- ✅ Authors can have different emails for different papers
+- ✅ Authors can have different affiliations for different papers
+- ✅ Authors can have different countries for different papers
+
+**Example:**
+```python
+# Same person, different papers
+Paper A: Jane Smith, jane.smith@olduni.edu, "Old University"
+Paper B: Jane Smith, jane.smith@newuni.edu, "New University"  
+# ✓ Both affiliations kept (she moved institutions)
+
+Paper C: Jane Smith, jane.smith@newuni.edu, ""
+# ✓ Filled with "New University" (same email, empty affiliation)
+```
 
 ## Testing
 

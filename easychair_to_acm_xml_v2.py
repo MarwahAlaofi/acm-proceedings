@@ -53,8 +53,8 @@ import logging
 import subprocess
 from pathlib import Path
 
-from easychair_loader import load_easychair_data
-from easychair_exporters import export_to_xml, export_to_text, print_summary
+from lib.easychair_loader import load_easychair_data
+from lib.easychair_exporters import export_to_xml, export_to_text, print_summary
 
 
 def setup_logging(log_file: str) -> logging.Logger:

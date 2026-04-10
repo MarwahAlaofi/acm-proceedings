@@ -6,12 +6,18 @@ This script demonstrates and tests the runtime validation capabilities
 of the Pydantic models used in the EasyChair converter.
 
 Usage:
-    python test_pydantic_validation.py
+    python tests/test_pydantic_validation.py
+    (Run from project root directory)
 """
 
-from easychair_models import Author, Paper, Track, ProceedingsExport, ValidationIssue
-from pydantic import ValidationError
 import sys
+import os
+
+# Add parent directory to path so we can import from lib
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from lib.easychair_models import Author, Paper, Track, ProceedingsExport, ValidationIssue
+from pydantic import ValidationError
 
 
 def test_author_validation():
@@ -259,6 +265,134 @@ def test_proceedings_validation():
     return True
 
 
+def test_different_affiliations_across_papers():
+    """Test that authors can have different affiliations for different papers."""
+    print("\n" + "=" * 80)
+    print("Testing Different Affiliations Across Papers")
+    print("=" * 80)
+
+    # Same author with different affiliations in different papers
+    print("\n✓ Testing author with different affiliations across papers...")
+    author1_paper1 = Author(
+        first_name="John",
+        last_name="Doe",
+        email="john@example.com",
+        affiliation="MIT",
+        country="USA"
+    )
+
+    author1_paper2 = Author(
+        first_name="John",
+        last_name="Doe",
+        email="john@example.com",
+        affiliation="Stanford",
+        country="USA"
+    )
+
+    paper1 = Paper(
+        submission_id=1,
+        title="Paper at MIT",
+        authors=[author1_paper1],
+        track_name="Track",
+        section_name="Section",
+        paper_type="Type"
+    )
+
+    paper2 = Paper(
+        submission_id=2,
+        title="Paper at Stanford",
+        authors=[author1_paper2],
+        track_name="Track",
+        section_name="Section",
+        paper_type="Type"
+    )
+
+    print(f"  Paper 1: {author1_paper1.full_name} - {author1_paper1.affiliation}")
+    print(f"  Paper 2: {author1_paper2.full_name} - {author1_paper2.affiliation}")
+    print(f"  ✓ Both affiliations preserved (legitimate institution change)")
+
+    # Test that validation doesn't flag this as an error
+    export = ProceedingsExport()
+    track = Track(
+        original_name="Track",
+        section_name="Section",
+        papers=[paper1, paper2]
+    )
+    export.tracks.append(track)
+
+    from lib.easychair_models import validate_author_name_consistency
+    issues = validate_author_name_consistency(export)
+
+    # Should have at most an INFO level notice, not a WARNING or ERROR
+    errors_warnings = [i for i in issues if i.severity in ["error", "warning"]]
+    if errors_warnings:
+        print(f"  ✗ Incorrectly flagged different affiliations as error/warning:")
+        for issue in errors_warnings:
+            print(f"    {issue}")
+        return False
+
+    print(f"  ✓ Validation correctly allows different affiliations per paper")
+
+    # Test different emails too
+    print("\n✓ Testing author with different emails across papers...")
+    author2_paper1 = Author(
+        first_name="Jane",
+        last_name="Smith",
+        email="jane@mit.edu",
+        affiliation="MIT"
+    )
+
+    author2_paper2 = Author(
+        first_name="Jane",
+        last_name="Smith",
+        email="jane@stanford.edu",
+        affiliation="Stanford"
+    )
+
+    paper3 = Paper(
+        submission_id=3,
+        title="Paper A",
+        authors=[author2_paper1],
+        track_name="Track",
+        section_name="Section",
+        paper_type="Type"
+    )
+
+    paper4 = Paper(
+        submission_id=4,
+        title="Paper B",
+        authors=[author2_paper2],
+        track_name="Track",
+        section_name="Section",
+        paper_type="Type"
+    )
+
+    export2 = ProceedingsExport()
+    track2 = Track(
+        original_name="Track",
+        section_name="Section",
+        papers=[paper3, paper4]
+    )
+    export2.tracks.append(track2)
+
+    issues2 = validate_author_name_consistency(export2)
+
+    # Should have at most INFO level, not ERROR
+    errors = [i for i in issues2 if i.severity == "error"]
+    if errors:
+        print(f"  ✗ Incorrectly flagged different emails as error")
+        return False
+
+    # Info notices are OK
+    info_notices = [i for i in issues2 if i.severity == "info"]
+    print(f"  ✓ Validation allows different emails ({len(info_notices)} info notice)")
+
+    print("\n" + "=" * 80)
+    print("✓ All different affiliations/emails tests passed!")
+    print("=" * 80)
+    return True
+
+
 def main():
     """Run all validation tests."""
     print("\n" + "=" * 80)
@@ -270,6 +404,7 @@ def main():
     results.append(("Author Validation", test_author_validation()))
     results.append(("Paper Validation", test_paper_validation()))
     results.append(("ProceedingsExport Validation", test_proceedings_validation()))
+    results.append(("Different Affiliations Across Papers", test_different_affiliations_across_papers()))
 
     print("\n" + "=" * 80)
     print("TEST RESULTS SUMMARY")

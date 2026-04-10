@@ -17,7 +17,7 @@ from typing import Optional, Literal
 import logging
 from datetime import datetime
 
-from easychair_models import ProceedingsExport, Track, Paper, Author
+from .easychair_models import ProceedingsExport, Track, Paper, Author
 
 # Paper type to event tracking number prefix mapping
 PAPER_TYPE_PREFIX_MAP = {
@@ -264,13 +264,20 @@ def print_summary(
     logger.info("DATA QUALITY")
     logger.info("-" * 80)
 
+    # Count issues by severity
+    info_count = sum(1 for i in export.validation_issues if i.severity == "info")
+
     if export.has_errors:
         logger.error(f"  ✗ {export.error_count} error(s) found")
     if export.has_warnings:
         logger.warning(f"  ⚠ {export.warning_count} warning(s) found")
+    if info_count > 0:
+        logger.info(f"  ℹ {info_count} informational notice(s)")
 
     if not export.has_errors and not export.has_warnings:
-        logger.info("  ✓ No data quality issues detected")
+        logger.info("  ✓ No critical data quality issues detected")
+        if info_count > 0:
+            logger.info("  → Some informational notices present (see log for details)")
     else:
         # Group issues by category
         issues_by_category = {}
@@ -294,11 +301,17 @@ def print_summary(
         logger.debug("=" * 80)
         logger.debug("VALIDATION ISSUES DETAILS")
         logger.debug("=" * 80)
+        logger.debug("")
+        logger.debug("Note: 'info' level issues are informational and often legitimate")
+        logger.debug("      'warning' level issues may need review")
+        logger.debug("      'error' level issues must be fixed")
+        logger.debug("")
         for issue in export.validation_issues[:20]:
             logger.debug(str(issue))
             if issue.details:
                 for key, value in issue.details.items():
                     logger.debug(f"  {key}: {value}")
+            logger.debug("")
         if len(export.validation_issues) > 20:
             logger.debug(f"... and {len(export.validation_issues) - 20} more issues")
 
