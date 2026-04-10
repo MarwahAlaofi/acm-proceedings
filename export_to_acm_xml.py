@@ -346,7 +346,10 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
             ET.SubElement(author_xml, "contact_author").text = "Y" if i == 1 else "N"
             ET.SubElement(author_xml, "ACM_profile_id").text = ""
             ET.SubElement(author_xml, "ACM_client_no").text = ""
-            orcid = profile.content.get("orcid", "") if profile else ""
+            orcid_raw = profile.content.get("orcid", "") if profile else ""
+            # Extract ORCID ID from URL if present
+            match = re.search(r'(\d{4}-\d{4}-\d{4}-\d{4})', orcid_raw)
+            orcid = match.group(1) if match else orcid_raw
             ET.SubElement(author_xml, "ORCID").text = orcid
             ET.SubElement(author_xml, "role").text = "author"
 
