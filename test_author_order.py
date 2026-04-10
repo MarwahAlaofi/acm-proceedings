@@ -1,15 +1,20 @@
 """
-Author Order Validation Test
-=============================
+Author Order and Affiliation Validation Test
+=============================================
 
-This script validates that the author order in the generated ACM XML file
-matches the correct order from the EasyChair Submissions sheet.
+This script validates that the generated ACM XML file correctly matches
+the EasyChair export data:
+- Author order matches the Submissions.Authors column
+- Affiliations match the Authors sheet (no parsing/assumptions)
+- Department field is empty (as expected)
+- Institution field matches Affiliation field exactly
+- Country field matches Country field exactly
 
 Usage:
     python test_author_order.py <excel_file> <xml_file>
 
 Returns:
-    Exit code 0 if all papers have correct author order
+    Exit code 0 if all validations pass
     Exit code 1 if any mismatches are found
 """
 
@@ -46,9 +51,16 @@ def normalize_name(name):
     return name.lower().strip()
 
 
+def clean_text(x):
+    """Remove line feeds, tabs, and extra whitespace (same as in main script)."""
+    if pd.isna(x):
+        return ""
+    return " ".join(str(x).split())
+
+
 def validate_author_order(excel_file, xml_file):
     """
-    Validate that author order in XML matches the order from Excel.
+    Validate that author order and affiliations in XML match the data from Excel.
 
     Args:
         excel_file: Path to EasyChair Excel export
@@ -58,7 +70,7 @@ def validate_author_order(excel_file, xml_file):
         tuple: (is_valid, mismatches) where is_valid is bool and mismatches is list of dicts
     """
     print("=" * 80)
-    print("AUTHOR ORDER VALIDATION TEST")
+    print("AUTHOR ORDER AND AFFILIATION VALIDATION TEST")
     print("=" * 80)
     print(f"Excel file: {excel_file}")
     print(f"XML file: {xml_file}")
@@ -68,6 +80,7 @@ def validate_author_order(excel_file, xml_file):
     print("Loading Excel data...")
     excel = pd.ExcelFile(excel_file)
     submissions_df = pd.read_excel(excel, "Submissions")
+    authors_df = pd.read_excel(excel, "Authors")
 
     # Filter accepted papers
     accepted_submissions = submissions_df[
@@ -94,12 +107,13 @@ def validate_author_order(excel_file, xml_file):
     print()
 
     # Validate each paper
-    print("Validating author order...")
+    print("Validating author order and affiliations...")
     print("-" * 80)
 
     mismatches = []
     papers_checked = 0
     papers_by_prefix = defaultdict(int)
+    affiliation_issues = 0
 
     for paper in papers:
         # Extract paper ID from event_tracking_number
@@ -172,6 +186,97 @@ def validate_author_order(excel_file, xml_file):
                 "expected": expected,
                 "actual": actual,
             })
+            continue
+
+        # Validate affiliations
+        # Get expected affiliations from Authors sheet
+        expected_authors = authors_df[authors_df["Submission #"] == paper_id].copy()
+
+        # Create mapping by parsing the correct order
+        authors_str = str(accepted_submissions[accepted_submissions["#"] == paper_id].iloc[0].get("Authors", ""))
+        authors_str = " ".join(authors_str.split())
+        authors_str = authors_str.replace(" and ", ", ")
+        author_names_order = [name.strip() for name in authors_str.split(",") if name.strip()]
+
+        # Build expected affiliations in correct order
+        # Apply same text cleaning as main script (clean line breaks, extra whitespace)
+        expected_affiliations = []
+        for expected_name in author_names_order:
+            # Find matching author in expected_authors
+            matched = False
+            for _, exp_auth in expected_authors.iterrows():
+                exp_full_name = f"{exp_auth['First name']} {exp_auth['Last name']}"
+                if normalize_name(expected_name) == normalize_name(exp_full_name):
+                    # Apply same cleaning as main script
+                    affiliation = clean_text(exp_auth.get("Affiliation", ""))
+                    country = clean_text(exp_auth.get("Country", ""))
+
+                    expected_affiliations.append({
+                        "name": exp_full_name,
+                        "affiliation": affiliation,
+                        "country": country,
+                    })
+                    matched = True
+                    break
+
+            if not matched:
+                expected_affiliations.append({
+                    "name": expected_name,
+                    "affiliation": "",
+                    "country": "",
+                })
+
+        # Check affiliations in XML
+        for idx, author_xml in enumerate(authors_xml.findall("author")):
+            if idx >= len(expected_affiliations):
+                break
+
+            expected_aff = expected_affiliations[idx]
+
+            # Get affiliation from XML
+            affiliations_xml = author_xml.find("affiliations")
+            if affiliations_xml is not None:
+                affiliation_xml = affiliations_xml.find("affiliation")
+                if affiliation_xml is not None:
+                    xml_dept = affiliation_xml.find("department").text or ""
+                    xml_inst = affiliation_xml.find("institution").text or ""
+                    xml_country = affiliation_xml.find("country").text or ""
+
+                    # Department should be empty (not parsed)
+                    if xml_dept.strip():
+                        affiliation_issues += 1
+                        mismatches.append({
+                            "paper_id": paper_id,
+                            "error": f"Affiliation validation: department field should be empty for author {expected_aff['name']}",
+                            "detail": f"Expected: department='', Got: department='{xml_dept}'",
+                            "expected": [],
+                            "actual": [],
+                        })
+                        continue
+
+                    # Institution should match Affiliation field exactly
+                    if xml_inst.strip() != expected_aff["affiliation"]:
+                        affiliation_issues += 1
+                        mismatches.append({
+                            "paper_id": paper_id,
+                            "error": f"Affiliation mismatch for author {expected_aff['name']}",
+                            "detail": f"Expected: institution='{expected_aff['affiliation']}', Got: institution='{xml_inst}'",
+                            "expected": [],
+                            "actual": [],
+                        })
+                        continue
+
+                    # Country should match
+                    if xml_country.strip() != expected_aff["country"]:
+                        affiliation_issues += 1
+                        mismatches.append({
+                            "paper_id": paper_id,
+                            "error": f"Country mismatch for author {expected_aff['name']}",
+                            "detail": f"Expected: country='{expected_aff['country']}', Got: country='{xml_country}'",
+                            "expected": [],
+                            "actual": [],
+                        })
+                        continue
 
     # Print results
     print(f"Papers checked: {papers_checked}")
@@ -179,8 +284,16 @@ def validate_author_order(excel_file, xml_file):
     print()
 
     if mismatches:
+        # Count different types of issues
+        order_issues = sum(1 for m in mismatches if "order" in m["error"].lower())
+        aff_issues = sum(1 for m in mismatches if "affiliation" in m["error"].lower() or "country" in m["error"].lower() or "department" in m["error"].lower())
+
         print("=" * 80)
-        print(f"❌ VALIDATION FAILED: {len(mismatches)} paper(s) with author order issues")
+        print(f"❌ VALIDATION FAILED: {len(mismatches)} issue(s) found")
+        if order_issues > 0:
+            print(f"   • Author order issues: {order_issues}")
+        if aff_issues > 0:
+            print(f"   • Affiliation issues: {aff_issues}")
         print("=" * 80)
         print()
 
@@ -189,15 +302,20 @@ def validate_author_order(excel_file, xml_file):
             print(f"Paper #{mismatch['paper_id']}:")
             print(f"  Error: {mismatch['error']}")
 
-            if mismatch['expected']:
-                print(f"  Expected order ({len(mismatch['expected'])} authors):")
-                for j, name in enumerate(mismatch['expected'], 1):
-                    print(f"    {j}. {name}")
+            # Show detail field for affiliation issues
+            if 'detail' in mismatch and mismatch['detail']:
+                print(f"  {mismatch['detail']}")
 
-            if mismatch['actual']:
-                print(f"  Actual order ({len(mismatch['actual'])} authors):")
-                for j, name in enumerate(mismatch['actual'], 1):
-                    print(f"    {j}. {name}")
+            # Show expected/actual lists for author order issues
+            if mismatch['expected'] and mismatch['actual']:
+                if len(mismatch['expected']) > 0 and isinstance(mismatch['expected'][0], str):
+                    print(f"  Expected order ({len(mismatch['expected'])} authors):")
+                    for j, name in enumerate(mismatch['expected'], 1):
+                        print(f"    {j}. {name}")
+
+                    print(f"  Actual order ({len(mismatch['actual'])} authors):")
+                    for j, name in enumerate(mismatch['actual'], 1):
+                        print(f"    {j}. {name}")
 
             print()
 
@@ -208,7 +326,7 @@ def validate_author_order(excel_file, xml_file):
         return False, mismatches
     else:
         print("=" * 80)
-        print(f"✅ VALIDATION PASSED: All {papers_checked} papers have correct author order")
+        print(f"✅ VALIDATION PASSED: All {papers_checked} papers have correct author order and affiliations")
         print("=" * 80)
         return True, []
 

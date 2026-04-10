@@ -83,37 +83,6 @@ def format_date(date_str):
         return ""
 
 
-def parse_affiliation(affiliation_str):
-    """
-    Parse affiliation string into department and institution components.
-
-    EasyChair typically stores affiliation as a single string. This function
-    attempts to split it using heuristics.
-
-    Common formats:
-        - "Department, Institution" -> splits into both
-        - "Institution only" -> empty department, full institution
-
-    Args:
-        affiliation_str: Raw affiliation string from EasyChair
-
-    Returns:
-        tuple: (department, institution) - both strings
-    """
-    if pd.isna(affiliation_str) or not affiliation_str:
-        return "", affiliation_str or ""
-
-    parts = [p.strip() for p in str(affiliation_str).split(",")]
-
-    if len(parts) >= 2:
-        # Heuristic: First part is department (if < 100 chars), last part is institution
-        department = parts[0] if len(parts[0]) < 100 else ""
-        institution = parts[-1] if len(parts) > 1 else parts[0]
-        return department, institution
-    else:
-        return "", affiliation_str
-
-
 def setup_logging(log_file):
     """
     Set up logging to both console and file.
@@ -732,14 +701,17 @@ def export_easychair_to_acm_xml(
             affiliations_xml = ET.SubElement(author_xml, "affiliations")
             affiliation_xml = ET.SubElement(affiliations_xml, "affiliation")
 
+            # Map EasyChair fields directly to ACM XML without parsing
+            # EasyChair provides: Affiliation (single field), Country
+            # ACM XML requires: department, institution, city, state_province, country
             affiliation_str = author.get("Affiliation")
             if pd.isna(affiliation_str) or not str(affiliation_str).strip():
                 paper_has_missing_affiliation = True
+                affiliation_str = ""
 
-            department, institution = parse_affiliation(affiliation_str)
-
-            ET.SubElement(affiliation_xml, "department").text = department
-            ET.SubElement(affiliation_xml, "institution").text = institution
+            # No parsing - just map the single Affiliation field to institution
+            ET.SubElement(affiliation_xml, "department").text = ""
+            ET.SubElement(affiliation_xml, "institution").text = str(affiliation_str).strip()
             ET.SubElement(affiliation_xml, "city").text = ""
             ET.SubElement(affiliation_xml, "state_province").text = ""
             ET.SubElement(affiliation_xml, "country").text = str(
