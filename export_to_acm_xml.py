@@ -249,9 +249,17 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
         submissions = [client.get_note(nid) for nid in note_ids]
         print(f"Fetched {len(submissions)} submissions")
     else:
-        print("Fetching submissions...")
-        submissions = list(client.get_all_notes(content={"venueid": venue_id}))
-        print(f"Found {len(submissions)} submissions")
+        # Default: fetch all decisions and filter for accepted submissions
+        print("Fetching all notes to find accepted submissions...")
+        all_notes = list(client.get_all_notes(invitation=f"{venue_id}/-/Edit"))
+        accepted_ids = []
+        for n in all_notes:
+            if any(inv.endswith("/-/Decision") and "/Submission" in inv for inv in n.invitations):
+                if n.content.get("decision", {}).get("value", "") == "Accept":
+                    accepted_ids.append(n.forum)
+        print(f"Found {len(accepted_ids)} accepted submissions, fetching...")
+        submissions = [client.get_note(nid) for nid in accepted_ids]
+        print(f"Fetched {len(submissions)} submissions")
 
     print("Collecting author IDs...")
     author_ids = set()
