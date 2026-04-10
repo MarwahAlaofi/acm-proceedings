@@ -114,7 +114,7 @@ def run_validation_test(
     logger.info("=" * 80)
 
     try:
-        test_script = "test_author_order.py"
+        test_script = "tests/test_author_order.py"
         result = subprocess.run(
             ["python", test_script, excel_file, output_file],
             capture_output=True,

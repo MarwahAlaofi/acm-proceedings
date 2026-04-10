@@ -485,7 +485,7 @@ def export_easychair_to_text(
 
     try:
         # Run the validation test script
-        test_script = "test_author_order.py"
+        test_script = "tests/test_author_order.py"
         result = subprocess.run(
             ["python", test_script, excel_file_path, output_file],
             capture_output=True,
@@ -1246,7 +1246,7 @@ def export_easychair_to_acm_xml(
 
     try:
         # Run the validation test script
-        test_script = "test_author_order.py"
+        test_script = "tests/test_author_order.py"
         result = subprocess.run(
             ["python", test_script, excel_file_path, output_file],
             capture_output=True,
