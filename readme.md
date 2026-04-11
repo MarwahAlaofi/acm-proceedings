@@ -77,7 +77,12 @@ This project hosts scripts for preparing ACM proceedings from conference managem
 ## Utilities
 
 - `acm_xml_to_ms_word.py`  
-  Reads the generated XML and generates a formatted `.docx` file (for website use)
+  Reads the generated XML file(s) and generates a formatted `.docx` file of titles and authors (for website use). Example usage:
+  ```bash
+    python acm_xml_to_ms_word.py \
+    --input_xml sigir26-short.xml sigir26-full.xml SIGIR2026-others.xml \
+    --output_docx accepted-papers.docx
+    ```
 
 ## Documentation
 
