@@ -77,12 +77,7 @@ This project hosts scripts for preparing ACM proceedings from conference managem
 ## Utilities
 
 - `acm_xml_to_ms_word.py`  
-  Reads the generated XML file(s) and generates a formatted `.docx` file of titles and authors (for website use). Example usage:
-  ```bash
-    python acm_xml_to_ms_word.py \
-    --input_xml sigir26-short.xml sigir26-full.xml SIGIR2026-others.xml \
-    --output_docx accepted-papers.docx
-    ```
+  Reads the generated XML file(s) and generates a formatted `.docx` file of titles and authors (for website use). 
 
 ## Documentation
 
@@ -630,18 +625,18 @@ Log file saved to: sigir2026.log
 
 ---
 
-# Convert the XML file into .docx 
+# Convert the XML file(s) into .docx 
 
-Run the script with command-line arguments. Example to convert the ICLR papers into an MS Word doc:
+Run the script with command-line arguments. Example to convert SIGIR papers from XML files(s) into an MS Word doc:
 
 ```bash
-python acm_xml_to_ms_word.py \
-  --input_xml "ICLR_acm_comp_output.xml" \
-  --output_docx "ICLR_papers_list.docx"
+    python acm_xml_to_ms_word.py \
+    --input_xml sigir26-short.xml sigir26-full.xml SIGIR2026-others.xml \
+    --output_docx accepted-papers.docx
 ```
 
 Parameters:
 
-- `--input_xml` (required): Path to input XML file  
+- `--input_xml` (required): Path to input XML file(s)  
 - `--output_docx` (optional): Output Word file (default: papers_list.docx)  
 
