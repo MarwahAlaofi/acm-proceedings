@@ -418,7 +418,17 @@ def display_country_details(search_term, stats_data, paper_details):
             for i, match in enumerate(matches, 1):
                 count = country_count[match]
                 print(f"  {Colors.BOLD}{i}.{Colors.RESET} {match} {Colors.DIM}({count} authors){Colors.RESET}")
-            return
+
+            # Ask user to select
+            choice = input(f"\n{Colors.CYAN}Enter number to view details (or Enter to cancel): {Colors.RESET}").strip()
+            try:
+                idx = int(choice) - 1
+                if 0 <= idx < len(matches):
+                    matched_country = matches[idx]
+                else:
+                    return
+            except (ValueError, IndexError):
+                return
         else:
             print(f"\n{Colors.RED}✗ No country found matching '{search_term}'{Colors.RESET}")
             return
@@ -471,63 +481,76 @@ def display_country_details(search_term, stats_data, paper_details):
 
 
 def display_track_details(stats_data, paper_details):
-    """Display papers by track/section."""
+    """Display papers by track/section or paper type."""
     papers_by_track = stats_data["papers_by_track"]
 
+    # Check if sections are actually populated
+    # If all papers have empty section, use paper types instead
+    use_paper_types = False
+    if len(papers_by_track) == 1 and list(papers_by_track.keys())[0] in ['', 'Unknown']:
+        use_paper_types = True
+
+    if use_paper_types:
+        # Group by paper type instead
+        papers_by_type = stats_data["papers_by_type"]
+        display_items = papers_by_type
+        display_title = "AVAILABLE PAPER TYPES"
+    else:
+        # Use sections as originally intended
+        display_items = papers_by_track
+        display_title = "AVAILABLE TRACKS/SECTIONS"
+
     print("\n" + f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
-    print(f"{Colors.CYAN}{Colors.BOLD}AVAILABLE TRACKS/SECTIONS{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}{display_title}{Colors.RESET}")
     print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
 
-    tracks = sorted(papers_by_track.keys())
-    for i, track in enumerate(tracks, 1):
-        count = papers_by_track[track]
-        print(f"  {Colors.BOLD}{i}.{Colors.RESET} {track} {Colors.DIM}({count} papers){Colors.RESET}")
+    items = sorted(display_items.keys())
+    for i, item in enumerate(items, 1):
+        count = display_items[item]
+        print(f"  {Colors.BOLD}{i}.{Colors.RESET} {item} {Colors.DIM}({count} papers){Colors.RESET}")
 
-    choice = input(f"\n{Colors.CYAN}Enter track number to view details (or Enter to cancel): {Colors.RESET}").strip()
+    choice = input(f"\n{Colors.CYAN}Enter number to view details (or Enter to cancel): {Colors.RESET}").strip()
 
     try:
         idx = int(choice) - 1
-        if 0 <= idx < len(tracks):
-            selected_track = tracks[idx]
+        if 0 <= idx < len(items):
+            selected_item = items[idx]
         else:
             return
     except (ValueError, IndexError):
         return
 
-    # Find papers in this track
+    # Find papers in this track/type
     track_papers = []
     for paper_id, detail in paper_details.items():
-        if detail['section'] == selected_track or (not detail['section'] and detail['type'] == selected_track):
-            track_papers.append((paper_id, detail))
+        if use_paper_types:
+            if detail['type'] == selected_item:
+                track_papers.append((paper_id, detail))
+        else:
+            if detail['section'] == selected_item or (not detail['section'] and detail['type'] == selected_item):
+                track_papers.append((paper_id, detail))
 
     # Display header
     print("\n" + f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
-    print(f"{Colors.CYAN}{Colors.BOLD}TRACK DETAILS: {Colors.MAGENTA}{selected_track}{Colors.RESET}")
+    if use_paper_types:
+        print(f"{Colors.CYAN}{Colors.BOLD}PAPER TYPE DETAILS: {Colors.MAGENTA}{selected_item}{Colors.RESET}")
+    else:
+        print(f"{Colors.CYAN}{Colors.BOLD}TRACK DETAILS: {Colors.MAGENTA}{selected_item}{Colors.RESET}")
     print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
     print(f"{Colors.GREEN}Total papers:{Colors.RESET} {Colors.BOLD}{len(track_papers)}{Colors.RESET}")
-
-    # Group by paper type if section is used
-    papers_by_type = defaultdict(list)
-    for paper_id, detail in track_papers:
-        papers_by_type[detail['type']].append((paper_id, detail))
 
     print("\n" + f"{Colors.CYAN}{'-' * 80}{Colors.RESET}")
     print(f"{Colors.CYAN}{Colors.BOLD}PAPERS{Colors.RESET}")
     print(f"{Colors.CYAN}{'-' * 80}{Colors.RESET}")
+    print()
 
-    for paper_type in sorted(papers_by_type.keys()):
-        papers = papers_by_type[paper_type]
-        if len(papers_by_type) > 1:
-            print(f"\n{Colors.MAGENTA}{Colors.BOLD}{paper_type}{Colors.RESET} {Colors.DIM}({len(papers)} papers){Colors.RESET}:")
-            print()
+    for paper_id, detail in sorted(track_papers):
+        print(f"  {Colors.CYAN}[{paper_id}]{Colors.RESET} {detail['title']}")
 
-        for paper_id, detail in sorted(papers):
-            print(f"  {Colors.CYAN}[{paper_id}]{Colors.RESET} {detail['title']}")
-
-            # Show authors
-            author_names = [a['name'] for a in detail['authors']]
-            print(f"      {Colors.DIM}Authors:{Colors.RESET} {', '.join(author_names)}")
-            print()
+        # Show authors
+        author_names = [a['name'] for a in detail['authors']]
+        print(f"      {Colors.DIM}Authors:{Colors.RESET} {', '.join(author_names)}")
+        print()
 
     print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
 
