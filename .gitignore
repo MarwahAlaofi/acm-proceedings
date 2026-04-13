@@ -11,9 +11,11 @@ __pycache__/
 # Output files
 *.xml
 *.docx
+*.log
 
 # IDEs
 .idea/
 .vscode/
 .manual-data/
 validation/__pycache__/
+
