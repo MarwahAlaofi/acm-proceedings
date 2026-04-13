@@ -21,8 +21,8 @@ This project hosts scripts for preparing ACM proceedings from conference managem
 ├── readme.md                           # This file
 ├── requirements.txt                    # Python dependencies
 │
-├── export_to_acm_xml.py               # OpenReview export script
-├── export_to_acm_xml.ipynb            # OpenReview export (Jupyter)
+├── openreview_to_acm_xml.py               # OpenReview export script
+├── openreview_to_acm_xml.ipynb            # OpenReview export (Jupyter)
 │
 ├── easychair_to_acm_xml.py            # EasyChair v1 (original)
 ├── easychair_to_acm_xml_v2.py         # EasyChair v2 (Pydantic)
@@ -54,10 +54,10 @@ This project hosts scripts for preparing ACM proceedings from conference managem
 
 ## OpenReview Export
 
-- `export_to_acm_xml.py`  
+- `openreview_to_acm_xml.py`  
   Exports submissions from OpenReview into ACM-compatible XML  
 
-- `export_to_acm_xml.ipynb`  
+- `openreview_to_acm_xml.ipynb`  
   Jupyter notebook version of the script above, provided for easier setup
 
 ## EasyChair Export
@@ -137,7 +137,7 @@ No credentials needed - works with Excel export files.
 Run the script with command-line arguments. Example to export ICLR'24 accepted papers:
 
 ```bash
-python export_to_acm_xml.py \
+python openreview_to_acm_xml.py \
   --venue_id "ICLR.cc/2024/Conference" \
   --paper_type "Full Paper" \
   --output_file "ICLR_acm_comp_output.xml"
@@ -161,9 +161,11 @@ Parameters:
     - Middle tokens → middle name(s)  
   - This may not always be accurate for all naming conventions.
 
-- **Author order**
-  - The order of authors is preserved as provided by OpenReview.
-  - The first author is assumed to be the **contact author**.
+- **Contact Author (OpenReview-specific)**
+  - **OpenReview exports always use first author as contact author**
+  - OpenReview API does not provide a "corresponding author" field
+  - Unlike EasyChair exports (which use 3-tier priority with email validation), OpenReview simply designates the first author
+  - Author order is preserved as provided by OpenReview
 
 - **Affiliations**
   - Affiliations are extracted from OpenReview profiles (`profile.content["history"]`). 
@@ -614,13 +616,14 @@ Log file saved to: sigir2026.log
   - The script attempts to split "Department, Institution" format
   - If no comma, entire string is treated as institution name
 
-- **Contact Author Selection**
+- **Contact Author Selection (EasyChair-specific)**
   - **Exactly one contact author per paper** using 3-tier priority system:
     1. **Priority 1:** First corresponding author (✔ in EasyChair) with valid email
     2. **Priority 2:** First author with valid email (logs WARNING with paper details)
     3. **Priority 3:** First author regardless of email validity (logs ERROR with paper details)
   - Priority 2 and 3 usage is logged with paper ID and title for data quality tracking
   - Summary shows count of papers using fallback priorities
+  - **Note:** OpenReview exports use simpler logic (always first author) due to API limitations
 
 - **Accepted Papers**
   - Only papers with decision "Accept paper/proposal" or "tentatively accepted" are included
