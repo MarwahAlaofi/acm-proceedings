@@ -23,6 +23,37 @@ def indent(elem, level=0):
         elem.tail = i
 
 
+def clean_affiliation_string(affiliation_str):
+    """
+    Clean affiliation string by stripping whitespace and leading/trailing punctuation.
+
+    Handles common data quality issues like:
+    - ", Tsinghua University" → "Tsinghua University"
+    - "MIT, " → "MIT"
+    - " , Stanford University" → "Stanford University"
+
+    Args:
+        affiliation_str: Raw affiliation string
+
+    Returns:
+        str: Cleaned affiliation string
+    """
+    if not affiliation_str:
+        return ""
+
+    # Strip whitespace
+    cleaned = affiliation_str.strip()
+
+    # Strip leading/trailing punctuation (commas, semicolons, periods, etc.)
+    # Keep stripping until no more leading/trailing punctuation+whitespace
+    while cleaned and cleaned[0] in '.,;:-_':
+        cleaned = cleaned[1:].strip()
+    while cleaned and cleaned[-1] in '.,;:-_':
+        cleaned = cleaned[:-1].strip()
+
+    return cleaned
+
+
 # ----------------------------
 # Name splitting: profile fields > TSV overrides > naive split
 # ----------------------------
@@ -326,7 +357,7 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
                 aff_xml = ET.SubElement(affs_xml, "affiliation")
 
                 ET.SubElement(aff_xml, "department").text = aff.get("department", "")
-                ET.SubElement(aff_xml, "institution").text = aff.get("institution", "")
+                ET.SubElement(aff_xml, "institution").text = clean_affiliation_string(aff.get("institution", ""))
                 ET.SubElement(aff_xml, "city").text = aff.get("city", "")
                 ET.SubElement(aff_xml, "state_province").text = aff.get("state", "")
                 ET.SubElement(aff_xml, "country").text = aff.get("country", "")

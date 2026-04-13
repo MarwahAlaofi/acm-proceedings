@@ -98,6 +98,37 @@ def format_date(date_str):
         return ""
 
 
+def clean_affiliation_string(affiliation_str):
+    """
+    Clean affiliation string by stripping whitespace and leading/trailing punctuation.
+
+    Handles common data quality issues like:
+    - ", Tsinghua University" → "Tsinghua University"
+    - "MIT, " → "MIT"
+    - " , Stanford University" → "Stanford University"
+
+    Args:
+        affiliation_str: Raw affiliation string
+
+    Returns:
+        str: Cleaned affiliation string
+    """
+    if not affiliation_str or pd.isna(affiliation_str):
+        return ""
+
+    # Convert to string and strip whitespace
+    cleaned = str(affiliation_str).strip()
+
+    # Strip leading/trailing punctuation (commas, semicolons, periods, etc.)
+    # Keep stripping until no more leading/trailing punctuation+whitespace
+    while cleaned and cleaned[0] in '.,;:-_':
+        cleaned = cleaned[1:].strip()
+    while cleaned and cleaned[-1] in '.,;:-_':
+        cleaned = cleaned[:-1].strip()
+
+    return cleaned
+
+
 def setup_logging(log_file):
     """
     Set up logging to both console and file.
@@ -1079,7 +1110,7 @@ def export_easychair_to_acm_xml(
 
             # No parsing - just map the single Affiliation field to institution
             ET.SubElement(affiliation_xml, "department").text = ""
-            ET.SubElement(affiliation_xml, "institution").text = str(affiliation_str).strip()
+            ET.SubElement(affiliation_xml, "institution").text = clean_affiliation_string(affiliation_str)
             ET.SubElement(affiliation_xml, "city").text = ""
             ET.SubElement(affiliation_xml, "state_province").text = ""
             ET.SubElement(affiliation_xml, "country").text = str(
