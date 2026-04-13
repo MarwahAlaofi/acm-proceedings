@@ -342,7 +342,10 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
             ET.SubElement(author_xml, "email_address").text = email
 
             ET.SubElement(author_xml, "sequence_no").text = str(i)
-            # assuming contact author is 1st author
+            # Contact author selection: OpenReview exports always use first author
+            # NOTE: Unlike EasyChair (which has 3-tier priority with email validation),
+            # OpenReview API does not provide "corresponding author" field, so we
+            # simply designate the first author as contact author.
             ET.SubElement(author_xml, "contact_author").text = "Y" if i == 1 else "N"
             ET.SubElement(author_xml, "ACM_profile_id").text = ""
             ET.SubElement(author_xml, "ACM_client_no").text = ""
