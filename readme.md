@@ -166,6 +166,7 @@ Parameters:
   - OpenReview API does not provide a "corresponding author" field
   - Unlike EasyChair exports (which use 3-tier priority with email validation), OpenReview simply designates the first author
   - Author order is preserved as provided by OpenReview
+  - **Automatic validation** runs at end of export to verify exactly one contact author per paper
 
 - **Affiliations**
   - Affiliations are extracted from OpenReview profiles (`profile.content["history"]`). 

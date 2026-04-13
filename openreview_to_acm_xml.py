@@ -368,6 +368,43 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
 
     print(f"XML generated: {output_file}")
 
+    # ========================================================================
+    # VALIDATE OUTPUT
+    # ========================================================================
+    print("\n" + "=" * 80)
+    print("VALIDATING OUTPUT")
+    print("=" * 80)
+
+    validation_passed = True
+    issues = []
+
+    # Validate exactly one contact author per paper
+    for paper_elem in root.findall("paper"):
+        paper_id = paper_elem.findtext("event_tracking_number", "unknown")
+        authors = paper_elem.findall(".//author")
+        contact_authors = [a for a in authors if a.findtext("contact_author") == "Y"]
+
+        if len(contact_authors) == 0:
+            issues.append(f"Paper {paper_id}: No contact author")
+            validation_passed = False
+        elif len(contact_authors) > 1:
+            issues.append(f"Paper {paper_id}: Multiple contact authors ({len(contact_authors)})")
+            validation_passed = False
+
+    if validation_passed:
+        print("✓ All papers have exactly one contact author")
+        print("=" * 80)
+    else:
+        print(f"✗ Validation FAILED: {len(issues)} issue(s) found")
+        for issue in issues[:10]:  # Show first 10 issues
+            print(f"  {issue}")
+        if len(issues) > 10:
+            print(f"  ... and {len(issues) - 10} more")
+        print("=" * 80)
+        print("WARNING: Output may not meet ACM requirements")
+
+    return validation_passed
+
 
 # ----------------------------
 # Run
@@ -423,7 +460,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    export_acm_xml(
+    validation_passed = export_acm_xml(
         venue_id=args.venue_id,
         paper_type=args.paper_type,
         output_file=args.output_file,
@@ -432,3 +469,8 @@ if __name__ == "__main__":
         submission_date=args.submission_date,
         approval_date=args.approval_date,
     )
+
+    # Exit with error code if validation failed
+    if not validation_passed:
+        import sys
+        sys.exit(1)
