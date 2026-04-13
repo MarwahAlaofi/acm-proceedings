@@ -14,6 +14,27 @@ This project hosts scripts for preparing ACM proceedings from conference managem
 
 ---
 
+# Quick Reference
+
+## Typical Workflow
+
+1. **Export from conference system:**
+   - **OpenReview:** `python openreview_to_acm_xml.py --venue_id "ICLR.cc/2024/Conference" --paper_type "Full Paper" --output output.xml`
+   - **EasyChair:** `python easychair_to_acm_xml_v2.py --input export.xlsx --proceeding_id "2026-SIGIR" --output output.xml`
+
+2. **Validate and analyze the XML (RECOMMENDED):**
+   ```bash
+   python validate_acm_xml.py output.xml
+   ```
+   This verifies data quality, checks contact authors, and generates comprehensive statistics.
+
+3. **(Optional) Convert to Word document:**
+   ```bash
+   python acm_xml_to_ms_word.py --input_xml output.xml --output_docx papers.docx
+   ```
+
+---
+
 # Repository Structure
 
 ```
@@ -27,6 +48,7 @@ This project hosts scripts for preparing ACM proceedings from conference managem
 ├── easychair_to_acm_xml.py            # EasyChair v1 (original)
 ├── easychair_to_acm_xml_v2.py         # EasyChair v2 (Pydantic)
 ├── acm_xml_to_ms_word.py              # XML to Word converter
+├── validate_acm_xml.py                # XML validation & analysis
 │
 ├── lib/                                # Core library modules (v2)
 │   ├── README.md                      # Library documentation
@@ -75,6 +97,14 @@ This project hosts scripts for preparing ACM proceedings from conference managem
   - See [`lib/README.md`](lib/README.md) for details
 
 ## Utilities
+
+- `validate_acm_xml.py` **(Comprehensive XML Validation)**  
+  Validates and analyzes ACM XML files with detailed statistics  
+  - Verifies contact author constraints (exactly one per paper)
+  - Checks data quality (missing emails, affiliations, names)
+  - Generates statistics (papers per track, authors, affiliations)
+  - Shows most prolific authors, affiliations, and countries
+  - Works with XML from any source (OpenReview or EasyChair)
 
 - `acm_xml_to_ms_word.py`  
   Reads the generated XML file(s) and generates a formatted `.docx` file of titles and authors (for website use). 
@@ -629,6 +659,45 @@ Log file saved to: sigir2026.log
 - **Accepted Papers**
   - Only papers with decision "Accept paper/proposal" or "tentatively accepted" are included
   - All other submissions are filtered out
+
+---
+
+# Validate and Analyze ACM XML Files
+
+After generating an ACM XML file, you can validate and analyze it with a comprehensive validation script:
+
+```bash
+python validate_acm_xml.py <xml_file>
+
+# Example
+python validate_acm_xml.py sigir2026.xml
+```
+
+## What the Validation Script Does
+
+The validation script performs comprehensive checks and analysis:
+
+**Validation:**
+- ✓ Verifies exactly one contact author per paper
+- ✓ Checks for missing data (emails, affiliations, names)
+- ✓ Validates XML structure
+
+**Statistics:**
+- Papers by track/section (with percentages)
+- Papers by type
+- Author statistics (total, unique, averages)
+- Top 10 most prolific authors (with paper type breakdown)
+- Top 20 most common affiliations
+- Top 20 most common countries
+
+**Output:**
+- Detailed issue reports (if any)
+- Summary statistics
+- Exit code 0 if valid, 1 if issues found
+
+This script works with XML files generated from:
+- OpenReview exports (`openreview_to_acm_xml.py`)
+- EasyChair exports (`easychair_to_acm_xml.py`, `easychair_to_acm_xml_v2.py`)
 
 ---
 
