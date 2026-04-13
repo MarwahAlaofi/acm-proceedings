@@ -22,8 +22,22 @@ Returns:
 
 import sys
 import xml.etree.ElementTree as ET
-from collections import defaultdict, Counter
+from collections import defaultdict
 import argparse
+
+# Import validation functions
+from validation import (
+    check_name_capitalization,
+    check_email_name_consistency,
+    find_similar_affiliations,
+    print_name_capitalization_issues,
+    print_email_name_consistency_issues,
+    print_similar_affiliations,
+    generate_statistics,
+    print_statistics,
+    merge_statistics,
+    merge_quality_stats
+)
 
 
 def validate_contact_authors(root):
@@ -107,57 +121,6 @@ def validate_data_quality(root):
     return stats, papers_with_issues
 
 
-def generate_statistics(root):
-    """
-    Generate comprehensive statistics from XML.
-
-    Returns:
-        dict: Statistics including papers per track, authors, affiliations, countries
-    """
-    papers_by_track = defaultdict(int)
-    papers_by_type = defaultdict(int)
-    author_paper_count = defaultdict(list)
-    affiliation_count = Counter()
-    country_count = Counter()
-
-    for paper in root.findall("paper"):
-        paper_id = paper.findtext("event_tracking_number", "unknown")
-        paper_type = paper.findtext("paper_type", "Unknown")
-        section = paper.findtext("section", "Unknown")
-
-        papers_by_track[section] += 1
-        papers_by_type[paper_type] += 1
-
-        authors = paper.findall(".//author")
-        for author in authors:
-            first_name = author.findtext("first_name", "")
-            last_name = author.findtext("last_name", "")
-            email = author.findtext("email_address", "")
-
-            # Track author by (name, email) to handle same name different people
-            author_key = (first_name, last_name, email)
-            author_paper_count[author_key].append((paper_id, paper_type))
-
-            # Track affiliations
-            affiliations = author.findall(".//affiliation")
-            for aff in affiliations:
-                institution = aff.findtext("institution", "").strip()
-                country = aff.findtext("country", "").strip()
-
-                if institution:
-                    affiliation_count[institution] += 1
-                if country:
-                    country_count[country] += 1
-
-    return {
-        "papers_by_track": dict(papers_by_track),
-        "papers_by_type": dict(papers_by_type),
-        "author_paper_count": author_paper_count,
-        "affiliation_count": affiliation_count,
-        "country_count": country_count
-    }
-
-
 def print_validation_results(is_valid, issues):
     """Print validation results."""
     print("\n" + "=" * 80)
@@ -200,86 +163,6 @@ def print_data_quality(stats, papers_with_issues):
         print(f"\n(First 10 papers with issues)")
         for paper_id, title in papers_with_issues[:10]:
             print(f"  • {paper_id}: {title}...")
-    print("=" * 80)
-
-
-def print_statistics(stats_data):
-    """Print comprehensive statistics."""
-    papers_by_track = stats_data["papers_by_track"]
-    papers_by_type = stats_data["papers_by_type"]
-    author_paper_count = stats_data["author_paper_count"]
-    affiliation_count = stats_data["affiliation_count"]
-    country_count = stats_data["country_count"]
-
-    # Papers by track
-    print("\n" + "=" * 80)
-    print("STATISTICS: PAPERS BY TRACK/SECTION")
-    print("=" * 80)
-    total_papers = sum(papers_by_track.values())
-    for track, count in sorted(papers_by_track.items(), key=lambda x: x[1], reverse=True):
-        track_name = track if track else "(No section specified)"
-        print(f"  {track_name}: {count} papers ({count/total_papers*100:.1f}%)")
-    print(f"\nTotal: {total_papers} papers")
-    print("=" * 80)
-
-    # Papers by type
-    print("\n" + "=" * 80)
-    print("STATISTICS: PAPERS BY TYPE")
-    print("=" * 80)
-    for ptype, count in sorted(papers_by_type.items(), key=lambda x: x[1], reverse=True):
-        print(f"  {ptype}: {count} papers ({count/total_papers*100:.1f}%)")
-    print("=" * 80)
-
-    # Authors statistics
-    print("\n" + "=" * 80)
-    print("STATISTICS: AUTHORS")
-    print("=" * 80)
-    total_author_entries = sum(len(papers) for papers in author_paper_count.values())
-    unique_authors = len(author_paper_count)
-    avg_papers_per_author = total_author_entries / unique_authors if unique_authors > 0 else 0
-    avg_authors_per_paper = total_author_entries / total_papers if total_papers > 0 else 0
-
-    print(f"  Total author entries: {total_author_entries}")
-    print(f"  Unique authors: {unique_authors}")
-    print(f"  Average papers per author: {avg_papers_per_author:.2f}")
-    print(f"  Average authors per paper: {avg_authors_per_paper:.1f}")
-    print("=" * 80)
-
-    # Most prolific authors
-    print("\n" + "=" * 80)
-    print("TOP 10 MOST PROLIFIC AUTHORS")
-    print("=" * 80)
-    sorted_authors = sorted(author_paper_count.items(), key=lambda x: len(x[1]), reverse=True)[:10]
-
-    for i, ((first, last, email), papers) in enumerate(sorted_authors, 1):
-        email_str = f" ({email})" if email else ""
-        print(f"  {i}. {first} {last}{email_str}: {len(papers)} paper(s)")
-
-        # Paper types breakdown
-        type_counts = Counter(ptype for _, ptype in papers)
-        type_str = ", ".join(f"{count} {ptype}" for ptype, count in sorted(type_counts.items()))
-        print(f"     Types: {type_str}")
-
-        # Show paper IDs if reasonable number
-        if len(papers) <= 5:
-            paper_ids = ", ".join(pid for pid, _ in papers)
-            print(f"     Papers: {paper_ids}")
-    print("=" * 80)
-
-    # Most common affiliations
-    print("\n" + "=" * 80)
-    print("TOP 20 MOST COMMON AFFILIATIONS")
-    print("=" * 80)
-    for i, (affiliation, count) in enumerate(affiliation_count.most_common(20), 1):
-        print(f"  {i}. {affiliation}: {count} author(s)")
-    print("=" * 80)
-
-    # Most common countries
-    print("\n" + "=" * 80)
-    print("TOP 20 MOST COMMON COUNTRIES")
-    print("=" * 80)
-    for i, (country, count) in enumerate(country_count.most_common(20), 1):
-        print(f"  {i}. {country}: {count} author(s)")
     print("=" * 80)
 
 
@@ -338,7 +221,30 @@ def validate_xml_file(xml_file, show_header=True):
     # Generate statistics (but only print in single-file mode)
     stats_data = generate_statistics(root)
     if show_header:
-        print_statistics(stats_data)
+        print_statistics(stats_data, root=root)
+
+    # Additional validation checks
+    if show_header:
+        print("\n" + "=" * 80)
+        print("ADDITIONAL VALIDATION CHECKS")
+        print("=" * 80)
+
+        # Check name capitalization
+        print("\nName Capitalization:")
+        cap_issues = check_name_capitalization(root)
+        print_name_capitalization_issues(cap_issues)
+
+        # Check email-name consistency
+        print("\nEmail-Name Consistency:")
+        email_issues = check_email_name_consistency(root)
+        print_email_name_consistency_issues(email_issues)
+
+        # Check similar affiliations
+        print("\nSimilar Affiliations:")
+        similar_affs = find_similar_affiliations(root, similarity_threshold=0.8)
+        print_similar_affiliations(similar_affs)
+
+        print("=" * 80)
 
     # Final summary (only for single file mode)
     if show_header:
@@ -385,7 +291,7 @@ def validate_multiple_files(xml_files):
     for xml_file in xml_files:
         is_valid, stats_data, quality_stats = validate_xml_file(xml_file, show_header=False)
 
-        if is_valid is False:  # Parse error
+        if stats_data is None:  # Parse error (XML couldn't be parsed)
             all_valid = False
             file_results.append((xml_file, False, None, None))
             continue
@@ -415,7 +321,6 @@ def validate_multiple_files(xml_files):
         print("=" * 80)
 
         # Merge statistics
-        from validate_acm_xml_multi import merge_statistics, merge_quality_stats
         merged_stats = merge_statistics(all_stats)
         merged_quality = merge_quality_stats(all_quality_stats)
 

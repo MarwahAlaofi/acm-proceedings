@@ -21,7 +21,9 @@ def merge_statistics(all_stats):
         "papers_by_type": defaultdict(int),
         "author_paper_count": defaultdict(list),
         "affiliation_count": Counter(),
-        "country_count": Counter()
+        "affiliation_papers": defaultdict(set),
+        "country_count": Counter(),
+        "country_papers": defaultdict(set)
     }
 
     for stats in all_stats:
@@ -40,8 +42,16 @@ def merge_statistics(all_stats):
         # Merge affiliation counts
         merged["affiliation_count"].update(stats["affiliation_count"])
 
+        # Merge affiliation papers (union of paper sets)
+        for affiliation, paper_set in stats.get("affiliation_papers", {}).items():
+            merged["affiliation_papers"][affiliation].update(paper_set)
+
         # Merge country counts
         merged["country_count"].update(stats["country_count"])
+
+        # Merge country papers (union of paper sets)
+        for country, paper_set in stats.get("country_papers", {}).items():
+            merged["country_papers"][country].update(paper_set)
 
     return merged
 
