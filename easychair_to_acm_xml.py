@@ -990,11 +990,50 @@ def export_easychair_to_acm_xml(
         ET.SubElement(paper, "start_page").text = ""
         ET.SubElement(paper, "end_page").text = ""
 
-        # Check data quality issues for this paper
-        has_corresponding = any(
-            str(auth.get("Corresponding?", "")) == "✔"
-            for _, auth in paper_authors.iterrows()
-        )
+        # Identify single contact author (first corresponding author with valid email)
+        # Priority: 1) First corresponding (✔) with valid email
+        #           2) First author with valid email
+        #           3) First author (regardless of email)
+        contact_author_seq = None
+        contact_author_priority = None
+        has_corresponding = False
+
+        def has_valid_email(email_val):
+            """Check if email is valid (not empty, not 'nan')."""
+            return email_val and str(email_val).strip() and str(email_val).strip().lower() != "nan"
+
+        # First pass: try to find first corresponding author with valid email
+        for seq, (_, auth) in enumerate(paper_authors.iterrows(), start=1):
+            is_marked_corresponding = str(auth.get("Corresponding?", "")) == "✔"
+            if is_marked_corresponding:
+                has_corresponding = True
+                if contact_author_seq is None and has_valid_email(auth.get("Email", "")):
+                    contact_author_seq = seq
+                    contact_author_priority = 1
+
+        # Second pass: if no corresponding author with valid email, find first author with valid email
+        if contact_author_seq is None:
+            for seq, (_, auth) in enumerate(paper_authors.iterrows(), start=1):
+                if has_valid_email(auth.get("Email", "")):
+                    contact_author_seq = seq
+                    contact_author_priority = 2
+                    logger.warning(
+                        f"⚠ Paper #{submission_id} ('{str(submission.get('Title', ''))[:60]}...'): "
+                        f"No corresponding author marked or no valid email. Using first author with valid email as contact author."
+                    )
+                    break
+
+        # Final fallback: first author (regardless of email validity)
+        if contact_author_seq is None:
+            contact_author_seq = 1
+            contact_author_priority = 3
+            first_author = paper_authors.iloc[0]
+            logger.error(
+                f"✗ Paper #{submission_id} ('{str(submission.get('Title', ''))[:60]}...'): "
+                f"No valid emails found. Using first author '{first_author.get('First name', '')} {first_author.get('Last name', '')}' "
+                f"as contact author despite invalid/missing email."
+            )
+
         if not has_corresponding:
             papers_with_no_corresponding += 1
 
@@ -1055,12 +1094,9 @@ def export_easychair_to_acm_xml(
             ET.SubElement(author_xml, "email_address").text = email
             ET.SubElement(author_xml, "sequence_no").text = str(author_seq)
 
-            # Corresponding author - check if marked with ✔, or default to first author
-            is_corresponding = str(author.get("Corresponding?", "")) == "✔"
-            if not has_corresponding and author_seq == 1:
-                is_corresponding = True  # Default first author as corresponding
+            # Contact author - only the single identified contact author
             ET.SubElement(author_xml, "contact_author").text = (
-                "Y" if is_corresponding else "N"
+                "Y" if author_seq == contact_author_seq else "N"
             )
 
             ET.SubElement(author_xml, "ACM_profile_id").text = ""

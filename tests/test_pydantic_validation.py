@@ -168,6 +168,104 @@ def test_paper_validation():
         print(f"  ✗ Failed: {e}")
         return False
 
+    # Test contact author priority 1: First corresponding with valid email
+    print("\n✓ Testing contact author priority 1 (first corresponding with valid email)...")
+    try:
+        paper = Paper(
+            submission_id=127,
+            title="Priority 1 Test",
+            authors=[
+                Author(first_name="A", last_name="First", email="a@example.com", is_corresponding=False),
+                Author(first_name="B", last_name="Second", email="b@example.com", is_corresponding=True),
+                Author(first_name="C", last_name="Third", email="c@example.com", is_corresponding=True)
+            ],
+            track_name="Track",
+            section_name="Section",
+            paper_type="Type"
+        )
+        # Should select first corresponding with email (B)
+        if len(paper.corresponding_authors) == 1 and paper.corresponding_authors[0].last_name == "Second":
+            print(f"  Success: First corresponding author with email selected as contact")
+        else:
+            print(f"  ✗ Failed: Wrong author selected or multiple contact authors")
+            return False
+    except ValidationError as e:
+        print(f"  ✗ Failed: {e}")
+        return False
+
+    # Test contact author priority 2: First author with valid email (no corresponding marked)
+    print("\n✓ Testing contact author priority 2 (first author with valid email)...")
+    try:
+        paper = Paper(
+            submission_id=128,
+            title="Priority 2 Test",
+            authors=[
+                Author(first_name="A", last_name="First", is_corresponding=False),  # No email
+                Author(first_name="B", last_name="Second", email="b@example.com", is_corresponding=False),
+                Author(first_name="C", last_name="Third", email="c@example.com", is_corresponding=False)
+            ],
+            track_name="Track",
+            section_name="Section",
+            paper_type="Type"
+        )
+        # Should select first author with valid email (B)
+        if len(paper.corresponding_authors) == 1 and paper.corresponding_authors[0].last_name == "Second":
+            print(f"  Success: First author with valid email selected as contact")
+        else:
+            print(f"  ✗ Failed: Wrong author selected or multiple contact authors")
+            return False
+    except ValidationError as e:
+        print(f"  ✗ Failed: {e}")
+        return False
+
+    # Test contact author priority 3: First author (no valid emails)
+    print("\n✓ Testing contact author priority 3 (first author fallback)...")
+    try:
+        paper = Paper(
+            submission_id=129,
+            title="Priority 3 Test",
+            authors=[
+                Author(first_name="A", last_name="First", is_corresponding=False),  # No email
+                Author(first_name="B", last_name="Second", is_corresponding=False)   # No email
+            ],
+            track_name="Track",
+            section_name="Section",
+            paper_type="Type"
+        )
+        # Should select first author even without email (A)
+        if len(paper.corresponding_authors) == 1 and paper.corresponding_authors[0].last_name == "First":
+            print(f"  Success: First author selected as contact (fallback)")
+        else:
+            print(f"  ✗ Failed: Wrong author selected or multiple contact authors")
+            return False
+    except ValidationError as e:
+        print(f"  ✗ Failed: {e}")
+        return False
+
+    # Test exactly one contact author (corresponding marked but no valid email)
+    print("\n✓ Testing exactly one contact author (corresponding without email uses priority 2)...")
+    try:
+        paper = Paper(
+            submission_id=130,
+            title="One Contact Test",
+            authors=[
+                Author(first_name="A", last_name="First", email="a@example.com", is_corresponding=False),
+                Author(first_name="B", last_name="Second", is_corresponding=True)  # Marked but no email
+            ],
+            track_name="Track",
+            section_name="Section",
+            paper_type="Type"
+        )
+        # Should select first author with valid email (A), not the marked corresponding without email
+        if len(paper.corresponding_authors) == 1 and paper.corresponding_authors[0].last_name == "First":
+            print(f"  Success: Only one contact author (first with valid email)")
+        else:
+            print(f"  ✗ Failed: Wrong number of contact authors or wrong author selected")
+            return False
+    except ValidationError as e:
+        print(f"  ✗ Failed: {e}")
+        return False
+
     print("\n" + "=" * 80)
     print("✓ All Paper validation tests passed!")
     print("=" * 80)

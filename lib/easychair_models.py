@@ -134,11 +134,41 @@ class Paper(BaseModel):
 
     @model_validator(mode='after')
     def validate_corresponding_author(self):
-        """Ensure at least one corresponding author exists."""
-        if not any(author.is_corresponding for author in self.authors):
-            # Set first author as corresponding if none specified
-            if self.authors:
-                self.authors[0].is_corresponding = True
+        """
+        Ensure exactly one contact author per paper.
+        Priority: 1) First corresponding (✔) with valid email
+                  2) First author with valid email
+                  3) First author (regardless of email)
+
+        Note: Warnings/errors for priority 2 and 3 are logged in the loader.
+        """
+        # Helper to check valid email
+        def has_valid_email(author: Author) -> bool:
+            return author.email is not None and author.email.strip() != ""
+
+        # Remember which authors were marked as corresponding
+        marked_corresponding = [a for a in self.authors if a.is_corresponding]
+
+        # Clear all flags to set exactly one
+        for author in self.authors:
+            author.is_corresponding = False
+
+        # Priority 1: First corresponding (✔) author with valid email
+        for author in marked_corresponding:
+            if has_valid_email(author):
+                author.is_corresponding = True
+                return self
+
+        # Priority 2: First author with valid email
+        for author in self.authors:
+            if has_valid_email(author):
+                author.is_corresponding = True
+                return self
+
+        # Priority 3: First author (fallback)
+        if self.authors:
+            self.authors[0].is_corresponding = True
+
         return self
 
     @property

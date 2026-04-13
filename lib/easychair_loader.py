@@ -421,6 +421,14 @@ def load_paper_from_submission(
         logger.error(f"No valid authors for submission #{submission_id}")
         return None
 
+    # Helper to check valid email
+    def has_valid_email(author):
+        return author.email is not None and author.email.strip() != ""
+
+    # Determine contact author priority BEFORE Paper validation modifies flags
+    marked_corresponding_with_email = [a for a in authors if a.is_corresponding and has_valid_email(a)]
+    has_priority_1 = len(marked_corresponding_with_email) > 0
+
     # Parse dates
     submitted_date = None
     if pd.notna(submission.get("Submitted")):
@@ -436,7 +444,7 @@ def load_paper_from_submission(
         except:
             pass
 
-    # Create Paper object (will validate)
+    # Create Paper object (will validate and set contact author)
     try:
         paper = Paper(
             submission_id=submission_id,
@@ -449,6 +457,38 @@ def load_paper_from_submission(
             submitted_date=submitted_date,
             approval_date=approval_date,
         )
+
+        # Log contact author selection priority if not priority 1
+        if not has_priority_1:
+            contact_author = paper.corresponding_authors[0] if paper.corresponding_authors else None
+            if contact_author:
+                # Contact author is first author (either priority 2 or 3)
+                if has_valid_email(contact_author):
+                    # Priority 2: First author with valid email
+                    logger.warning(
+                        f"⚠ Paper #{submission_id} ('{paper.title[:60]}...'): "
+                        f"No corresponding author marked or no valid email. Using first author with valid email as contact author."
+                    )
+                    export.add_issue(
+                        "warning",
+                        "contact_author_priority_2",
+                        "Using first author with valid email as contact author (no corresponding author marked with valid email)",
+                        paper_id=submission_id
+                    )
+                else:
+                    # Priority 3: First author without valid email
+                    logger.error(
+                        f"✗ Paper #{submission_id} ('{paper.title[:60]}...'): "
+                        f"No valid emails found. Using first author '{contact_author.full_name}' "
+                        f"as contact author despite invalid/missing email."
+                    )
+                    export.add_issue(
+                        "error",
+                        "contact_author_priority_3",
+                        f"Using first author '{contact_author.full_name}' as contact author despite invalid/missing email",
+                        paper_id=submission_id
+                    )
+
         return paper
     except Exception as e:
         logger.error(f"Error creating paper #{submission_id}: {e}")
