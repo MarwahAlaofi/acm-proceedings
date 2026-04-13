@@ -13,3 +13,6 @@ email-validator>=2.0.0  # For email validation in Pydantic
 
 # Output formatting
 tabulate>=0.9.0  # For formatted table output in validation reports
+
+# Country name standardization
+pycountry>=22.0.0  # For normalizing country names and codes

@@ -10,6 +10,173 @@ Functions for generating comprehensive statistics from XML files including:
 
 from collections import defaultdict, Counter
 
+try:
+    import pycountry
+    PYCOUNTRY_AVAILABLE = True
+except ImportError:
+    PYCOUNTRY_AVAILABLE = False
+
+
+def normalize_country_name(country_str):
+    """
+    Normalize country names and codes to standard full country names.
+
+    Handles:
+    - ISO 3166-1 alpha-2 codes (US, CN, GB, etc.)
+    - ISO 3166-1 alpha-3 codes (USA, CHN, GBR, etc.)
+    - Full country names (United States, China, etc.)
+    - Common variations and aliases (U.S., U.S.A., U.K., P.R.C., etc.)
+
+    Special territories are handled according to ISO 3166-1 official designations:
+    - Taiwan (TW/TWN) → "Taiwan, Province of China" (ISO 3166-1 official name)
+    - Hong Kong (HK) → "Hong Kong"
+    - Macao (MO) → "Macao"
+
+    Args:
+        country_str: Country name or code
+
+    Returns:
+        str: Standardized full country name, or original string if not found
+    """
+    if not PYCOUNTRY_AVAILABLE or not country_str:
+        return country_str
+
+    country_str = country_str.strip()
+
+    # Preprocess: Remove periods and extra spaces for common abbreviations
+    # This handles U.S. -> US, U.K. -> UK, U.A.E. -> UAE, etc.
+    normalized_input = country_str.replace(".", "").replace(" ", "").upper()
+
+    # Common variants that map to ISO codes or standard names
+    # Handles abbreviations with/without periods, alternate spellings
+    common_variants = {
+        # United States variants
+        "US": "US",
+        "USA": "USA",
+        "UNITEDSTATES": "US",
+        "UNITEDSTATESOFAMERICA": "US",
+        # United Kingdom variants
+        "UK": "GB",
+        "UNITEDKINGDOM": "GB",
+        "GREATBRITAIN": "GB",
+        # United Arab Emirates variants
+        "UAE": "AE",
+        "UNITEDARABEMIRATES": "AE",
+        # China variants
+        "PRC": "CN",
+        "PEOPLESREPUBLICOFCHINA": "CN",
+        # South Korea variants
+        "SOUTHKOREA": "KR",
+        "REPUBLICOFKOREA": "KR",
+        # North Korea variants
+        "NORTHKOREA": "KP",
+        "DPR": "KP",
+        "DPRK": "KP",
+        # Vietnam variants
+        "VIETNAM": "VN",
+        # Russia variants
+        "RUSSIA": "RU",
+        "RUSSIANFEDERATION": "RU",
+        # Netherlands variants
+        "THENETHERLANDS": "NL",
+    }
+
+    # Check common variants first
+    if normalized_input in common_variants:
+        iso_code = common_variants[normalized_input]
+        # If it's already an ISO code, use it; otherwise look it up
+        if len(iso_code) == 2:
+            country = pycountry.countries.get(alpha_2=iso_code)
+        else:
+            country = pycountry.countries.get(alpha_3=iso_code)
+        if country:
+            # Apply name overrides
+            name_overrides = {
+                "Korea, Republic of": "South Korea",
+                "Korea, Democratic People's Republic of": "North Korea",
+                "Russian Federation": "Russia",
+                "Iran, Islamic Republic of": "Iran",
+                "Venezuela, Bolivarian Republic of": "Venezuela",
+                "Moldova, Republic of": "Moldova",
+                "Tanzania, United Republic of": "Tanzania",
+                "Bolivia, Plurinational State of": "Bolivia",
+                "Viet Nam": "Vietnam",
+            }
+            return name_overrides.get(country.name, country.name)
+
+    # Special cases for territories and regions
+    # Note: Taiwan uses official ISO 3166-1 designation
+    special_cases = {
+        "HK": "Hong Kong",
+        "HONGKONG": "Hong Kong",
+        "HONGKONGSAR": "Hong Kong",
+        "TW": "Taiwan, Province of China",
+        "TWN": "Taiwan, Province of China",
+        "TAIWAN": "Taiwan, Province of China",
+        "TAIWANPROVINCEOFCHINA": "Taiwan, Province of China",
+        "MO": "Macao",
+        "MACAO": "Macao",
+        "MACAU": "Macao",
+    }
+
+    if normalized_input in special_cases:
+        return special_cases[normalized_input]
+
+    # Map official ISO names to more common names
+    name_overrides = {
+        "Korea, Republic of": "South Korea",
+        "Korea, Democratic People's Republic of": "North Korea",
+        "Russian Federation": "Russia",
+        "Iran, Islamic Republic of": "Iran",
+        "Venezuela, Bolivarian Republic of": "Venezuela",
+        "Moldova, Republic of": "Moldova",
+        "Tanzania, United Republic of": "Tanzania",
+        "Bolivia, Plurinational State of": "Bolivia",
+        "Viet Nam": "Vietnam",
+    }
+
+    try:
+        # Try matching by alpha-2 code (2 letters: US, CN, etc.)
+        # Use normalized_input to handle U.S., US, us, etc.
+        if len(normalized_input) == 2:
+            country = pycountry.countries.get(alpha_2=normalized_input)
+            if country:
+                return name_overrides.get(country.name, country.name)
+
+        # Try matching by alpha-3 code (3 letters: USA, CHN, etc.)
+        # Use normalized_input to handle U.S.A., USA, usa, etc.
+        if len(normalized_input) == 3:
+            country = pycountry.countries.get(alpha_3=normalized_input)
+            if country:
+                return name_overrides.get(country.name, country.name)
+
+        # Try exact name match (case-insensitive) with original input
+        country = pycountry.countries.get(name=country_str)
+        if country:
+            return name_overrides.get(country.name, country.name)
+
+        # Check if input is already an overridden name
+        if country_str in name_overrides.values():
+            return country_str
+
+        # Check if input is a key in name_overrides (official name used directly)
+        if country_str in name_overrides:
+            return name_overrides[country_str]
+
+        # Try fuzzy name search with original input
+        try:
+            results = pycountry.countries.search_fuzzy(country_str)
+            if results:
+                return name_overrides.get(results[0].name, results[0].name)
+        except LookupError:
+            pass
+
+    except (AttributeError, LookupError):
+        pass
+
+    # Return original if no match found
+    return country_str
+
 
 def generate_statistics(root):
     """
@@ -57,8 +224,10 @@ def generate_statistics(root):
                     affiliation_count[institution] += 1
                     affiliation_papers[institution].add(paper_id)
                 if country:
-                    country_count[country] += 1
-                    country_papers[country].add(paper_id)
+                    # Normalize country name/code to standard full name
+                    normalized_country = normalize_country_name(country)
+                    country_count[normalized_country] += 1
+                    country_papers[normalized_country].add(paper_id)
 
     return {
         "papers_by_track": dict(papers_by_track),

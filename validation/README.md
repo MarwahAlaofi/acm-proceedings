@@ -93,6 +93,25 @@ The `--output` option creates two formatted text files using the tabulate librar
 
 ## Key Features
 
+### Country Name Normalization
+
+The statistics module uses `pycountry` to normalize country names and codes:
+- Converts ISO 3166-1 alpha-2 codes (US, CN, GB) to full country names
+- Converts ISO 3166-1 alpha-3 codes (USA, CHN, GBR) to full country names
+- Handles common abbreviations with periods:
+  - U.S., U.S.A., USA → United States
+  - U.K., UK, GB, GBR → United Kingdom
+  - U.A.E., UAE → United Arab Emirates
+  - P.R.C., PRC → China
+- Maps official ISO names to common names (e.g., "Korea, Republic of" → "South Korea")
+- Case-insensitive matching (US, us, Us all normalize to United States)
+- Handles special territories following ISO 3166-1 conventions:
+  - HK / Hong Kong → Hong Kong
+  - TW / TWN / Taiwan → Taiwan, Province of China
+  - MO / Macao / Macau → Macao
+- Merges duplicate entries (prevents counting same country multiple times)
+- Example: US, U.S., U.S.A., USA, United States → all become "United States"
+
 ### Similarity Detection
 
 The checks module uses intelligent similarity detection that:
