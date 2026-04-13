@@ -10,3 +10,6 @@ openpyxl>=3.0.0
 # Data validation and modeling
 pydantic>=2.0.0
 email-validator>=2.0.0  # For email validation in Pydantic
+
+# Output formatting
+tabulate>=0.9.0  # For formatted table output in validation reports

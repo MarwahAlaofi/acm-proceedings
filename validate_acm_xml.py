@@ -22,8 +22,9 @@ Returns:
 
 import sys
 import xml.etree.ElementTree as ET
-from collections import defaultdict
+from collections import defaultdict, Counter
 import argparse
+from pathlib import Path
 
 # Import validation functions
 from validation import (
@@ -37,8 +38,271 @@ from validation import (
     generate_statistics,
     print_statistics,
     merge_statistics,
-    merge_quality_stats
+    merge_quality_stats,
+    merge_similar_affiliation_counts
 )
+
+try:
+    from tabulate import tabulate
+    TABULATE_AVAILABLE = True
+except ImportError:
+    TABULATE_AVAILABLE = False
+
+
+def write_validation_report(output_prefix, file_results, merged_quality, all_valid):
+    """
+    Write validation results to formatted text file.
+
+    Args:
+        output_prefix: Output file prefix
+        file_results: List of (xml_file, is_valid, stats_data, quality_stats) tuples
+        merged_quality: Merged quality statistics
+        all_valid: Whether all files passed validation
+    """
+    if not TABULATE_AVAILABLE:
+        print("Warning: tabulate not installed, skipping formatted output")
+        return
+
+    output_file = f"{output_prefix}_validation.txt"
+
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write("=" * 100 + "\n")
+        f.write("ACM XML VALIDATION REPORT\n")
+        f.write("=" * 100 + "\n\n")
+
+        # Per-file validation summary
+        f.write("PER-FILE VALIDATION SUMMARY\n")
+        f.write("-" * 100 + "\n\n")
+
+        table_data = []
+        for xml_file, is_valid, _, quality_stats in file_results:
+            status = "PASSED" if is_valid else "FAILED"
+            if quality_stats:
+                papers = quality_stats['total_papers']
+                authors = quality_stats['total_authors']
+                missing = quality_stats['papers_with_missing_data']
+                table_data.append([Path(xml_file).name, status, papers, authors, missing])
+            else:
+                table_data.append([Path(xml_file).name, "PARSE ERROR", "-", "-", "-"])
+
+        headers = ["File", "Status", "Papers", "Authors", "Papers with Missing Data"]
+        f.write(tabulate(table_data, headers=headers, tablefmt="grid"))
+        f.write("\n\n")
+
+        # Aggregated data quality
+        f.write("AGGREGATED DATA QUALITY\n")
+        f.write("-" * 100 + "\n\n")
+
+        quality_table = [
+            ["Total files", len(file_results)],
+            ["Total papers", merged_quality['total_papers']],
+            ["Total authors", merged_quality['total_authors']],
+            ["", ""],
+            ["Missing emails", merged_quality['missing_emails']],
+            ["Missing affiliations", merged_quality['missing_affiliations']],
+            ["Missing first names", merged_quality['missing_first_names']],
+            ["Missing last names", merged_quality['missing_last_names']],
+            ["", ""],
+            ["Papers with missing data", f"{merged_quality['papers_with_missing_data']} ({merged_quality['papers_with_missing_data']/merged_quality['total_papers']*100:.1f}%)"],
+        ]
+
+        f.write(tabulate(quality_table, tablefmt="plain"))
+        f.write("\n\n")
+
+        # Final validation summary
+        f.write("=" * 100 + "\n")
+        f.write("FINAL VALIDATION SUMMARY\n")
+        f.write("=" * 100 + "\n\n")
+
+        passed_count = sum(1 for _, is_valid, _, _ in file_results if is_valid)
+        summary_table = [
+            ["Files validated", len(file_results)],
+            ["Files passed", passed_count],
+            ["Files failed", len(file_results) - passed_count],
+            ["", ""],
+            ["Overall result", "PASSED - Ready for ACM submission" if all_valid else "FAILED - Issues need to be addressed"]
+        ]
+
+        f.write(tabulate(summary_table, tablefmt="plain"))
+        f.write("\n")
+
+    print(f"\n✓ Validation report written to: {output_file}")
+
+
+def write_statistics_report(output_prefix, merged_stats, similar_groups=None):
+    """
+    Write statistics to formatted text file.
+
+    Args:
+        output_prefix: Output file prefix
+        merged_stats: Merged statistics dictionary
+        similar_groups: Optional similar affiliation groups
+    """
+    if not TABULATE_AVAILABLE:
+        print("Warning: tabulate not installed, skipping formatted output")
+        return
+
+    output_file = f"{output_prefix}_statistics.txt"
+
+    papers_by_track = merged_stats["papers_by_track"]
+    papers_by_type = merged_stats["papers_by_type"]
+    author_paper_count = merged_stats["author_paper_count"]
+    affiliation_count = merged_stats["affiliation_count"]
+    affiliation_papers = merged_stats.get("affiliation_papers", {})
+    country_count = merged_stats["country_count"]
+    country_papers = merged_stats.get("country_papers", {})
+
+    total_papers = sum(papers_by_track.values())
+
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write("=" * 100 + "\n")
+        f.write("ACM XML STATISTICS REPORT\n")
+        f.write("=" * 100 + "\n\n")
+
+        # Papers by track/section
+        f.write("PAPERS BY TRACK/SECTION\n")
+        f.write("-" * 100 + "\n\n")
+
+        track_table = []
+        for track, count in sorted(papers_by_track.items(), key=lambda x: x[1], reverse=True):
+            track_name = track if track else "(No section specified)"
+            percentage = f"{count/total_papers*100:.1f}%"
+            track_table.append([track_name, count, percentage])
+
+        f.write(tabulate(track_table, headers=["Track/Section", "Papers", "Percentage"], tablefmt="grid"))
+        f.write(f"\n\nTotal: {total_papers} papers\n\n")
+
+        # Papers by type
+        f.write("PAPERS BY TYPE\n")
+        f.write("-" * 100 + "\n\n")
+
+        type_table = []
+        for ptype, count in sorted(papers_by_type.items(), key=lambda x: x[1], reverse=True):
+            percentage = f"{count/total_papers*100:.1f}%"
+            type_table.append([ptype, count, percentage])
+
+        f.write(tabulate(type_table, headers=["Paper Type", "Papers", "Percentage"], tablefmt="grid"))
+        f.write("\n\n")
+
+        # Authors statistics
+        f.write("AUTHOR STATISTICS\n")
+        f.write("-" * 100 + "\n\n")
+
+        total_author_entries = sum(len(papers) for papers in author_paper_count.values())
+        unique_authors = len(author_paper_count)
+        avg_papers_per_author = total_author_entries / unique_authors if unique_authors > 0 else 0
+        avg_authors_per_paper = total_author_entries / total_papers if total_papers > 0 else 0
+
+        author_stats_table = [
+            ["Total author entries", total_author_entries],
+            ["Unique authors", unique_authors],
+            ["Average papers per author", f"{avg_papers_per_author:.2f}"],
+            ["Average authors per paper", f"{avg_authors_per_paper:.1f}"]
+        ]
+
+        f.write(tabulate(author_stats_table, tablefmt="plain"))
+        f.write("\n\n")
+
+        # Most prolific authors
+        f.write("TOP 10 MOST PROLIFIC AUTHORS\n")
+        f.write("-" * 100 + "\n\n")
+
+        prolific_table = []
+        sorted_authors = sorted(author_paper_count.items(), key=lambda x: len(x[1]), reverse=True)[:10]
+
+        for i, ((first, last, email), papers) in enumerate(sorted_authors, 1):
+            name = f"{first} {last}"
+            email_str = email if email else "N/A"
+            num_papers = len(papers)
+
+            # Paper types breakdown
+            type_counts = Counter(ptype for _, ptype in papers)
+            type_str = ", ".join(f"{count} {ptype}" for ptype, count in sorted(type_counts.items()))
+
+            prolific_table.append([i, name, email_str, num_papers, type_str])
+
+        f.write(tabulate(prolific_table, headers=["Rank", "Author", "Email", "Papers", "Types"], tablefmt="grid"))
+        f.write("\n\n")
+
+        # Top 20 affiliations (unmerged)
+        f.write("TOP 20 MOST COMMON AFFILIATIONS\n")
+        f.write("-" * 100 + "\n\n")
+
+        aff_table = []
+        for i, (affiliation, author_count) in enumerate(affiliation_count.most_common(20), 1):
+            paper_count = len(affiliation_papers.get(affiliation, set()))
+            aff_table.append([i, affiliation, author_count, paper_count])
+
+        f.write(tabulate(aff_table, headers=["Rank", "Affiliation", "Authors", "Papers"], tablefmt="grid"))
+        f.write("\n\n")
+
+        # Top 20 affiliations (merged) - if similar groups provided
+        if similar_groups is not None:
+            f.write("TOP 20 MOST COMMON AFFILIATIONS (AFTER MERGING SIMILAR)\n")
+            f.write("-" * 100 + "\n\n")
+
+            if similar_groups:
+                # Merge counts
+                merged_author_counts, merged_paper_counts = merge_similar_affiliation_counts(
+                    affiliation_count, affiliation_papers, similar_groups
+                )
+
+                merged_aff_table = []
+                for i, (affiliation, author_count) in enumerate(merged_author_counts.most_common(20), 1):
+                    paper_count = merged_paper_counts.get(affiliation, 0)
+                    merged_aff_table.append([i, affiliation, author_count, paper_count])
+
+                f.write(tabulate(merged_aff_table, headers=["Rank", "Affiliation", "Authors", "Papers"], tablefmt="grid"))
+                f.write(f"\n\nNote: {len(similar_groups)} group(s) of similar affiliations were merged.\n\n")
+            else:
+                f.write("No similar affiliations detected - counts remain unchanged\n\n")
+
+        # Top 20 countries
+        f.write("TOP 20 MOST COMMON COUNTRIES\n")
+        f.write("-" * 100 + "\n\n")
+
+        country_table = []
+        for i, (country, author_count) in enumerate(country_count.most_common(20), 1):
+            paper_count = len(country_papers.get(country, set()))
+            country_table.append([i, country, author_count, paper_count])
+
+        f.write(tabulate(country_table, headers=["Rank", "Country", "Authors", "Papers"], tablefmt="grid"))
+        f.write("\n\n")
+
+        # Similar affiliations detail
+        if similar_groups:
+            f.write("SIMILAR AFFILIATIONS (DETAILED GROUPS)\n")
+            f.write("-" * 100 + "\n\n")
+
+            # Count by match type
+            email_domain_matches = sum(1 for g in similar_groups if g.get("match_type") == "email_domain")
+            string_similarity_matches = sum(1 for g in similar_groups if g.get("match_type") == "string_similarity")
+
+            f.write(f"Total: {len(similar_groups)} group(s) detected\n")
+            f.write(f"  - {email_domain_matches} matched by email domain\n")
+            f.write(f"  - {string_similarity_matches} matched by string similarity\n\n")
+
+            # Write first 20 groups
+            for i, group in enumerate(similar_groups[:20], 1):
+                match_type = group.get("match_type", "unknown")
+                if match_type == "email_domain":
+                    domain = group.get("email_domain", "")
+                    f.write(f"Group {i} (email domain: @{domain}):\n")
+                else:
+                    f.write(f"Group {i} (string similarity):\n")
+
+                group_table = []
+                for aff in group["affiliations"]:
+                    count = len(group["details"][aff])
+                    group_table.append([aff, count])
+
+                f.write(tabulate(group_table, headers=["Affiliation", "Authors"], tablefmt="simple"))
+                f.write("\n\n")
+
+            if len(similar_groups) > 20:
+                f.write(f"... and {len(similar_groups) - 20} more groups\n\n")
+
+    print(f"✓ Statistics report written to: {output_file}")
 
 
 def validate_contact_authors(root):
@@ -167,13 +431,14 @@ def print_data_quality(stats, papers_with_issues):
     print("=" * 80)
 
 
-def validate_xml_file(xml_file, show_header=True):
+def validate_xml_file(xml_file, show_header=True, output_prefix=None):
     """
     Main validation and analysis function.
 
     Args:
         xml_file: Path to XML file
         show_header: Whether to show full header (False for multi-file mode)
+        output_prefix: Optional output file prefix for formatted reports
 
     Returns:
         tuple: (is_valid, stats_data, quality_stats, root) for aggregation
@@ -265,15 +530,25 @@ def validate_xml_file(xml_file, show_header=True):
             print("\n✗ XML file has issues that should be addressed")
         print("=" * 80)
 
+    # Write formatted output files if requested (single file mode)
+    if output_prefix and show_header:
+        file_results = [(xml_file, is_valid, stats_data, quality_stats)]
+        write_validation_report(output_prefix, file_results, quality_stats, is_valid)
+
+        # Find similar affiliations for statistics
+        similar_groups = find_similar_affiliations(root, similarity_threshold=0.8)
+        write_statistics_report(output_prefix, stats_data, similar_groups)
+
     return is_valid, stats_data, quality_stats, root
 
 
-def validate_multiple_files(xml_files):
+def validate_multiple_files(xml_files, output_prefix=None):
     """
     Validate multiple XML files and aggregate statistics.
 
     Args:
         xml_files: List of XML file paths
+        output_prefix: Optional output file prefix for formatted reports
 
     Returns:
         bool: True if all files pass validation
@@ -362,6 +637,11 @@ def validate_multiple_files(xml_files):
             print_similar_affiliations(similar_groups)
             print("=" * 80)
 
+        # Write formatted output files if requested
+        if output_prefix:
+            write_validation_report(output_prefix, file_results, merged_quality, all_valid)
+            write_statistics_report(output_prefix, merged_stats, similar_groups)
+
     # Final summary
     print("\n" + "=" * 80)
     print("FINAL VALIDATION SUMMARY")
@@ -389,9 +669,14 @@ Examples:
   # Validate single file
   python validate_acm_xml.py acm_output.xml
 
+  # Validate single file and write formatted reports
+  python validate_acm_xml.py acm_output.xml --output sigir2026_report
+
   # Validate multiple files with aggregated statistics
   python validate_acm_xml.py full_papers.xml short_papers.xml demo_papers.xml
-  python validate_acm_xml.py sigir2026-*.xml
+
+  # Validate multiple files and write formatted reports
+  python validate_acm_xml.py sigir2026-*.xml --output sigir2026_combined
         """
     )
 
@@ -402,16 +687,37 @@ Examples:
         help="Path(s) to ACM XML file(s) to validate"
     )
 
+    parser.add_argument(
+        "--output",
+        "-o",
+        metavar="PREFIX",
+        help="Output file prefix for formatted reports. "
+        "Creates <PREFIX>_validation.txt and <PREFIX>_statistics.txt. "
+        "Requires tabulate library (pip install tabulate)."
+    )
+
     args = parser.parse_args()
+
+    # Check if tabulate is available when output is requested
+    if args.output and not TABULATE_AVAILABLE:
+        print("Error: --output requires tabulate library. Install with: pip install tabulate", file=sys.stderr)
+        sys.exit(1)
 
     try:
         if len(args.xml_files) == 1:
             # Single file mode - detailed output
-            validation_passed, _, _, _ = validate_xml_file(args.xml_files[0], show_header=True)
+            validation_passed, _, _, _ = validate_xml_file(
+                args.xml_files[0],
+                show_header=True,
+                output_prefix=args.output
+            )
             sys.exit(0 if validation_passed else 1)
         else:
             # Multiple files mode - aggregated statistics
-            validation_passed = validate_multiple_files(args.xml_files)
+            validation_passed = validate_multiple_files(
+                args.xml_files,
+                output_prefix=args.output
+            )
             sys.exit(0 if validation_passed else 1)
     except Exception as e:
         print(f"\n✗ CRITICAL ERROR: {e}", file=sys.stderr)

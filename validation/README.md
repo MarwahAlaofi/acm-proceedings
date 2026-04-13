@@ -74,12 +74,22 @@ issues = check_name_capitalization(xml_root)
 The `validate_acm_xml.py` script at the repository root uses this package:
 
 ```bash
-# Single file validation
+# Single file validation (console output)
 python validate_acm_xml.py file.xml
+
+# Single file validation with formatted reports
+python validate_acm_xml.py file.xml --output report_prefix
 
 # Multiple file validation with aggregation
 python validate_acm_xml.py file1.xml file2.xml file3.xml
+
+# Multiple file validation with formatted reports
+python validate_acm_xml.py file1.xml file2.xml file3.xml --output combined_report
 ```
+
+The `--output` option creates two formatted text files using the tabulate library:
+- `<prefix>_validation.txt` - Validation results with formatted tables
+- `<prefix>_statistics.txt` - Statistics with formatted tables (papers, authors, affiliations, countries)
 
 ## Key Features
 
