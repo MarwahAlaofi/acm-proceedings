@@ -24,7 +24,11 @@ This project hosts scripts for preparing ACM proceedings from conference managem
 
 2. **Validate and analyze the XML (RECOMMENDED):**
    ```bash
+   # Single file
    python validate_acm_xml.py output.xml
+   
+   # Multiple files (aggregates statistics)
+   python validate_acm_xml.py full_papers.xml short_papers.xml demo_papers.xml
    ```
    This verifies data quality, checks contact authors, and generates comprehensive statistics.
 
@@ -667,10 +671,16 @@ Log file saved to: sigir2026.log
 After generating an ACM XML file, you can validate and analyze it with a comprehensive validation script:
 
 ```bash
+# Validate single file
 python validate_acm_xml.py <xml_file>
 
-# Example
+# Validate multiple files with aggregated statistics
+python validate_acm_xml.py <xml_file1> <xml_file2> ...
+
+# Examples
 python validate_acm_xml.py sigir2026.xml
+python validate_acm_xml.py full_papers.xml short_papers.xml demo_papers.xml
+python validate_acm_xml.py sigir2026-*.xml
 ```
 
 ## What the Validation Script Does
@@ -682,13 +692,19 @@ The validation script performs comprehensive checks and analysis:
 - ✓ Checks for missing data (emails, affiliations, names)
 - ✓ Validates XML structure
 
-**Statistics:**
+**Statistics (per file or aggregated):**
 - Papers by track/section (with percentages)
 - Papers by type
 - Author statistics (total, unique, averages)
 - Top 10 most prolific authors (with paper type breakdown)
 - Top 20 most common affiliations
 - Top 20 most common countries
+
+**Multi-file Support:**
+- Validate multiple XML files at once
+- Each file is validated separately
+- Statistics are aggregated across all files
+- Useful when different tracks are exported to separate files
 
 **Output:**
 - Detailed issue reports (if any)

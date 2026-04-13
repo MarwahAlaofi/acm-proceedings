@@ -283,58 +283,178 @@ def print_statistics(stats_data):
     print("=" * 80)
 
 
-def validate_xml_file(xml_file):
+def validate_xml_file(xml_file, show_header=True):
     """
     Main validation and analysis function.
 
+    Args:
+        xml_file: Path to XML file
+        show_header: Whether to show full header (False for multi-file mode)
+
     Returns:
-        bool: True if all critical validations pass, False otherwise
+        tuple: (is_valid, stats_data, quality_stats) for aggregation
     """
-    print("=" * 80)
-    print("ACM XML COMPREHENSIVE VALIDATION AND ANALYSIS")
-    print("=" * 80)
-    print(f"File: {xml_file}")
-    print("=" * 80)
+    if show_header:
+        print("=" * 80)
+        print("ACM XML COMPREHENSIVE VALIDATION AND ANALYSIS")
+        print("=" * 80)
+        print(f"File: {xml_file}")
+        print("=" * 80)
+    else:
+        print("\n" + "-" * 80)
+        print(f"FILE: {xml_file}")
+        print("-" * 80)
 
     # Parse XML
     try:
         tree = ET.parse(xml_file)
         root = tree.getroot()
-        print("✓ XML file parsed successfully")
+        if show_header:
+            print("✓ XML file parsed successfully")
     except Exception as e:
         print(f"✗ ERROR: Failed to parse XML file: {e}")
-        return False
+        return False, None, None
 
     # Validate contact authors
     is_valid, issues = validate_contact_authors(root)
-    print_validation_results(is_valid, issues)
+    if show_header:  # Only print detailed results in single-file mode
+        print_validation_results(is_valid, issues)
+    else:
+        # Brief summary for multi-file mode
+        if is_valid:
+            print("  ✓ Contact authors: PASSED")
+        else:
+            print(f"  ✗ Contact authors: FAILED ({len(issues)} issues)")
 
     # Data quality check
     quality_stats, papers_with_issues = validate_data_quality(root)
-    print_data_quality(quality_stats, papers_with_issues)
+    if show_header:  # Only print detailed results in single-file mode
+        print_data_quality(quality_stats, papers_with_issues)
+    else:
+        # Brief summary for multi-file mode
+        print(f"  Papers: {quality_stats['total_papers']}, Authors: {quality_stats['total_authors']}")
+        print(f"  Missing data: {quality_stats['papers_with_missing_data']} papers")
 
-    # Generate and print statistics
+    # Generate statistics (but only print in single-file mode)
     stats_data = generate_statistics(root)
-    print_statistics(stats_data)
+    if show_header:
+        print_statistics(stats_data)
+
+    # Final summary (only for single file mode)
+    if show_header:
+        print("\n" + "=" * 80)
+        print("VALIDATION SUMMARY")
+        print("=" * 80)
+        if is_valid:
+            print("✓ Contact author validation: PASSED")
+        else:
+            print(f"✗ Contact author validation: FAILED ({len(issues)} issues)")
+
+        print(f"  Data quality: {quality_stats['papers_with_missing_data']}/{quality_stats['total_papers']} papers have missing data")
+
+        if is_valid:
+            print("\n✓ XML file is valid and ready for ACM submission")
+        else:
+            print("\n✗ XML file has issues that should be addressed")
+        print("=" * 80)
+
+    return is_valid, stats_data, quality_stats
+
+
+def validate_multiple_files(xml_files):
+    """
+    Validate multiple XML files and aggregate statistics.
+
+    Args:
+        xml_files: List of XML file paths
+
+    Returns:
+        bool: True if all files pass validation
+    """
+    print("=" * 80)
+    print("ACM XML COMPREHENSIVE VALIDATION AND ANALYSIS")
+    print(f"Validating {len(xml_files)} file(s)")
+    print("=" * 80)
+
+    all_valid = True
+    all_stats = []
+    all_quality_stats = []
+    file_results = []
+
+    # Validate each file
+    for xml_file in xml_files:
+        is_valid, stats_data, quality_stats = validate_xml_file(xml_file, show_header=False)
+
+        if is_valid is False:  # Parse error
+            all_valid = False
+            file_results.append((xml_file, False, None, None))
+            continue
+
+        all_valid = all_valid and is_valid
+        all_stats.append(stats_data)
+        all_quality_stats.append(quality_stats)
+        file_results.append((xml_file, is_valid, stats_data, quality_stats))
+
+    # Print per-file summary
+    print("\n" + "=" * 80)
+    print("PER-FILE VALIDATION SUMMARY")
+    print("=" * 80)
+    for xml_file, is_valid, _, quality_stats in file_results:
+        status = "✓ PASSED" if is_valid else "✗ FAILED"
+        if quality_stats:
+            print(f"{status}: {xml_file}")
+            print(f"        Papers: {quality_stats['total_papers']}, Authors: {quality_stats['total_authors']}, Missing data: {quality_stats['papers_with_missing_data']} papers")
+        else:
+            print(f"{status}: {xml_file} (parse error)")
+    print("=" * 80)
+
+    # Aggregate and print statistics
+    if all_stats:
+        print("\n" + "=" * 80)
+        print("AGGREGATED STATISTICS (ALL FILES)")
+        print("=" * 80)
+
+        # Merge statistics
+        from validate_acm_xml_multi import merge_statistics, merge_quality_stats
+        merged_stats = merge_statistics(all_stats)
+        merged_quality = merge_quality_stats(all_quality_stats)
+
+        # Print aggregated statistics
+        print_statistics(merged_stats)
+
+        # Aggregated quality summary
+        print("\n" + "=" * 80)
+        print("AGGREGATED DATA QUALITY")
+        print("=" * 80)
+        print(f"Total files: {len(xml_files)}")
+        print(f"Total papers: {merged_quality['total_papers']}")
+        print(f"Total authors: {merged_quality['total_authors']}")
+        print()
+        print("Missing Data (aggregated):")
+        print(f"  • Missing emails: {merged_quality['missing_emails']}")
+        print(f"  • Missing affiliations: {merged_quality['missing_affiliations']}")
+        print(f"  • Missing first names: {merged_quality['missing_first_names']}")
+        print(f"  • Missing last names: {merged_quality['missing_last_names']}")
+        print()
+        print(f"Papers with missing data: {merged_quality['papers_with_missing_data']} ({merged_quality['papers_with_missing_data']/merged_quality['total_papers']*100:.1f}%)")
+        print("=" * 80)
 
     # Final summary
     print("\n" + "=" * 80)
-    print("VALIDATION SUMMARY")
+    print("FINAL VALIDATION SUMMARY")
     print("=" * 80)
-    if is_valid:
-        print("✓ Contact author validation: PASSED")
-    else:
-        print(f"✗ Contact author validation: FAILED ({len(issues)} issues)")
+    passed_count = sum(1 for _, is_valid, _, _ in file_results if is_valid)
+    print(f"Files validated: {len(xml_files)}")
+    print(f"Files passed: {passed_count}")
+    print(f"Files failed: {len(xml_files) - passed_count}")
 
-    print(f"  Data quality: {quality_stats['papers_with_missing_data']}/{quality_stats['total_papers']} papers have missing data")
-
-    if is_valid:
-        print("\n✓ XML file is valid and ready for ACM submission")
+    if all_valid:
+        print("\n✓ All XML files are valid and ready for ACM submission")
     else:
-        print("\n✗ XML file has issues that should be addressed")
+        print("\n✗ Some XML files have issues that should be addressed")
     print("=" * 80)
 
-    return is_valid
+    return all_valid
 
 
 if __name__ == "__main__":
@@ -343,21 +463,33 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Validate single file
   python validate_acm_xml.py acm_output.xml
-  python validate_acm_xml.py sigir2026.xml
+
+  # Validate multiple files with aggregated statistics
+  python validate_acm_xml.py full_papers.xml short_papers.xml demo_papers.xml
+  python validate_acm_xml.py sigir2026-*.xml
         """
     )
 
     parser.add_argument(
-        "xml_file",
-        help="Path to ACM XML file to validate"
+        "xml_files",
+        nargs="+",
+        metavar="xml_file",
+        help="Path(s) to ACM XML file(s) to validate"
     )
 
     args = parser.parse_args()
 
     try:
-        validation_passed = validate_xml_file(args.xml_file)
-        sys.exit(0 if validation_passed else 1)
+        if len(args.xml_files) == 1:
+            # Single file mode - detailed output
+            validation_passed, _, _ = validate_xml_file(args.xml_files[0], show_header=True)
+            sys.exit(0 if validation_passed else 1)
+        else:
+            # Multiple files mode - aggregated statistics
+            validation_passed = validate_multiple_files(args.xml_files)
+            sys.exit(0 if validation_passed else 1)
     except Exception as e:
         print(f"\n✗ CRITICAL ERROR: {e}", file=sys.stderr)
         import traceback
