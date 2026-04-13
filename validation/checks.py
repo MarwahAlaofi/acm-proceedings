@@ -269,18 +269,27 @@ def extract_email_domain(email):
     matching since authors from different institutions may use the same public
     email service.
 
+    Generic institutional services like acm.org are also excluded because they
+    provide email addresses to members regardless of their actual affiliation.
+
     Args:
         email: Email address string
 
     Returns:
         str: Domain part of email (lowercase), or empty string if invalid/public
+
+    Examples:
+        - "user@rmit.edu.au" → "rmit.edu.au" (institutional domain)
+        - "user@gmail.com" → "" (public domain, excluded)
+        - "user@acm.org" → "" (generic service, excluded)
     """
     # Common public email domains that should NOT be used for affiliation matching
     PUBLIC_DOMAINS = {
         'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com',
         'qq.com', 'foxmail.com', '163.com', '126.com', '139.com', 'sina.com',
         'sohu.com', 'yeah.net', 'mail.com', 'aol.com', 'icloud.com',
-        'protonmail.com', 'zoho.com', 'yandex.com', 'gmx.com', 'mail.ru'
+        'protonmail.com', 'zoho.com', 'yandex.com', 'gmx.com', 'mail.ru',
+        'acm.org'
     }
 
     if not email or "@" not in email:

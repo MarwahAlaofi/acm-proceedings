@@ -10,13 +10,27 @@ Features:
 - Generates detailed statistics (papers per track, authors, affiliations)
 - Identifies most prolific authors, affiliations, and countries
 - Reports missing data (emails, affiliations, etc.)
+- Detects similar affiliations using three-tier matching:
+  1. Known aliases (whitelist)
+  2. Email domain matching (primary signal, institutional domains only)
+  3. String similarity + distinctive token matching (fallback)
 - Outputs formatted reports with configurable top-k limits
+- Interactive mode for exploring statistics
+
+Affiliation Similarity Assumptions:
+- Authors from same institution typically share same email domain
+- Institutional subdomains normalized (student.X.edu → X.edu)
+- Public email domains excluded (gmail.com, yahoo.com, acm.org, etc.)
+- False positive prevention: matching email domains require basic similarity check
+- See validation/README.md for detailed algorithm flowchart
 
 Usage:
     python validate_acm_xml.py <xml_file>
     python validate_acm_xml.py acm_output.xml
     python validate_acm_xml.py acm_output.xml --output report --top_k 10
     python validate_acm_xml.py acm_output.xml --output report --top_k full
+    python validate_acm_xml.py acm_output.xml --interactive
+    python validate_acm_xml.py file1.xml file2.xml --output combined
 
 Output Files (when --output is specified):
     <prefix>_validation.txt - Validation results and data quality

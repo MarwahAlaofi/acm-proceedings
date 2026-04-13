@@ -2,6 +2,25 @@
 
 This package provides comprehensive validation and analysis tools for ACM XML files, including data quality checks, affiliation similarity detection, and statistical analysis.
 
+## Key Assumptions (TL;DR)
+
+**Affiliation Similarity Detection:**
+- **Primary signal**: Institutional email domains (@university.edu)
+- **Excluded**: Public email services (gmail.com, yahoo.com, hotmail.com, acm.org, etc.)
+- **Normalization**: Student/staff subdomains treated as equivalent (student.X.edu → X.edu)
+- **Three-tier matching**: Known aliases → Email domain → String similarity
+- **False positive prevention**: Matching email domains must pass basic similarity check
+- **See flowchart in [Algorithm Details](#algorithm-details) section below**
+
+**Country Normalization:**
+- Uses `pycountry` library for standardization
+- Converts ISO codes to full names (US → United States, CN → China)
+- Handles abbreviations (U.S., U.K., U.A.E.)
+
+**Statistics:**
+- Tracks both author counts AND unique paper counts per affiliation/country
+- Multi-file aggregation: author counts sum, paper IDs deduplicate
+
 ## Table of Contents
 
 - [Quick Start](#quick-start)
@@ -272,6 +291,26 @@ Academic institutions often appear with variations in proceedings data due to:
 - Extra words (University of Melbourne vs The University of Melbourne)
 - Language/translation variations (Tsinghua University vs 清华大学)
 
+**Key Signal: Email Domains**
+
+The algorithm uses **institutional email domains as the primary signal** for affiliation similarity:
+
+- **Assumption**: Authors from the same institution typically share the same email domain
+  - Example: @rmit.edu.au indicates RMIT University
+  - Example: @tsinghua.edu.cn indicates Tsinghua University
+
+- **Domain normalization**: Student/staff subdomains are treated as equivalent
+  - student.rmit.edu.au → rmit.edu.au
+  - mail.tsinghua.edu.cn → tsinghua.edu.cn
+  
+- **Exclusions**: Public and generic email services are ignored
+  - gmail.com, yahoo.com, hotmail.com (consumer services)
+  - acm.org (generic email service for ACM members, unrelated to affiliation)
+  - See `PUBLIC_DOMAINS` set in checks.py for full list
+
+- **False positive prevention**: Even with matching email domains, affiliations are only merged if they pass a basic similarity check (shared tokens OR string similarity >= 0.4)
+  - Prevents merging when email domain is incorrectly entered in data
+
 **Three-tier matching priority:**
 
 1. **Known aliases (highest confidence)**
@@ -342,6 +381,87 @@ Academic institutions often appear with variations in proceedings data due to:
 - Prevents double-counting when same paper appears in multiple exports
 
 ## Algorithm Details
+
+### Affiliation Similarity Algorithm - Flowchart
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ INPUT: All unique affiliations from XML + author email domains │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ STEP 0: Initialize                                                  │
+│ • Extract email domains from author emails                         │
+│ • Filter out public domains (gmail.com, yahoo.com, acm.org, etc.) │
+│ • Normalize institutional domains (student.X → X, mail.X → X)     │
+│ • Create affiliation → email_domain mapping                        │
+└────────────────────────────┬───────────────────────────────────────┘
+                             │
+                             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ STEP 1: Known Aliases (Highest Confidence)                         │
+│ • Check against INSTITUTION_ALIASES whitelist                      │
+│ • Example: "RMIT" + "Royal Melbourne Inst of Tech" → merge        │
+│ • Check blacklist (never merge blacklisted pairs)                 │
+│ • Mark as match_type='known_alias'                                 │
+└────────────────────────────┬───────────────────────────────────────┘
+                             │
+                             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ STEP 2: Email Domain Matching (High Confidence)                    │
+│ For affiliations with same normalized institutional email domain:  │
+│   1. Check if blacklisted → Skip if yes                           │
+│   2. Run basic_similarity_check():                                 │
+│      • Known aliases? → Merge                                      │
+│      • Share distinctive tokens? → Merge                           │
+│      • String similarity >= 0.4? → Merge                           │
+│      • Otherwise → Don't merge (data quality issue)                │
+│   3. Mark as match_type='email_domain'                             │
+│                                                                     │
+│ Example:                                                            │
+│ • "Tsinghua University" @tsinghua.edu.cn                           │
+│ • "Tsinghua Univ" @tsinghua.edu.cn                                 │
+│ • Share token "tsinghua" → Merge ✓                                 │
+│                                                                     │
+│ Counter-example (prevents false positive):                         │
+│ • "City Univ of Hong Kong" @ustc.edu.cn (typo in data)            │
+│ • "USTC" @ustc.edu.cn                                              │
+│ • No shared tokens, similarity < 0.4 → Don't merge ✗               │
+└────────────────────────────┬───────────────────────────────────────┘
+                             │
+                             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ STEP 3: String Similarity (Medium Confidence)                      │
+│ For remaining affiliations not matched by email:                   │
+│   1. Extract distinctive tokens (filter out generic words)         │
+│      Generic: "university", "institute", "of", "the", etc.        │
+│      Distinctive: geographic names, unique identifiers            │
+│   2. Check if blacklisted → Skip if yes                           │
+│   3. Require BOTH conditions:                                      │
+│      • Share distinctive tokens                                    │
+│      • String similarity >= 0.7 (strict threshold)                │
+│   4. Mark as match_type='string_similarity'                        │
+│                                                                     │
+│ Example:                                                            │
+│ • "Beijing Institute of Technology"                                │
+│ • "Beijing Inst. of Tech."                                         │
+│ • Share token "beijing", similarity 0.85 → Merge ✓                 │
+│                                                                     │
+│ Counter-example (prevents false positive):                         │
+│ • "Dalian University of Technology"                                │
+│ • "Delft University of Technology"                                 │
+│ • Different distinctive tokens (dalian ≠ delft) → Don't merge ✗   │
+└────────────────────────────┬───────────────────────────────────────┘
+                             │
+                             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ OUTPUT: Similar affiliation groups                                  │
+│ • Each group: list of affiliations + match_type + details         │
+│ • Groups used for merged statistics                                │
+│ • Representative affiliation chosen (shortest, no dept prefix)     │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ### Affiliation Similarity Algorithm (checks.py)
 
@@ -643,19 +763,23 @@ SUBDOMAIN_PREFIXES = [
 
 ### Public Email Domains (checks.py)
 
-Exclude consumer email providers from email domain matching:
+Exclude consumer email providers and generic services from email domain matching:
 
 ```python
 PUBLIC_DOMAINS = {
-    'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',
-    'qq.com', '163.com', '126.com', 'sina.com'
+    'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com',
+    'qq.com', 'foxmail.com', '163.com', '126.com', '139.com', 'sina.com',
+    'sohu.com', 'yeah.net', 'mail.com', 'aol.com', 'icloud.com',
+    'protonmail.com', 'zoho.com', 'yandex.com', 'gmx.com', 'mail.ru',
+    'acm.org'  # Generic email service for ACM members, not affiliation-specific
 }
 ```
 
 **Why exclude:**
 - Public domains don't indicate institutional affiliation
 - gmail.com users could be from any institution worldwide
-- Would create massive false positive groups
+- acm.org is a generic email service that some authors use, unrelated to their actual affiliation
+- Would create massive false positive groups if used for matching
 
 ### Country Name Mappings (statistics.py)
 
