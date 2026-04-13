@@ -156,6 +156,14 @@ Examples:
   # Export all tracks to XML with auto-detected paper types
   python easychair_to_acm_xml_v2.py --input export.xlsx --proceeding_id "2026-SIGIR" --output all.xml
 
+  # Export with constant submission/approval dates (overrides Excel dates)
+  python easychair_to_acm_xml_v2.py --input export.xlsx --proceeding_id "2026-SIGIR" \\
+    --submission_date "22-JAN-2026" --approval_date "02-APR-2026" --output all.xml
+
+  # Export with section tags from specific Excel column
+  python easychair_to_acm_xml_v2.py --input export.xlsx --proceeding_id "2026-SIGIR" \\
+    --section_column "Paper type" --output all.xml
+
   # Export to text format
   python easychair_to_acm_xml_v2.py --input export.xlsx --format txt --output papers.txt
 
@@ -214,6 +222,30 @@ Note: Track name must be EXACT match (case-sensitive) from EasyChair's "Track na
     )
 
     parser.add_argument(
+        "--submission_date",
+        default=None,
+        metavar="DATE",
+        help="Override submission date for all papers (e.g., '22-JAN-2026'). "
+        "If not provided, uses dates from EasyChair 'Submitted' column.",
+    )
+
+    parser.add_argument(
+        "--approval_date",
+        default=None,
+        metavar="DATE",
+        help="Override approval/notification date for all papers (e.g., '02-APR-2026'). "
+        "If not provided, uses dates from EasyChair 'Approval date' column.",
+    )
+
+    parser.add_argument(
+        "--section_column",
+        default=None,
+        metavar="COLUMN",
+        help="Excel column name to use for ACM section tag (e.g., 'Paper type', 'Category'). "
+        "If not provided, section tag will be left empty. Column must exist in the Submissions sheet.",
+    )
+
+    parser.add_argument(
         "--no-validation",
         action="store_true",
         help="Skip running the validation test after export",
@@ -251,6 +283,9 @@ Note: Track name must be EXACT match (case-sensitive) from EasyChair's "Track na
             excel_file_path=args.input,
             track_filter=args.track,
             proceeding_id=args.proceeding_id,
+            submission_date_override=args.submission_date,
+            approval_date_override=args.approval_date,
+            section_column=args.section_column,
             logger=logger
         )
 

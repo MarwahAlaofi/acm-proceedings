@@ -10,7 +10,10 @@ Usage:
 
     export = load_easychair_data(
         excel_file_path="export.xlsx",
-        track_filter=None
+        track_filter=None,
+        submission_date_override="22-JAN-2026",  # Optional
+        approval_date_override="02-APR-2026",    # Optional
+        section_column="Paper type"              # Optional: column for ACM section tag
     )
 """
 
@@ -48,6 +51,28 @@ def clean_text(x) -> str:
     return " ".join(str(x).split())
 
 
+def parse_acm_date(date_str: str) -> datetime:
+    """
+    Parse ACM date format (DD-MON-YYYY) to datetime object.
+
+    Args:
+        date_str: Date string in ACM format (e.g., "22-JAN-2026")
+
+    Returns:
+        datetime object
+
+    Raises:
+        ValueError: If date string format is invalid
+    """
+    try:
+        return datetime.strptime(date_str, "%d-%b-%Y")
+    except ValueError:
+        raise ValueError(
+            f"Invalid date format: '{date_str}'. "
+            "Expected format: DD-MON-YYYY (e.g., '22-JAN-2026')"
+        )
+
+
 def parse_authors_from_string(authors_str: str) -> List[str]:
     """
     Parse author names from the Submissions.Authors column.
@@ -67,6 +92,9 @@ def load_easychair_data(
     excel_file_path: str,
     track_filter: Optional[str] = None,
     proceeding_id: Optional[str] = None,
+    submission_date_override: Optional[str] = None,
+    approval_date_override: Optional[str] = None,
+    section_column: Optional[str] = None,
     logger: Optional[logging.Logger] = None
 ) -> ProceedingsExport:
     """
@@ -76,6 +104,9 @@ def load_easychair_data(
         excel_file_path: Path to EasyChair Excel export
         track_filter: Optional track name to filter
         proceeding_id: Optional ACM proceeding ID
+        submission_date_override: Optional submission date to use for all papers (e.g., '22-JAN-2026')
+        approval_date_override: Optional approval date to use for all papers (e.g., '02-APR-2026')
+        section_column: Optional Excel column name to use for ACM section tag (e.g., 'Paper type')
         logger: Optional logger instance
 
     Returns:
@@ -88,6 +119,24 @@ def load_easychair_data(
     """
     if logger is None:
         logger = logging.getLogger(__name__)
+
+    # Parse date overrides if provided
+    submission_date_dt = None
+    approval_date_dt = None
+
+    if submission_date_override:
+        try:
+            submission_date_dt = parse_acm_date(submission_date_override)
+            logger.info(f"Using submission date override: {submission_date_override}")
+        except ValueError as e:
+            raise ValueError(f"Invalid submission date: {e}")
+
+    if approval_date_override:
+        try:
+            approval_date_dt = parse_acm_date(approval_date_override)
+            logger.info(f"Using approval date override: {approval_date_override}")
+        except ValueError as e:
+            raise ValueError(f"Invalid approval date: {e}")
 
     # Initialize export object
     export = ProceedingsExport(proceeding_id=proceeding_id)
@@ -107,6 +156,18 @@ def load_easychair_data(
     logger.info(
         f"Loaded {len(submissions_df)} submissions and {len(authors_df)} author records"
     )
+
+    # Validate section_column if provided
+    if section_column:
+        if section_column not in submissions_df.columns:
+            available_cols = ", ".join(submissions_df.columns[:10])
+            raise ValueError(
+                f"Section column '{section_column}' not found in Submissions sheet. "
+                f"Available columns: {available_cols}..."
+            )
+        logger.info(f"Using column '{section_column}' for ACM section tag")
+    else:
+        logger.info("No section column specified - section tags will be empty")
 
     # Filter by track if specified
     if track_filter:
@@ -165,7 +226,10 @@ def load_easychair_data(
                 authors_df,
                 conference_prefix,
                 export,
-                logger
+                logger,
+                submission_date_override=submission_date_dt,
+                approval_date_override=approval_date_dt,
+                section_column=section_column
             )
             if paper:
                 # Track mapping
@@ -307,7 +371,10 @@ def load_paper_from_submission(
     authors_df: pd.DataFrame,
     conference_prefix: str,
     export: ProceedingsExport,
-    logger: logging.Logger
+    logger: logging.Logger,
+    submission_date_override: Optional[datetime] = None,
+    approval_date_override: Optional[datetime] = None,
+    section_column: Optional[str] = None
 ) -> Optional[Paper]:
     """
     Load a single paper from submission data.
@@ -318,23 +385,31 @@ def load_paper_from_submission(
         conference_prefix: Conference name prefix
         export: Export object to add issues to
         logger: Logger instance
+        submission_date_override: Optional override for submission date (all papers)
+        approval_date_override: Optional override for approval date (all papers)
+        section_column: Optional Excel column name to use for ACM section tag
 
     Returns:
         Paper object or None if loading fails
     """
     submission_id = int(submission["#"])
 
-    # Get track and section names
+    # Get track name
     track_name = str(submission.get("Track name", ""))
-    section_name = track_name
 
-    if conference_prefix and section_name.startswith(conference_prefix):
-        section_name = section_name[len(conference_prefix):]
-    section_name = section_name.replace(" Track", "")
-    section_name = TRACK_TO_SECTION_MAP.get(section_name, section_name)
+    # Derive paper type from track name (for automatic mapping)
+    derived_type = track_name
+    if conference_prefix and derived_type.startswith(conference_prefix):
+        derived_type = derived_type[len(conference_prefix):]
+    derived_type = derived_type.replace(" Track", "")
+    derived_type = TRACK_TO_SECTION_MAP.get(derived_type, derived_type)
+    paper_type = derived_type
 
-    # Paper type is same as section name
-    paper_type = section_name
+    # Section name: use specified column if provided, otherwise empty
+    if section_column:
+        section_name = str(submission.get(section_column, ""))
+    else:
+        section_name = ""
 
     # Get expected author order from Submissions.Authors column
     authors_str = str(submission.get("Authors", ""))
@@ -429,20 +504,26 @@ def load_paper_from_submission(
     marked_corresponding_with_email = [a for a in authors if a.is_corresponding and has_valid_email(a)]
     has_priority_1 = len(marked_corresponding_with_email) > 0
 
-    # Parse dates
-    submitted_date = None
-    if pd.notna(submission.get("Submitted")):
-        try:
-            submitted_date = pd.to_datetime(submission.get("Submitted"))
-        except:
-            pass
+    # Parse dates - use overrides if provided, otherwise read from Excel
+    if submission_date_override is not None:
+        submitted_date = submission_date_override
+    else:
+        submitted_date = None
+        if pd.notna(submission.get("Submitted")):
+            try:
+                submitted_date = pd.to_datetime(submission.get("Submitted"))
+            except:
+                pass
 
-    approval_date = None
-    if pd.notna(submission.get("Approval date")):
-        try:
-            approval_date = pd.to_datetime(submission.get("Approval date"))
-        except:
-            pass
+    if approval_date_override is not None:
+        approval_date = approval_date_override
+    else:
+        approval_date = None
+        if pd.notna(submission.get("Approval date")):
+            try:
+                approval_date = pd.to_datetime(submission.get("Approval date"))
+            except:
+                pass
 
     # Create Paper object (will validate and set contact author)
     try:
