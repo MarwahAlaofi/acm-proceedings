@@ -7,6 +7,14 @@ This script performs comprehensive validation and statistical analysis on ACM XM
 Features:
 - Validates XML structure and data quality
 - Checks contact author constraints (exactly one per paper)
+- Completes missing author fields (--complete-fields):
+  - Fills affiliations, countries, departments across papers for same author
+  - Only fills empty fields (never overwrites existing values)
+  - Handles multiple affiliations/countries per author
+- Merges duplicate author identities (prevents double-counting same person):
+  1. Exact email match (case-insensitive) → same author (highest confidence)
+  2. Exact full name match + missing email → same author (medium confidence)
+  3. Same name + different emails → NOT merged (likely different people)
 - Generates detailed statistics (papers per track, authors, affiliations)
 - Identifies most prolific authors, affiliations, and countries
 - Reports missing data (emails, affiliations, etc.)
@@ -17,12 +25,18 @@ Features:
 - Outputs formatted reports with configurable top-k limits
 - Interactive mode for exploring statistics
 
+Author Identity Assumptions:
+- Same email (non-empty) → same author (handles name variations, typos)
+- Same full name → same author (handles missing/different emails)
+- Prevents counting same person multiple times across papers
+
 Affiliation Similarity Assumptions:
 - Authors from same institution typically share same email domain
 - Institutional subdomains normalized (student.X.edu → X.edu)
 - Public email domains excluded (gmail.com, yahoo.com, acm.org, etc.)
 - False positive prevention: matching email domains require basic similarity check
-- See validation/README.md for detailed algorithm flowchart
+
+See validation/README.md for detailed algorithm flowcharts.
 
 Usage:
     python validate_acm_xml.py <xml_file>
@@ -1324,6 +1338,65 @@ def validate_multiple_files(xml_files, output_prefix=None, top_k=20, interactive
     return all_valid
 
 
+def complete_fields_in_file(xml_file, output_file=None):
+    """
+    Complete missing author fields in XML file and save result.
+
+    Fills missing information (affiliations, countries) for authors who appear
+    in multiple papers. Uses author identity merging to identify same authors.
+
+    Args:
+        xml_file: Input XML file path
+        output_file: Output XML file path (if None, overwrites input file)
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    print("=" * 80)
+    print("AUTHOR FIELD COMPLETION")
+    print("=" * 80)
+    print(f"Input file: {xml_file}")
+    if output_file:
+        print(f"Output file: {output_file}")
+    else:
+        print(f"Output file: {xml_file} (will be overwritten)")
+    print("=" * 80)
+
+    # Parse XML
+    try:
+        tree = ET.parse(xml_file)
+        root = tree.getroot()
+        print("✓ XML file parsed successfully")
+    except Exception as e:
+        print(f"✗ ERROR: Failed to parse XML file: {e}")
+        return False
+
+    # Complete fields
+    print("\nCompleting missing author fields...")
+    from validation import complete_author_fields
+    stats = complete_author_fields(root)
+
+    # Print statistics
+    print("\n" + "=" * 80)
+    print("COMPLETION STATISTICS")
+    print("=" * 80)
+    print(f"Authors processed: {stats['authors_processed']}")
+    print(f"Affiliations added: {stats['affiliations_added']}")
+    print(f"Countries added: {stats['countries_added']}")
+    print(f"Departments added: {stats['departments_added']}")
+    print("=" * 80)
+
+    # Save result
+    output_path = output_file if output_file else xml_file
+    try:
+        tree.write(output_path, encoding='utf-8', xml_declaration=True)
+        print(f"\n✓ Completed XML saved to: {output_path}")
+        return True
+    except Exception as e:
+        print(f"\n✗ ERROR: Failed to save XML file: {e}")
+        return False
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Comprehensive validation and analysis of ACM XML files",
@@ -1353,6 +1426,12 @@ Examples:
 
   # Validate multiple files in interactive mode
   python validate_acm_xml.py sigir2026-*.xml --interactive
+
+  # Complete missing author fields (in place)
+  python validate_acm_xml.py acm_output.xml --complete-fields
+
+  # Complete missing author fields (save to new file)
+  python validate_acm_xml.py acm_output.xml --complete-fields --complete-output acm_completed.xml
         """
     )
 
@@ -1388,12 +1467,35 @@ Examples:
         "Allows searching by affiliation, author, country, and browsing papers by track."
     )
 
+    parser.add_argument(
+        "--complete-fields",
+        action="store_true",
+        help="Complete missing author fields (affiliations, countries) across papers. "
+        "Uses author identity merging to identify same authors and fills missing information. "
+        "MODIFIES the XML file in place (or creates new file with --complete-output)."
+    )
+
+    parser.add_argument(
+        "--complete-output",
+        metavar="FILE",
+        help="Output file for --complete-fields (if not specified, input file is overwritten)"
+    )
+
     args = parser.parse_args()
 
     # Check if tabulate is available when output is requested
     if args.output and not TABULATE_AVAILABLE:
         print("Error: --output requires tabulate library. Install with: pip install tabulate", file=sys.stderr)
         sys.exit(1)
+
+    # Handle field completion if requested
+    if args.complete_fields:
+        if len(args.xml_files) != 1:
+            print("Error: --complete-fields only works with a single XML file", file=sys.stderr)
+            sys.exit(1)
+
+        success = complete_fields_in_file(args.xml_files[0], args.complete_output)
+        sys.exit(0 if success else 1)
 
     try:
         if len(args.xml_files) == 1:

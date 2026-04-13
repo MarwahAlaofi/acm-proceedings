@@ -4,6 +4,20 @@ This package provides comprehensive validation and analysis tools for ACM XML fi
 
 ## Key Assumptions (TL;DR)
 
+**Author Field Completion:**
+- **Purpose**: Fill missing information for authors appearing in multiple papers
+- **Uses author merging**: Identifies same person via email/name matching
+- **Only fills empty fields**: Never overwrites existing values (preserves multi-affiliation scenarios)
+- **Fields completed**: Affiliations, countries, departments
+- **CLI**: `python validate_acm_xml.py file.xml --complete-fields`
+
+**Author Identity Merging:**
+- **Primary signal**: Exact email match (case-insensitive) → same author
+- **Secondary signal**: Exact full name match + at least one missing email → same author
+- **Important**: Same name + different non-empty emails → NOT merged (likely different people)
+- **Purpose**: Prevent counting same person multiple times while avoiding false positives
+- **See flowchart in [Algorithm Details](#algorithm-details) section below**
+
 **Affiliation Similarity Detection:**
 - **Primary signal**: Institutional email domains (@university.edu)
 - **Excluded**: Public email services (gmail.com, yahoo.com, hotmail.com, acm.org, etc.)
@@ -18,6 +32,7 @@ This package provides comprehensive validation and analysis tools for ACM XML fi
 - Handles abbreviations (U.S., U.K., U.A.E.)
 
 **Statistics:**
+- Authors merged before counting (prevents double-counting same person)
 - Tracks both author counts AND unique paper counts per affiliation/country
 - Multi-file aggregation: author counts sum, paper IDs deduplicate
 
@@ -47,6 +62,10 @@ python validate_acm_xml.py sigir2026.xml --output report --top_k full  # Show al
 
 # Validate multiple XML files with aggregated statistics
 python validate_acm_xml.py full.xml short.xml demo.xml --output combined
+
+# Complete missing author fields (fills gaps across papers)
+python validate_acm_xml.py proceedings.xml --complete-fields
+python validate_acm_xml.py proceedings.xml --complete-fields --complete-output proceedings_completed.xml
 ```
 
 **Output files** (when using `--output prefix`):
@@ -94,6 +113,11 @@ validation/
 
 ### checks.py
 
+**Author identity functions:**
+
+- `merge_author_identities(author_keys)` - Merges duplicate author identities (email match → name match)
+- `complete_author_fields(root)` - Completes missing author fields across papers for same author
+
 **Data quality validation functions:**
 
 - `check_name_capitalization(root)` - Validates first/last names start with capitals
@@ -127,18 +151,24 @@ validation/
 **Statistics generation and reporting:**
 
 - `generate_statistics(root)` - Generates comprehensive statistics from single XML file
+  - **Automatically merges duplicate author identities** (email match → name match)
   - Papers per track/type with author counts
-  - Author counts and unique paper counts per author
-  - Affiliation and country distributions
-  - Prolific authors (most papers)
+  - Author counts and unique paper counts per author (using merged identities)
+  - Affiliation and country distributions (using merged identities)
+  - Prolific authors (most papers, counted by merged identity)
   
 - `print_statistics(stats, root=None, top_k=20)` - Prints formatted statistics
   - Optionally includes merged affiliation statistics when root provided
   - Controls number of items shown with top_k parameter
 
+**Author scoring:**
+
+- `calculate_author_score(papers)` - Weighted score based on paper types
+- `get_scoring_description()` - Human-readable scoring description
+
 **Country normalization:**
 
-- `normalize_country(country_str)` - Uses pycountry for standardization
+- `normalize_country_name(country_str)` - Uses pycountry for standardization
 - Converts ISO codes (US, USA, CHN) to full names
 - Handles abbreviations with periods (U.S., U.K., U.A.E.)
 - Maps official names to common names (Korea, Republic of → South Korea)
@@ -222,7 +252,74 @@ total_authors = sum(combined['authors'].values())
 print(f"Total: {total_papers} papers, {total_authors} author entries")
 ```
 
-### Example 4: Custom Affiliation Analysis
+### Example 4: Author Field Completion
+
+```python
+import xml.etree.ElementTree as ET
+from validation import complete_author_fields
+
+# Parse XML
+tree = ET.parse('proceedings.xml')
+root = tree.getroot()
+
+# Complete missing fields
+stats = complete_author_fields(root)
+
+# Print statistics
+print(f"Authors processed: {stats['authors_processed']}")
+print(f"Affiliations added: {stats['affiliations_added']}")
+print(f"Countries added: {stats['countries_added']}")
+print(f"Departments added: {stats['departments_added']}")
+
+# Save modified XML
+tree.write('proceedings_completed.xml', encoding='utf-8', xml_declaration=True)
+```
+
+### Example 5: Author Identity Merging
+
+```python
+import xml.etree.ElementTree as ET
+from validation import merge_author_identities
+
+# Parse XML
+tree = ET.parse('proceedings.xml')
+root = tree.getroot()
+
+# Collect all author keys
+author_keys = set()
+for paper in root.findall("paper"):
+    for author in paper.findall(".//author"):
+        first = author.findtext("first_name", "")
+        last = author.findtext("last_name", "")
+        email = author.findtext("email_address", "")
+        author_keys.add((first, last, email))
+
+# Build canonical mapping
+canonical_map = merge_author_identities(author_keys)
+
+# Analyze merging
+unique_authors = set(canonical_map.values())
+print(f"Original author entries: {len(author_keys)}")
+print(f"Unique authors after merging: {len(unique_authors)}")
+print(f"Duplicates removed: {len(author_keys) - len(unique_authors)}")
+
+# Find authors with multiple identities
+identity_groups = {}
+for author_key, canonical in canonical_map.items():
+    if canonical not in identity_groups:
+        identity_groups[canonical] = []
+    identity_groups[canonical].append(author_key)
+
+print("\nAuthors with multiple identities:")
+for canonical, identities in identity_groups.items():
+    if len(identities) > 1:
+        print(f"\n{canonical[0]} {canonical[1]} (canonical email: {canonical[2]})")
+        for first, last, email in identities:
+            if (first, last, email) != canonical:
+                print(f"  → Also appears as: {first} {last} ({email if email else 'no email'})")
+```
+
+### Example 6: Custom Affiliation Analysis
 
 ```python
 import xml.etree.ElementTree as ET
@@ -256,6 +353,122 @@ for group in similar_groups:
 ```
 
 ## Assumptions and Design Decisions
+
+### Author Field Completion
+
+**Core assumption:**
+Authors appearing in multiple papers may have complete information in some papers but missing information in others. Field completion fills these gaps while preserving legitimate multi-affiliation scenarios.
+
+**Completion Rules:**
+
+1. **Identify same authors** using `merge_author_identities()` (email match → name match)
+2. **Collect all information** for each canonical author across all papers
+3. **Fill missing fields only** - never overwrite existing values
+4. **Handle multiple affiliations** - authors can have different affiliations across papers
+
+**What gets completed:**
+- **Affiliations**: If completely missing, adds all known affiliations from other papers
+- **Countries**: Within existing affiliation, fills missing country if known from other papers
+- **Departments**: Within existing affiliation, fills missing department if known from other papers
+
+**What is NOT overwritten:**
+- **Existing affiliations**: Never replaced (author may have changed institutions)
+- **Existing countries**: Never replaced (author may have relocated)
+- **Existing departments**: Never replaced (author may have changed departments)
+
+**Examples:**
+
+**Scenario 1: Missing country**
+```
+Paper 1: John Smith (john@mit.edu), MIT, Computer Science, United States
+Paper 2: John Smith (john@mit.edu), MIT, Computer Science, [empty]
+
+After completion:
+Paper 2: John Smith (john@mit.edu), MIT, Computer Science, United States ← Filled
+```
+
+**Scenario 2: Missing affiliation**
+```
+Paper 1: John Smith (john@mit.edu), MIT, USA
+Paper 2: John Smith (john@mit.edu), [no affiliation]
+
+After completion:
+Paper 2: John Smith (john@mit.edu), MIT, USA ← Filled
+```
+
+**Scenario 3: Multiple affiliations (NOT completed)**
+```
+Paper 1: John Smith (john@mit.edu), MIT, USA
+Paper 2: John Smith (john@mit.edu), Stanford, USA
+
+After completion:
+Paper 1: John Smith (john@mit.edu), MIT, USA ← Unchanged
+Paper 2: John Smith (john@mit.edu), Stanford, USA ← Unchanged (legitimate change)
+```
+
+**Scenario 4: Partial information**
+```
+Paper 1: John Smith (john@mit.edu), MIT, Computer Science, United States
+Paper 2: John Smith (john@mit.edu), MIT, [no dept], [no country]
+
+After completion:
+Paper 2: John Smith (john@mit.edu), MIT, Computer Science, United States ← Dept and country filled
+```
+
+**When to use:**
+- After exporting from conference system (OpenReview, EasyChair)
+- Before submitting to ACM (ensures complete author information)
+- When consolidating data from multiple sources
+
+**When NOT to use:**
+- If all papers already have complete information (no-op)
+- If you want to preserve exactly what was in the export (no modifications)
+
+### Author Identity Merging
+
+**Core assumption:**
+The same person may appear multiple times in proceedings data with:
+- Different email addresses (institutional vs personal, email changed between papers)
+- Missing email addresses (some papers have email, others don't)
+- Name variations (full name vs initials, typos)
+
+**Merging Rules (Priority Order):**
+
+1. **Exact email match (highest confidence)**
+   - Same email address (case-insensitive) → same person
+   - Comparison: john@mit.edu = JOHN@MIT.EDU = John@MIT.edu
+   - Handles name variations when email is the same
+   - Example: ("John Smith", "john@mit.edu") + ("J. Smith", "john@mit.edu") → merged
+
+2. **Exact full name match with missing email (medium confidence)**
+   - Same first + last name + at least one has missing email → same person
+   - Only applies to authors not merged in Step 1
+   - Example: ("John Smith", "john@mit.edu") + ("John Smith", "") → merged
+   - Example: ("Bob Brown", "") + ("Bob Brown", "") → merged
+   - **Important**: Same name + different emails → NOT merged (likely different people)
+   - Example: ("Jane Doe", "jane@stanford.edu") + ("Jane Doe", "jane@berkeley.edu") → NOT merged
+
+**Why this design:**
+
+- **Email is more reliable than name**: Institutional emails are unique identifiers, names can be shared
+- **Progressive merging**: High-confidence signals first, then lower-confidence
+- **Conservative approach**: Only merges when clear evidence of same person
+- **Handles real-world data**: Email changes, missing data, inconsistent entry
+
+**Edge cases handled:**
+
+- **Same name, different people**: If they have different emails, treated as different people (email merged separately in Step 1)
+- **Same email, different names**: Merged as same person (email is stronger signal, name might have typo)
+- **Missing emails**: Merged by name only if not already merged by email with someone else
+- **Empty strings**: Treated as missing (not used for matching)
+
+**What is NOT merged:**
+
+- **Different names, different emails**: Clearly different people
+- **Same name, different non-empty emails**: Likely different people
+  - Example: ("Jane Doe", "jane@stanford.edu") vs ("Jane Doe", "jane@berkeley.edu") → NOT merged
+  - Rationale: Different institutional emails suggest different individuals
+- **Similar but not exact names**: "John Smith" ≠ "Jon Smith" (no fuzzy matching to avoid false positives)
 
 ### Name Validation
 
@@ -381,6 +594,103 @@ The algorithm uses **institutional email domains as the primary signal** for aff
 - Prevents double-counting when same paper appears in multiple exports
 
 ## Algorithm Details
+
+### Author Identity Merging - Flowchart
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ INPUT: All unique author keys (first_name, last_name, email)   │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ STEP 1: Group by Email (Highest Confidence)                        │
+│ For each non-empty, non-null email:                               │
+│   • Normalize email to lowercase                                   │
+│   • Group all authors with same email                             │
+│   • Choose canonical author (deterministic sort by name)          │
+│   • Map all variants → canonical                                   │
+│                                                                     │
+│ Example:                                                            │
+│ • ("John", "Smith", "john@mit.edu") ← canonical                    │
+│ • ("John", "Smith", "JOHN@MIT.EDU") → same as above               │
+│ • ("J", "Smith", "john@mit.edu") → same as above                  │
+│ • All three merged because email matches ✓                         │
+│                                                                     │
+│ Rationale:                                                          │
+│ • Same email = same person (institutional email rarely shared)     │
+│ • Handles name variations (initials, typos, case)                 │
+│ • Case-insensitive email matching                                  │
+└────────────────────────────┬───────────────────────────────────────┘
+                             │
+                             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ STEP 2: Group by Full Name (Medium Confidence)                     │
+│ For remaining authors not merged by email:                         │
+│   • Build full_name = "first_name last_name" (stripped)           │
+│   • Group authors with same full name                              │
+│   • Check if at least one author has missing email:               │
+│     - YES: Merge them (choose canonical with email if available)  │
+│     - NO: Don't merge (different emails = likely different people)│
+│   • Map merged variants → canonical                                │
+│                                                                     │
+│ Example (MERGE - missing email):                                   │
+│ • ("Alice", "Johnson", "alice@cmu.edu") ← canonical (has email)   │
+│ • ("Alice", "Johnson", "") → merged                               │
+│                                                                     │
+│ Example (MERGE - both missing):                                    │
+│ • ("Bob", "Brown", "") ← canonical                                │
+│ • ("Bob", "Brown", "") → merged                                   │
+│                                                                     │
+│ Example (DON'T MERGE - different emails):                          │
+│ • ("Jane", "Doe", "jane@stanford.edu") → NOT merged               │
+│ • ("Jane", "Doe", "jane@berkeley.edu") → different person         │
+│                                                                     │
+│ Rationale:                                                          │
+│ • Same name + missing email → likely same person                  │
+│ • Same name + different emails → likely different people          │
+│ • Prefer email-bearing identity as canonical (more complete)      │
+└────────────────────────────┬───────────────────────────────────────┘
+                             │
+                             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ STEP 3: Identity Mapping                                           │
+│ • Authors not merged → map to themselves (no duplicates found)     │
+│                                                                     │
+│ Example:                                                            │
+│ • ("Jane", "Doe", "jane@stanford.edu") → itself                   │
+└────────────────────────────┬───────────────────────────────────────┘
+                             │
+                             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ OUTPUT: Canonical author mapping                                   │
+│ • author_key → canonical_author_key                                │
+│ • Used for statistics generation                                   │
+│ • Prevents double-counting same person                             │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Design Decisions:**
+
+1. **Email takes priority over name**
+   - More reliable identifier (unique, institutional)
+   - Handles name variations, typos, initials
+
+2. **Name matching is case-sensitive for first/last**
+   - "John Smith" ≠ "john smith" (preserves data as entered)
+   - Exact string match required
+
+3. **Empty emails ignored in Step 1**
+   - Only merge by name if email unavailable
+   - Prevents grouping unrelated people with empty emails
+
+4. **Canonical choice is deterministic**
+   - Alphabetically first by (first_name, last_name, email)
+   - Ensures consistent results across runs
+
+5. **Per-author paper deduplication**
+   - After merging, deduplicate papers for each canonical author
+   - Same paper shouldn't count multiple times (e.g., contact author listed twice)
 
 ### Affiliation Similarity Algorithm - Flowchart
 

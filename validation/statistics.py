@@ -243,7 +243,14 @@ def normalize_country_name(country_str):
 
 def generate_statistics(root):
     """
-    Generate comprehensive statistics from XML.
+    Generate comprehensive statistics from XML with author identity merging.
+
+    Authors are merged based on:
+    1. Exact email match (non-empty) → same author
+    2. Exact full name match → same author
+
+    This prevents counting the same person multiple times when they use different
+    emails or appear with missing email addresses.
 
     Args:
         root: XML root element
@@ -251,6 +258,9 @@ def generate_statistics(root):
     Returns:
         dict: Statistics including papers per track, authors, affiliations, countries
     """
+    # Import merge function
+    from validation.checks import merge_author_identities
+
     papers_by_track = defaultdict(int)
     papers_by_type = defaultdict(int)
     author_paper_count = defaultdict(list)
@@ -259,6 +269,21 @@ def generate_statistics(root):
     country_authors = defaultdict(set)  # country -> set of unique author_keys
     country_papers = defaultdict(set)  # country -> set of paper_ids
 
+    # First pass: collect all author keys for merging
+    all_author_keys = set()
+    for paper in root.findall("paper"):
+        authors = paper.findall(".//author")
+        for author in authors:
+            first_name = author.findtext("first_name", "")
+            last_name = author.findtext("last_name", "")
+            email = author.findtext("email_address", "")
+            author_key = (first_name, last_name, email)
+            all_author_keys.add(author_key)
+
+    # Build canonical author mapping
+    canonical_author_map = merge_author_identities(all_author_keys)
+
+    # Second pass: generate statistics with merged author identities
     for paper in root.findall("paper"):
         paper_id = paper.findtext("event_tracking_number", "unknown")
         paper_type = paper.findtext("paper_type", "Unknown")
@@ -273,25 +298,39 @@ def generate_statistics(root):
             last_name = author.findtext("last_name", "")
             email = author.findtext("email_address", "")
 
-            # Track author by (name, email) to handle same name different people
+            # Get original author key
             author_key = (first_name, last_name, email)
-            author_paper_count[author_key].append((paper_id, paper_type))
 
-            # Track affiliations
+            # Map to canonical author identity
+            canonical_author = canonical_author_map.get(author_key, author_key)
+
+            # Track papers by canonical author (prevents double-counting same person)
+            author_paper_count[canonical_author].append((paper_id, paper_type))
+
+            # Track affiliations with canonical author identity
             affiliations = author.findall(".//affiliation")
             for aff in affiliations:
                 institution = clean_affiliation_string(aff.findtext("institution", ""))
                 country = aff.findtext("country", "").strip()
 
                 if institution:
-                    # Track unique authors per affiliation
-                    affiliation_authors[institution].add(author_key)
+                    # Track unique authors per affiliation (using canonical identity)
+                    affiliation_authors[institution].add(canonical_author)
                     affiliation_papers[institution].add(paper_id)
                 if country:
                     # Normalize country name/code to standard full name
                     normalized_country = normalize_country_name(country)
-                    country_authors[normalized_country].add(author_key)
+                    country_authors[normalized_country].add(canonical_author)
                     country_papers[normalized_country].add(paper_id)
+
+    # Deduplicate papers for each author (same paper shouldn't count multiple times)
+    for author_key in author_paper_count:
+        # Keep first occurrence of each paper_id (preserve paper_type info)
+        seen_papers = {}
+        for paper_id, paper_type in author_paper_count[author_key]:
+            if paper_id not in seen_papers:
+                seen_papers[paper_id] = paper_type
+        author_paper_count[author_key] = [(pid, ptype) for pid, ptype in seen_papers.items()]
 
     # Convert sets to counts for easier consumption
     affiliation_count = Counter({aff: len(authors) for aff, authors in affiliation_authors.items()})
