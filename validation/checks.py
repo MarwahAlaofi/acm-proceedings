@@ -1040,6 +1040,119 @@ def merge_author_identities(author_keys):
     return canonical_map
 
 
+def find_merged_authors(roots):
+    """
+    Find all merged author identities across one or more XML files.
+
+    Args:
+        roots: XML root element or list of XML root elements
+
+    Returns:
+        list: List of merge groups, each containing:
+            - canonical: Canonical author (first_name, last_name, email) tuple
+            - variants: List of author variants that were merged
+            - match_type: "email" (same email) or "name" (same name, missing email)
+            - papers: Set of paper IDs where these authors appear
+    """
+    if not isinstance(roots, list):
+        roots = [roots]
+
+    # Collect all author keys with paper info
+    author_to_papers = defaultdict(set)
+    all_author_keys = set()
+
+    for root in roots:
+        for paper in root.findall("paper"):
+            paper_id = paper.findtext("event_tracking_number", "unknown")
+            authors = paper.findall(".//author")
+            for author in authors:
+                first_name = author.findtext("first_name", "")
+                last_name = author.findtext("last_name", "")
+                email = author.findtext("email_address", "")
+                author_key = (first_name, last_name, email)
+                all_author_keys.add(author_key)
+                author_to_papers[author_key].add(paper_id)
+
+    # Get canonical mapping
+    canonical_map = merge_author_identities(all_author_keys)
+
+    # Group authors by canonical identity
+    canonical_to_variants = defaultdict(list)
+    for author_key, canonical in canonical_map.items():
+        canonical_to_variants[canonical].append(author_key)
+
+    # Build merge groups (only for authors that were actually merged)
+    merge_groups = []
+    for canonical, variants in canonical_to_variants.items():
+        if len(variants) > 1:
+            # Determine match type
+            # Check if all variants share same email (case-insensitive)
+            emails = [v[2].strip().lower() for v in variants if v[2] and v[2].strip()]
+            if emails and len(set(emails)) == 1:
+                match_type = "email"
+            else:
+                match_type = "name"
+
+            # Collect all papers for these variants
+            papers = set()
+            for variant in variants:
+                papers.update(author_to_papers[variant])
+
+            merge_groups.append({
+                "canonical": canonical,
+                "variants": sorted(variants),
+                "match_type": match_type,
+                "papers": papers
+            })
+
+    # Sort by number of variants (descending) for consistent output
+    merge_groups.sort(key=lambda g: len(g["variants"]), reverse=True)
+
+    return merge_groups
+
+
+def print_merged_authors(merge_groups):
+    """Print merged author identity groups."""
+    if not merge_groups:
+        print("  ✓ No merged author identities detected")
+        return
+
+    # Count by match type
+    email_matches = sum(1 for g in merge_groups if g.get("match_type") == "email")
+    name_matches = sum(1 for g in merge_groups if g.get("match_type") == "name")
+
+    print(f"  ⚠ {len(merge_groups)} author(s) with multiple identities merged:")
+    print(f"     {email_matches} matched by email, {name_matches} by name")
+
+    for i, group in enumerate(merge_groups[:10], 1):  # Show first 10 groups
+        canonical = group["canonical"]
+        variants = group["variants"]
+        match_type = group.get("match_type", "unknown")
+        papers = group.get("papers", set())
+
+        canonical_name = f"{canonical[0]} {canonical[1]}".strip()
+        canonical_email = canonical[2] if canonical[2] else "N/A"
+
+        if match_type == "email":
+            print(f"\n    Group {i} (matched by email: {canonical_email}):")
+        else:
+            print(f"\n    Group {i} (matched by name: {canonical_name}):")
+
+        print(f"      Canonical: {canonical_name} ({canonical_email})")
+        print(f"      Variants: {len(variants)} identities merged, {len(papers)} paper(s)")
+        for variant in variants[:5]:  # Show first 5 variants
+            variant_name = f"{variant[0]} {variant[1]}".strip()
+            variant_email = variant[2] if variant[2] else "N/A"
+            if variant != canonical:
+                print(f"        • {variant_name} ({variant_email})")
+
+        if len(variants) > 5:
+            print(f"        ... and {len(variants) - 5} more variant(s)")
+
+    if len(merge_groups) > 10:
+        print(f"\n    ... and {len(merge_groups) - 10} more merged author(s)")
+
+
 def print_similar_affiliations(similar_groups):
     """Print similar affiliation groups."""
     if not similar_groups:

@@ -23,11 +23,13 @@ from validation.checks import (
     complete_author_fields,
     find_similar_affiliations,
     find_similar_affiliations_multi_file,
+    find_merged_authors,
     merge_similar_affiliation_counts,
     merge_author_identities,
     print_name_capitalization_issues,
     print_email_name_consistency_issues,
-    print_similar_affiliations
+    print_similar_affiliations,
+    print_merged_authors
 )
 
 from validation.aggregation import (
@@ -50,11 +52,13 @@ __all__ = [
     'complete_author_fields',
     'find_similar_affiliations',
     'find_similar_affiliations_multi_file',
+    'find_merged_authors',
     'merge_similar_affiliation_counts',
     'merge_author_identities',
     'print_name_capitalization_issues',
     'print_email_name_consistency_issues',
     'print_similar_affiliations',
+    'print_merged_authors',
 
     # Aggregation
     'merge_statistics',

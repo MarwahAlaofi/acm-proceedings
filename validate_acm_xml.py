@@ -50,6 +50,7 @@ Output Files (when --output is specified):
     <prefix>_validation.txt - Validation results and data quality
     <prefix>_statistics.txt - Comprehensive statistics with top-k lists
     <prefix>_similar_affiliations.txt - Detailed similar affiliation groups
+    <prefix>_merged_authors.txt - Detailed merged author identities
 
 Returns:
     Exit code 0 if all validations pass
@@ -70,10 +71,12 @@ from validation import (
     clean_affiliation_string,
     find_similar_affiliations,
     find_similar_affiliations_multi_file,
+    find_merged_authors,
     get_scoring_description,
     print_name_capitalization_issues,
     print_email_name_consistency_issues,
     print_similar_affiliations,
+    print_merged_authors,
     generate_statistics,
     print_statistics,
     merge_statistics,
@@ -778,6 +781,72 @@ def write_similar_affiliations_report(output_prefix, similar_groups):
     print(f"✓ Similar affiliations report written to: {output_file}")
 
 
+def write_merged_authors_report(output_prefix, merge_groups):
+    """
+    Write detailed merged authors to formatted text file.
+
+    Args:
+        output_prefix: Output file prefix
+        merge_groups: Merged author groups
+    """
+    if not TABULATE_AVAILABLE:
+        print("Warning: tabulate not installed, skipping formatted output")
+        return
+
+    output_file = f"{output_prefix}_merged_authors.txt"
+
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write("=" * 100 + "\n")
+        f.write("MERGED AUTHORS - DETAILED GROUPS\n")
+        f.write("=" * 100 + "\n\n")
+
+        if not merge_groups:
+            f.write("No merged author identities detected.\n")
+            print(f"✓ Merged authors report written to: {output_file}")
+            return
+
+        # Count by match type
+        email_matches = sum(1 for g in merge_groups if g.get("match_type") == "email")
+        name_matches = sum(1 for g in merge_groups if g.get("match_type") == "name")
+
+        f.write(f"Total: {len(merge_groups)} author(s) with multiple identities merged\n")
+        f.write(f"  - {email_matches} matched by email (same email, different names)\n")
+        f.write(f"  - {name_matches} matched by name (same name, missing/different emails)\n\n")
+        f.write("=" * 100 + "\n\n")
+
+        # Write all groups
+        for i, group in enumerate(merge_groups, 1):
+            canonical = group["canonical"]
+            variants = group["variants"]
+            match_type = group.get("match_type", "unknown")
+            papers = group.get("papers", set())
+
+            canonical_name = f"{canonical[0]} {canonical[1]}".strip()
+            canonical_email = canonical[2] if canonical[2] else "N/A"
+
+            if match_type == "email":
+                f.write(f"Group {i} (matched by email: {canonical_email}):\n")
+            else:
+                f.write(f"Group {i} (matched by name: {canonical_name}):\n")
+
+            f.write(f"  Canonical identity: {canonical_name} ({canonical_email})\n")
+            f.write(f"  Total variants: {len(variants)}\n")
+            f.write(f"  Papers: {len(papers)}\n\n")
+
+            # Create table of variants
+            variant_table = []
+            for variant in variants:
+                variant_name = f"{variant[0]} {variant[1]}".strip()
+                variant_email = variant[2] if variant[2] else "N/A"
+                is_canonical = "✓" if variant == canonical else ""
+                variant_table.append([variant_name, variant_email, is_canonical])
+
+            f.write(tabulate(variant_table, headers=["Name", "Email", "Canonical"], tablefmt="simple"))
+            f.write("\n\n")
+
+    print(f"✓ Merged authors report written to: {output_file}")
+
+
 def write_statistics_report(output_prefix, merged_stats, similar_groups=None, top_k=20):
     """
     Write statistics to formatted text file.
@@ -1170,6 +1239,11 @@ def validate_xml_file(xml_file, show_header=True, output_prefix=None, top_k=20, 
         similar_affs = find_similar_affiliations(root, similarity_threshold=0.8)
         print_similar_affiliations(similar_affs)
 
+        # Check merged authors
+        print("\nMerged Author Identities:")
+        merged_authors = find_merged_authors(root)
+        print_merged_authors(merged_authors)
+
         print("=" * 80)
 
     # Final summary (only for single file mode)
@@ -1195,13 +1269,18 @@ def validate_xml_file(xml_file, show_header=True, output_prefix=None, top_k=20, 
         file_results = [(xml_file, is_valid, stats_data, quality_stats)]
         write_validation_report(output_prefix, file_results, quality_stats, is_valid)
 
-        # Find similar affiliations for statistics
+        # Find similar affiliations and merged authors for reports
         similar_groups = find_similar_affiliations(root, similarity_threshold=0.8)
+        merged_authors = find_merged_authors(root)
         write_statistics_report(output_prefix, stats_data, similar_groups, top_k=top_k)
 
         # Write similar affiliations to separate file
         if similar_groups:
             write_similar_affiliations_report(output_prefix, similar_groups)
+
+        # Write merged authors to separate file
+        if merged_authors:
+            write_merged_authors_report(output_prefix, merged_authors)
 
     # Enter interactive mode if requested (single file mode)
     if interactive and show_header:
@@ -1308,6 +1387,15 @@ def validate_multiple_files(xml_files, output_prefix=None, top_k=20, interactive
             print_similar_affiliations(similar_groups)
             print("=" * 80)
 
+        # Merged authors (multi-file analysis)
+        merged_authors = find_merged_authors(all_roots) if all_roots else None
+        if merged_authors:
+            print("\n" + "=" * 80)
+            print("MERGED AUTHOR IDENTITIES (ACROSS ALL FILES)")
+            print("=" * 80)
+            print_merged_authors(merged_authors)
+            print("=" * 80)
+
         # Write formatted output files if requested
         if output_prefix:
             write_validation_report(output_prefix, file_results, merged_quality, all_valid)
@@ -1316,6 +1404,10 @@ def validate_multiple_files(xml_files, output_prefix=None, top_k=20, interactive
             # Write similar affiliations to separate file
             if similar_groups:
                 write_similar_affiliations_report(output_prefix, similar_groups)
+
+            # Write merged authors to separate file
+            if merged_authors:
+                write_merged_authors_report(output_prefix, merged_authors)
 
     # Final summary
     print("\n" + "=" * 80)
@@ -1451,7 +1543,8 @@ Examples:
         "-o",
         metavar="PREFIX",
         help="Output file prefix for formatted reports. "
-        "Creates <PREFIX>_validation.txt, <PREFIX>_statistics.txt, and <PREFIX>_similar_affiliations.txt. "
+        "Creates <PREFIX>_validation.txt, <PREFIX>_statistics.txt, <PREFIX>_similar_affiliations.txt, "
+        "and <PREFIX>_merged_authors.txt. "
         "Requires tabulate library (pip install tabulate)."
     )
 
