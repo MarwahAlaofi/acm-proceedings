@@ -411,10 +411,14 @@ def display_author_details(search_term, stats_data, paper_details):
             if paper_id in paper_details:
                 detail = paper_details[paper_id]
                 print(f"  {Colors.CYAN}[{paper_id}]{Colors.RESET} {detail['title']}")
-                # Show co-authors
-                co_authors = [a['name'] for a in detail['authors'] if a['name'] != full_name]
-                if co_authors:
-                    print(f"      {Colors.DIM}Co-authors:{Colors.RESET} {', '.join(co_authors)}")
+                # Show all authors, highlighting the selected author
+                author_display = []
+                for author in detail['authors']:
+                    if author['name'] == full_name or author['email'] == email:
+                        author_display.append(f"{Colors.GREEN}{Colors.BOLD}{author['name']}{Colors.RESET}")
+                    else:
+                        author_display.append(author['name'])
+                print(f"      {Colors.DIM}Authors:{Colors.RESET} {', '.join(author_display)}")
                 print()
 
     print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
