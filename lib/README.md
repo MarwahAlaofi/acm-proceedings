@@ -9,7 +9,7 @@ This directory contains the core modules for the EasyChair to ACM converter with
 - **`easychair_models.py`** - Pydantic data models with validation
   - Author, Paper, Track, ProceedingsExport, ValidationIssue classes
   - Field validators for emails, names, affiliations
-  - Model validators for complex rules (corresponding author, etc.)
+  - Model validators for complex rules (single contact author with 3-tier priority, etc.)
   - Consistency checking functions
 
 - **`easychair_loader.py`** - Data loading and validation

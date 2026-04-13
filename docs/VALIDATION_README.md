@@ -128,7 +128,10 @@ author = Author(
 **Validates:**
 - Paper has at least one author
 - Title is not empty
-- At least one corresponding author exists (auto-sets first author if needed)
+- Exactly one contact author per paper (uses 3-tier priority system):
+  1. First corresponding author (✔) with valid email
+  2. First author with valid email (logs WARNING)
+  3. First author fallback (logs ERROR)
 
 **Example:**
 ```python
@@ -218,8 +221,9 @@ python test_pydantic_validation.py
 
 This will:
 - Test Author validation (name, email, fields)
-- Test Paper validation (authors, title, corresponding author)
+- Test Paper validation (authors, title, contact author priority system)
 - Test ProceedingsExport (issue tracking, statistics)
+- Test contact author selection priorities (1: corresponding with email, 2: first with email, 3: fallback)
 
 ### Run Integration Tests
 

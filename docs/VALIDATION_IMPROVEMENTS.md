@@ -42,7 +42,7 @@ Excel → Pandas DataFrames → Pydantic Models → XML/TXT/MD Export
 1. **`easychair_models.py`** (370 lines)
    - Pydantic models: Author, Paper, Track, ProceedingsExport, ValidationIssue
    - Field validators for emails, names, affiliations
-   - Model validators for complex rules (corresponding author, etc.)
+   - Model validators for complex rules (single contact author with 3-tier priority, etc.)
    - Consistency checking functions
 
 2. **`easychair_loader.py`** (380 lines)
@@ -151,7 +151,7 @@ export.add_issue(
 |------|----|----|
 | Has authors | Manual check + skip | Pydantic `min_items=1` |
 | Title not empty | Implicit | Pydantic `min_length=1` |
-| Corresponding author | Default to first | Model validator auto-sets |
+| Contact author | Default to first | 3-tier priority: (1) corresponding+email, (2) first+email, (3) first |
 | Author order | Manual sorting | Validated in loader |
 
 ### Export Validation

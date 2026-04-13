@@ -8,7 +8,8 @@ This directory contains test scripts for the EasyChair to ACM converter.
 
 - **`test_pydantic_validation.py`** - Unit tests for Pydantic models
   - Tests Author validation (names, emails, fields)
-  - Tests Paper validation (authors, title, corresponding author)
+  - Tests Paper validation (authors, title, contact author selection)
+  - Tests contact author priority system (3 tiers)
   - Tests ProceedingsExport (issue tracking, statistics)
   - Tests multi-affiliation support
   - All scenarios covered with assertions
@@ -70,6 +71,7 @@ python tests/test_author_order.py data.xlsx output.md
 ### Unit Tests Coverage
 - ✅ Author model validation
 - ✅ Paper model validation
+- ✅ Contact author priority system (3-tier)
 - ✅ Track model validation
 - ✅ ProceedingsExport validation
 - ✅ Multi-affiliation scenarios
@@ -98,7 +100,10 @@ python tests/test_author_order.py data.xlsx output.md
 2. Invalid email → ValidationError ✓
 3. Paper with no authors → ValidationError ✓
 4. Empty title → ValidationError ✓
-5. Auto-corresponding author → Passed ✓
+5. Contact author priority 1 (corresponding with email) → Passed ✓
+6. Contact author priority 2 (first author with email) → Passed ✓
+7. Contact author priority 3 (first author fallback) → Passed ✓
+8. Exactly one contact author per paper → Passed ✓
 
 ## Adding New Tests
 

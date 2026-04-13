@@ -119,7 +119,10 @@
 - ✅ Invalid email format rejection
 - ✅ Paper must have authors
 - ✅ Title cannot be empty
-- ✅ Auto-corresponding author
+- ✅ Single contact author per paper (3-tier priority)
+- ✅ Contact author priority 1: corresponding with email
+- ✅ Contact author priority 2: first author with email
+- ✅ Contact author priority 3: first author fallback
 - ✅ Different affiliations preserved
 - ✅ Different emails handled correctly
 - ✅ Empty fields filled from other papers

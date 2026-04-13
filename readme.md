@@ -378,7 +378,7 @@ The script automatically:
 ✅ **Consolidates duplicate authors** - fills ONLY empty fields, never overwrites existing values  
 ✅ **Multi-affiliation support** - authors can have different affiliations/emails across papers  
 ✅ **Detects typos** - flags same email with different names (warning), same name with different emails (info)  
-✅ **Sets corresponding author** - uses marked author or defaults to first author  
+✅ **Sets single contact author per paper** - 3-tier priority: (1) first corresponding with valid email, (2) first author with valid email, (3) first author fallback  
 ✅ **Generates detailed statistics** - track mapping, author counts, quality warnings  
 ✅ **Shows top prolific authors** - displays top 5 authors with paper type breakdown, includes all ties  
 ✅ **Comprehensive logging** - saves detailed log file (`.xml.log`, `.txt.log`, `.md.log`) for debugging and audit  
@@ -507,8 +507,8 @@ Examples:
 --------------------------------------------------------------------------------
 DATA QUALITY WARNINGS
 --------------------------------------------------------------------------------
-  ⚠ 15 paper(s) had no corresponding author marked
-     → First author was automatically set as corresponding
+  ⚠ 15 paper(s) used fallback contact author selection
+     → Priority 2 (first author with valid email) or Priority 3 (first author fallback)
   ⚠ 8 paper(s) have at least one author with missing affiliation
   ⚠ 3 author(s) have missing or invalid email addresses
 ================================================================================
@@ -614,10 +614,13 @@ Log file saved to: sigir2026.log
   - The script attempts to split "Department, Institution" format
   - If no comma, entire string is treated as institution name
 
-- **Corresponding Author**
-  - Uses EasyChair's "Corresponding?" column (marked with ✔)
-  - If no corresponding author is marked, first author is automatically designated
-  - This is clearly indicated in the summary output
+- **Contact Author Selection**
+  - **Exactly one contact author per paper** using 3-tier priority system:
+    1. **Priority 1:** First corresponding author (✔ in EasyChair) with valid email
+    2. **Priority 2:** First author with valid email (logs WARNING with paper details)
+    3. **Priority 3:** First author regardless of email validity (logs ERROR with paper details)
+  - Priority 2 and 3 usage is logged with paper ID and title for data quality tracking
+  - Summary shows count of papers using fallback priorities
 
 - **Accepted Papers**
   - Only papers with decision "Accept paper/proposal" or "tentatively accepted" are included
