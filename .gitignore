@@ -16,3 +16,4 @@ __pycache__/
 .idea/
 .vscode/
 .manual-data/
+validation/__pycache__/
