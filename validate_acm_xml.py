@@ -30,6 +30,7 @@ from validation import (
     check_name_capitalization,
     check_email_name_consistency,
     find_similar_affiliations,
+    find_similar_affiliations_multi_file,
     print_name_capitalization_issues,
     print_email_name_consistency_issues,
     print_similar_affiliations,
@@ -175,7 +176,7 @@ def validate_xml_file(xml_file, show_header=True):
         show_header: Whether to show full header (False for multi-file mode)
 
     Returns:
-        tuple: (is_valid, stats_data, quality_stats) for aggregation
+        tuple: (is_valid, stats_data, quality_stats, root) for aggregation
     """
     if show_header:
         print("=" * 80)
@@ -196,7 +197,7 @@ def validate_xml_file(xml_file, show_header=True):
             print("✓ XML file parsed successfully")
     except Exception as e:
         print(f"✗ ERROR: Failed to parse XML file: {e}")
-        return False, None, None
+        return False, None, None, None
 
     # Validate contact authors
     is_valid, issues = validate_contact_authors(root)
@@ -264,7 +265,7 @@ def validate_xml_file(xml_file, show_header=True):
             print("\n✗ XML file has issues that should be addressed")
         print("=" * 80)
 
-    return is_valid, stats_data, quality_stats
+    return is_valid, stats_data, quality_stats, root
 
 
 def validate_multiple_files(xml_files):
@@ -285,11 +286,12 @@ def validate_multiple_files(xml_files):
     all_valid = True
     all_stats = []
     all_quality_stats = []
+    all_roots = []
     file_results = []
 
     # Validate each file
     for xml_file in xml_files:
-        is_valid, stats_data, quality_stats = validate_xml_file(xml_file, show_header=False)
+        is_valid, stats_data, quality_stats, root = validate_xml_file(xml_file, show_header=False)
 
         if stats_data is None:  # Parse error (XML couldn't be parsed)
             all_valid = False
@@ -299,6 +301,7 @@ def validate_multiple_files(xml_files):
         all_valid = all_valid and is_valid
         all_stats.append(stats_data)
         all_quality_stats.append(quality_stats)
+        all_roots.append(root)
         file_results.append((xml_file, is_valid, stats_data, quality_stats))
 
     # Print per-file summary
@@ -324,8 +327,15 @@ def validate_multiple_files(xml_files):
         merged_stats = merge_statistics(all_stats)
         merged_quality = merge_quality_stats(all_quality_stats)
 
-        # Print aggregated statistics
-        print_statistics(merged_stats)
+        # Find similar affiliations across all files
+        similar_groups = None
+        if all_roots:
+            print("Computing similar affiliations across all files...")
+            similar_groups = find_similar_affiliations_multi_file(all_roots, similarity_threshold=0.8)
+            print(f"Found {len(similar_groups)} group(s) of similar affiliations\n")
+
+        # Print aggregated statistics with merged affiliations
+        print_statistics(merged_stats, similar_groups=similar_groups)
 
         # Aggregated quality summary
         print("\n" + "=" * 80)
@@ -343,6 +353,14 @@ def validate_multiple_files(xml_files):
         print()
         print(f"Papers with missing data: {merged_quality['papers_with_missing_data']} ({merged_quality['papers_with_missing_data']/merged_quality['total_papers']*100:.1f}%)")
         print("=" * 80)
+
+        # Similar affiliations (multi-file analysis)
+        if similar_groups:
+            print("\n" + "=" * 80)
+            print("SIMILAR AFFILIATIONS (ACROSS ALL FILES)")
+            print("=" * 80)
+            print_similar_affiliations(similar_groups)
+            print("=" * 80)
 
     # Final summary
     print("\n" + "=" * 80)
@@ -389,7 +407,7 @@ Examples:
     try:
         if len(args.xml_files) == 1:
             # Single file mode - detailed output
-            validation_passed, _, _ = validate_xml_file(args.xml_files[0], show_header=True)
+            validation_passed, _, _, _ = validate_xml_file(args.xml_files[0], show_header=True)
             sys.exit(0 if validation_passed else 1)
         else:
             # Multiple files mode - aggregated statistics

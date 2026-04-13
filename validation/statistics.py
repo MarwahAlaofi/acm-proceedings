@@ -71,13 +71,14 @@ def generate_statistics(root):
     }
 
 
-def print_statistics(stats_data, root=None):
+def print_statistics(stats_data, root=None, similar_groups=None):
     """
     Print comprehensive statistics.
 
     Args:
         stats_data: Statistics dictionary from generate_statistics()
-        root: Optional XML root element for similarity analysis
+        root: Optional XML root element for similarity analysis (single file mode)
+        similar_groups: Optional pre-computed similar affiliations (multi-file mode)
     """
     # Import here to avoid circular dependency
     from validation.checks import find_similar_affiliations, merge_similar_affiliation_counts
@@ -154,14 +155,15 @@ def print_statistics(stats_data, root=None):
         print(f"  {i}. {affiliation}: {author_count} author(s), {paper_count} paper(s)")
     print("=" * 80)
 
-    # Merged affiliations (only if root is provided for similarity analysis)
-    if root is not None:
+    # Merged affiliations (if similar_groups provided or root available)
+    if similar_groups is not None or root is not None:
         print("\n" + "=" * 80)
         print("TOP 20 MOST COMMON AFFILIATIONS (AFTER MERGING SIMILAR)")
         print("=" * 80)
 
-        # Find similar affiliations
-        similar_groups = find_similar_affiliations(root, similarity_threshold=0.8)
+        # Find similar affiliations if not provided
+        if similar_groups is None:
+            similar_groups = find_similar_affiliations(root, similarity_threshold=0.8)
 
         if similar_groups:
             # Merge counts
@@ -176,7 +178,7 @@ def print_statistics(stats_data, root=None):
 
             print()
             print(f"Note: {len(similar_groups)} group(s) of similar affiliations were merged.")
-            print("      See 'Similar Affiliations' section below for details.")
+            print("      See 'Similar Affiliations' section for details.")
         else:
             print("  No similar affiliations detected - counts remain unchanged")
 

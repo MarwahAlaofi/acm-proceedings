@@ -153,9 +153,47 @@ def string_similarity(s1, s2):
     return SequenceMatcher(None, s1, s2).ratio()
 
 
+def extract_email_domain(email):
+    """
+    Extract domain from email address, excluding common public email providers.
+
+    Public email domains (gmail, yahoo, qq, etc.) are not useful for affiliation
+    matching since authors from different institutions may use the same public
+    email service.
+
+    Args:
+        email: Email address string
+
+    Returns:
+        str: Domain part of email (lowercase), or empty string if invalid/public
+    """
+    # Common public email domains that should NOT be used for affiliation matching
+    PUBLIC_DOMAINS = {
+        'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com',
+        'qq.com', 'foxmail.com', '163.com', '126.com', '139.com', 'sina.com',
+        'sohu.com', 'yeah.net', 'mail.com', 'aol.com', 'icloud.com',
+        'protonmail.com', 'zoho.com', 'yandex.com', 'gmx.com', 'mail.ru'
+    }
+
+    if not email or "@" not in email:
+        return ""
+
+    try:
+        domain = email.split("@")[1].lower().strip()
+        # Exclude public domains
+        if domain in PUBLIC_DOMAINS:
+            return ""
+        return domain
+    except:
+        return ""
+
+
 def find_similar_affiliations(root, similarity_threshold=0.8):
     """
     Find similar affiliations that might be duplicates or typos.
+
+    Uses email domain as primary signal, then string similarity as fallback.
+    Authors from the same institution typically share the same email domain.
 
     Args:
         root: XML root element
@@ -164,8 +202,9 @@ def find_similar_affiliations(root, similarity_threshold=0.8):
     Returns:
         list: List of similar affiliation groups with paper/author details
     """
-    # Collect all unique affiliations with their occurrences
+    # Collect all unique affiliations with their occurrences and email domains
     affiliation_data = defaultdict(list)  # affiliation -> [(paper_id, paper_title, author_name)]
+    affiliation_domains = defaultdict(set)  # affiliation -> set of email domains
 
     for paper in root.findall("paper"):
         paper_id = paper.findtext("event_tracking_number", "unknown")
@@ -176,25 +215,122 @@ def find_similar_affiliations(root, similarity_threshold=0.8):
             first_name = author.findtext("first_name", "").strip()
             last_name = author.findtext("last_name", "").strip()
             author_name = f"{first_name} {last_name}"
+            email = author.findtext("email_address", "").strip()
+            email_domain = extract_email_domain(email)
 
             affiliations = author.findall(".//affiliation")
             for aff in affiliations:
                 institution = aff.findtext("institution", "").strip()
                 if institution:
                     affiliation_data[institution].append((paper_id, paper_title[:50], author_name))
+                    if email_domain:
+                        affiliation_domains[institution].add(email_domain)
 
     # Find similar affiliations
     affiliations = list(affiliation_data.keys())
     similar_groups = []
     processed = set()
 
-    for i, aff1 in enumerate(affiliations):
+    # Step 1: Group by email domain first (primary signal)
+    # But only when affiliations are also string-similar (to avoid false positives)
+    domain_to_affiliations = defaultdict(set)
+    for aff in affiliations:
+        domains = affiliation_domains.get(aff, set())
+        for domain in domains:
+            domain_to_affiliations[domain].add(aff)
+
+    # Create groups from email domain matches
+    for domain, affs_with_domain in domain_to_affiliations.items():
+        if len(affs_with_domain) > 1:
+            # Multiple affiliations share this email domain
+            # Verify they are similar institutions (not just same domain by chance)
+            affs_list = [aff for aff in affs_with_domain if aff not in processed]
+
+            if len(affs_list) > 1:
+                # Check if affiliations have high string similarity or share distinctive tokens
+                # This prevents matching "Peking University" with "Px Securities" just because
+                # someone uses @pku.edu.cn email
+
+                # Build similarity graph: find all pairs that are similar
+                similar_pairs = []
+                for i, aff1 in enumerate(affs_list):
+                    for j, aff2 in enumerate(affs_list):
+                        if i >= j:
+                            continue
+
+                        # Check string similarity
+                        norm1 = normalize_affiliation(aff1)
+                        norm2 = normalize_affiliation(aff2)
+                        sim = string_similarity(norm1, norm2)
+
+                        # More lenient threshold since we have email domain confirmation
+                        # Also check for shared distinctive tokens
+                        tokens1 = get_distinctive_tokens(aff1)
+                        tokens2 = get_distinctive_tokens(aff2)
+
+                        if tokens1 and tokens2:
+                            common_tokens = tokens1 & tokens2
+                            has_common_tokens = len(common_tokens) > 0
+                        else:
+                            has_common_tokens = False
+
+                        # Match if: high similarity (0.5+) OR shared distinctive tokens
+                        if sim >= 0.5 or has_common_tokens:
+                            similar_pairs.append((aff1, aff2))
+
+                # Group connected affiliations using union-find approach
+                if similar_pairs:
+                    affiliation_groups = []
+                    affiliation_to_group = {}
+
+                    for aff1, aff2 in similar_pairs:
+                        group1 = affiliation_to_group.get(aff1)
+                        group2 = affiliation_to_group.get(aff2)
+
+                        if group1 is None and group2 is None:
+                            # Create new group
+                            new_group = {aff1, aff2}
+                            affiliation_groups.append(new_group)
+                            affiliation_to_group[aff1] = new_group
+                            affiliation_to_group[aff2] = new_group
+                        elif group1 is None:
+                            # Add aff1 to aff2's group
+                            group2.add(aff1)
+                            affiliation_to_group[aff1] = group2
+                        elif group2 is None:
+                            # Add aff2 to aff1's group
+                            group1.add(aff2)
+                            affiliation_to_group[aff2] = group1
+                        elif group1 != group2:
+                            # Merge two groups
+                            group1.update(group2)
+                            for aff in group2:
+                                affiliation_to_group[aff] = group1
+                            affiliation_groups.remove(group2)
+
+                    # Create a group for each connected component
+                    for similar_subset in affiliation_groups:
+                        if len(similar_subset) > 1:
+                            for aff in similar_subset:
+                                processed.add(aff)
+                            group = {
+                                "affiliations": sorted(similar_subset),
+                                "details": {aff: affiliation_data[aff] for aff in similar_subset},
+                                "match_type": "email_domain",
+                                "email_domain": domain
+                            }
+                            similar_groups.append(group)
+
+    # Step 2: String similarity for remaining affiliations (secondary signal)
+    remaining_affiliations = [aff for aff in affiliations if aff not in processed]
+
+    for i, aff1 in enumerate(remaining_affiliations):
         if aff1 in processed:
             continue
 
         # Check if this affiliation is similar to any other
         similar = [aff1]
-        for j, aff2 in enumerate(affiliations):
+        for j, aff2 in enumerate(remaining_affiliations):
             if i >= j or aff2 in processed:
                 continue
 
@@ -233,7 +369,8 @@ def find_similar_affiliations(root, similarity_threshold=0.8):
             processed.add(aff1)
             group = {
                 "affiliations": similar,
-                "details": {aff: affiliation_data[aff] for aff in similar}
+                "details": {aff: affiliation_data[aff] for aff in similar},
+                "match_type": "string_similarity"
             }
             similar_groups.append(group)
 
@@ -318,15 +455,52 @@ def merge_similar_affiliation_counts(affiliation_count, affiliation_papers, simi
     return merged_author_counts, merged_paper_counts
 
 
+def find_similar_affiliations_multi_file(roots, similarity_threshold=0.8):
+    """
+    Find similar affiliations across multiple XML files.
+
+    Args:
+        roots: List of XML root elements from multiple files
+        similarity_threshold: Minimum similarity ratio (0-1) to flag
+
+    Returns:
+        list: List of similar affiliation groups with paper/author details
+    """
+    import xml.etree.ElementTree as ET
+
+    # Create a temporary combined root
+    combined_root = ET.Element("proceedings")
+
+    # Merge all papers from all roots
+    for root in roots:
+        for paper in root.findall("paper"):
+            combined_root.append(paper)
+
+    # Use the single-file function on the combined root
+    return find_similar_affiliations(combined_root, similarity_threshold)
+
+
 def print_similar_affiliations(similar_groups):
     """Print similar affiliation groups."""
     if not similar_groups:
         print("  ✓ No similar affiliations detected")
         return
 
+    # Count by match type
+    email_domain_matches = sum(1 for g in similar_groups if g.get("match_type") == "email_domain")
+    string_similarity_matches = sum(1 for g in similar_groups if g.get("match_type") == "string_similarity")
+
     print(f"  ⚠ {len(similar_groups)} group(s) of similar affiliations detected:")
+    print(f"     {email_domain_matches} matched by email domain, {string_similarity_matches} by string similarity")
+
     for i, group in enumerate(similar_groups[:10], 1):  # Show first 10 groups
-        print(f"\n    Group {i}:")
+        match_type = group.get("match_type", "unknown")
+        if match_type == "email_domain":
+            domain = group.get("email_domain", "")
+            print(f"\n    Group {i} (email domain: @{domain}):")
+        else:
+            print(f"\n    Group {i} (string similarity):")
+
         for aff in group["affiliations"]:
             count = len(group["details"][aff])
             print(f"      • \"{aff}\" ({count} author(s))")
