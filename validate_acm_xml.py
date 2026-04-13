@@ -36,10 +36,13 @@ from pathlib import Path
 
 # Import validation functions
 from validation import (
+    calculate_author_score,
     check_name_capitalization,
     check_email_name_consistency,
+    clean_affiliation_string,
     find_similar_affiliations,
     find_similar_affiliations_multi_file,
+    get_scoring_description,
     print_name_capitalization_issues,
     print_email_name_consistency_issues,
     print_similar_affiliations,
@@ -50,11 +53,536 @@ from validation import (
     merge_similar_affiliation_counts
 )
 
+# Import normalize_country_name and choose_representative_affiliation for interactive mode
+from validation.statistics import normalize_country_name
+from validation.checks import choose_representative_affiliation
+
 try:
     from tabulate import tabulate
     TABULATE_AVAILABLE = True
 except ImportError:
     TABULATE_AVAILABLE = False
+
+
+# ANSI color codes for interactive mode
+class Colors:
+    """ANSI color codes for terminal output."""
+    RESET = '\033[0m'
+    BOLD = '\033[1m'
+    DIM = '\033[2m'
+
+    # Foreground colors
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    MAGENTA = '\033[95m'
+    CYAN = '\033[96m'
+    WHITE = '\033[97m'
+
+    # Background colors
+    BG_RED = '\033[101m'
+    BG_GREEN = '\033[102m'
+    BG_YELLOW = '\033[103m'
+    BG_BLUE = '\033[104m'
+
+    @staticmethod
+    def disable():
+        """Disable colors (for non-TTY environments)."""
+        Colors.RESET = ''
+        Colors.BOLD = ''
+        Colors.DIM = ''
+        Colors.RED = ''
+        Colors.GREEN = ''
+        Colors.YELLOW = ''
+        Colors.BLUE = ''
+        Colors.MAGENTA = ''
+        Colors.CYAN = ''
+        Colors.WHITE = ''
+        Colors.BG_RED = ''
+        Colors.BG_GREEN = ''
+        Colors.BG_YELLOW = ''
+        Colors.BG_BLUE = ''
+
+
+# Detect if we're in a TTY (disable colors if not)
+if not sys.stdout.isatty():
+    Colors.disable()
+
+
+def build_paper_details(roots):
+    """
+    Build comprehensive paper details from XML roots.
+
+    Args:
+        roots: List of XML root elements
+
+    Returns:
+        dict: paper_id -> {title, type, section, authors: [{name, email, affiliations, country}]}
+    """
+    paper_details = {}
+
+    for root in roots:
+        for paper in root.findall("paper"):
+            paper_id = paper.findtext("event_tracking_number", "unknown")
+            paper_title = paper.findtext("paper_title", "")
+            paper_type = paper.findtext("paper_type", "Unknown")
+            section = paper.findtext("section", "Unknown")
+
+            authors = []
+            for author in paper.findall(".//author"):
+                first_name = author.findtext("first_name", "")
+                last_name = author.findtext("last_name", "")
+                email = author.findtext("email_address", "")
+
+                affiliations = []
+                countries = set()
+                for aff in author.findall(".//affiliation"):
+                    institution = clean_affiliation_string(aff.findtext("institution", ""))
+                    country = aff.findtext("country", "").strip()
+                    if institution:
+                        affiliations.append(institution)
+                    if country:
+                        # Normalize country name to match statistics
+                        normalized_country = normalize_country_name(country)
+                        countries.add(normalized_country)
+
+                authors.append({
+                    'name': f"{first_name} {last_name}".strip(),
+                    'email': email,
+                    'affiliations': affiliations,
+                    'countries': list(countries)
+                })
+
+            paper_details[paper_id] = {
+                'title': paper_title,
+                'type': paper_type,
+                'section': section,
+                'authors': authors
+            }
+
+    return paper_details
+
+
+def find_affiliation_match(search_term, affiliation_count, similar_groups):
+    """
+    Find affiliation matches (exact or similar).
+
+    Args:
+        search_term: User search term
+        affiliation_count: Counter of affiliations
+        similar_groups: Similar affiliation groups
+
+    Returns:
+        tuple: (matched_affiliation, all_variants) or (None, None)
+    """
+    search_lower = search_term.lower()
+
+    # Try exact match first
+    for aff in affiliation_count:
+        if aff.lower() == search_lower:
+            # Find if this is part of a merged group
+            if similar_groups:
+                for group in similar_groups:
+                    if aff in group['affiliations']:
+                        # Return representative and all variants
+                        rep = choose_representative_affiliation(group['affiliations'])
+                        variants = group['affiliations']
+                        return rep, variants
+            return aff, [aff]
+
+    # Try partial match
+    matches = []
+    for aff in affiliation_count:
+        if search_lower in aff.lower():
+            matches.append(aff)
+
+    if len(matches) == 1:
+        # Single match - find if merged
+        if similar_groups:
+            for group in similar_groups:
+                if matches[0] in group['affiliations']:
+                    rep = choose_representative_affiliation(group['affiliations'])
+                    return rep, group['affiliations']
+        return matches[0], [matches[0]]
+    elif len(matches) > 1:
+        # Multiple matches - show options
+        print(f"\n{Colors.YELLOW}Multiple matches found for '{search_term}':{Colors.RESET}")
+        for i, match in enumerate(matches, 1):
+            count = affiliation_count[match]
+            print(f"  {Colors.BOLD}{i}.{Colors.RESET} {match} {Colors.DIM}({count} authors){Colors.RESET}")
+        return None, matches
+
+    return None, None
+
+
+def display_affiliation_details(search_term, stats_data, paper_details, similar_groups):
+    """Display detailed information about an affiliation."""
+    affiliation_count = stats_data["affiliation_count"]
+    affiliation_authors = stats_data.get("affiliation_authors", {})
+    affiliation_papers = stats_data.get("affiliation_papers", {})
+
+    # Find matching affiliation
+    matched_aff, variants = find_affiliation_match(search_term, affiliation_count, similar_groups)
+
+    if matched_aff is None:
+        if variants is None:
+            print(f"\n{Colors.RED}✗ No affiliation found matching '{search_term}'{Colors.RESET}")
+            return
+        else:
+            # Multiple matches - let user select
+            choice = input(f"\n{Colors.CYAN}Enter number to view details (or Enter to cancel): {Colors.RESET}").strip()
+            try:
+                idx = int(choice) - 1
+                if 0 <= idx < len(variants):
+                    selected_aff = variants[idx]
+                    # Re-run match to get proper representative and variants
+                    matched_aff, variants = find_affiliation_match(selected_aff, affiliation_count, similar_groups)
+                    if matched_aff is None:
+                        # Use selected as-is
+                        matched_aff = selected_aff
+                        variants = [selected_aff]
+                else:
+                    return
+            except (ValueError, IndexError):
+                return
+
+    # Collect all papers and authors for all variants
+    all_papers = set()
+    all_authors = set()
+    for variant in variants:
+        if variant in affiliation_papers:
+            all_papers.update(affiliation_papers[variant])
+        if variant in affiliation_authors:
+            all_authors.update(affiliation_authors[variant])
+
+    # Display header
+    print("\n" + f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}AFFILIATION DETAILS: {Colors.MAGENTA}{matched_aff}{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
+
+    if len(variants) > 1:
+        print(f"\n{Colors.YELLOW}Merged from {len(variants)} variant(s):{Colors.RESET}")
+        for variant in sorted(variants):
+            count = len(affiliation_authors.get(variant, set()))
+            print(f"  • {variant} {Colors.DIM}({count} authors){Colors.RESET}")
+        print()
+
+    print(f"{Colors.GREEN}Total unique authors:{Colors.RESET} {Colors.BOLD}{len(all_authors)}{Colors.RESET}")
+    print(f"{Colors.GREEN}Total unique papers:{Colors.RESET} {Colors.BOLD}{len(all_papers)}{Colors.RESET}")
+
+    # Group papers by track/section
+    papers_by_track = defaultdict(list)
+    for paper_id in all_papers:
+        if paper_id in paper_details:
+            detail = paper_details[paper_id]
+            track = detail['section'] if detail['section'] else detail['type']
+            papers_by_track[track].append(paper_id)
+
+    # Display papers by track
+    print("\n" + f"{Colors.CYAN}{'-' * 80}{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}PAPERS BY TRACK/SECTION{Colors.RESET}")
+    print(f"{Colors.CYAN}{'-' * 80}{Colors.RESET}")
+
+    for track in sorted(papers_by_track.keys()):
+        paper_ids = papers_by_track[track]
+        print(f"\n{Colors.MAGENTA}{Colors.BOLD}{track}{Colors.RESET} {Colors.DIM}({len(paper_ids)} papers){Colors.RESET}:")
+        print()
+
+        for paper_id in sorted(paper_ids):
+            detail = paper_details[paper_id]
+            print(f"  {Colors.CYAN}[{paper_id}]{Colors.RESET} {detail['title']}")
+
+            # Show all authors, highlighting those from this affiliation
+            author_display = []
+            for author in detail['authors']:
+                # Check if any of author's affiliations match our variants
+                if any(aff in variants for aff in author['affiliations']):
+                    author_display.append(f"{Colors.GREEN}{Colors.BOLD}{author['name']}{Colors.RESET}")
+                else:
+                    author_display.append(author['name'])
+
+            print(f"      {Colors.DIM}Authors:{Colors.RESET} {', '.join(author_display)}")
+            print()
+
+    print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
+
+
+def display_author_details(search_term, stats_data, paper_details):
+    """Display detailed information about an author."""
+    author_paper_count = stats_data["author_paper_count"]
+
+    # Search for author
+    search_lower = search_term.lower()
+    matches = []
+
+    for (first, last, email), papers in author_paper_count.items():
+        full_name = f"{first} {last}".strip()
+        if search_lower in full_name.lower() or search_lower in email.lower():
+            matches.append(((first, last, email), papers))
+
+    if not matches:
+        print(f"\n{Colors.RED}✗ No author found matching '{search_term}'{Colors.RESET}")
+        return
+
+    if len(matches) > 1:
+        print(f"\n{Colors.YELLOW}Multiple matches found for '{search_term}':{Colors.RESET}")
+        for i, ((first, last, email), papers) in enumerate(matches, 1):
+            print(f"  {Colors.BOLD}{i}.{Colors.RESET} {first} {last} {Colors.DIM}({email}) - {len(papers)} paper(s){Colors.RESET}")
+        choice = input(f"\n{Colors.CYAN}Enter number to view details (or Enter to cancel): {Colors.RESET}").strip()
+        try:
+            idx = int(choice) - 1
+            if 0 <= idx < len(matches):
+                author_key, papers = matches[idx]
+            else:
+                return
+        except (ValueError, IndexError):
+            return
+    else:
+        author_key, papers = matches[0]
+
+    first, last, email = author_key
+    full_name = f"{first} {last}".strip()
+
+    # Display header
+    print("\n" + f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}AUTHOR DETAILS: {Colors.MAGENTA}{full_name}{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
+    print(f"{Colors.GREEN}Email:{Colors.RESET} {email}")
+    print(f"{Colors.GREEN}Total papers:{Colors.RESET} {Colors.BOLD}{len(papers)}{Colors.RESET}")
+    print(f"{Colors.GREEN}Weighted score:{Colors.RESET} {Colors.BOLD}{calculate_author_score(papers):.1f}{Colors.RESET} points")
+
+    # Collect all affiliations
+    all_affiliations = set()
+    for paper_id, _ in papers:
+        if paper_id in paper_details:
+            detail = paper_details[paper_id]
+            for author in detail['authors']:
+                if author['name'] == full_name or author['email'] == email:
+                    all_affiliations.update(author['affiliations'])
+
+    if all_affiliations:
+        print(f"{Colors.GREEN}Affiliations:{Colors.RESET} {', '.join(sorted(all_affiliations))}")
+
+    # Group papers by type
+    papers_by_type = defaultdict(list)
+    for paper_id, paper_type in papers:
+        papers_by_type[paper_type].append(paper_id)
+
+    # Display papers by type
+    print("\n" + f"{Colors.CYAN}{'-' * 80}{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}PAPERS BY TYPE{Colors.RESET}")
+    print(f"{Colors.CYAN}{'-' * 80}{Colors.RESET}")
+
+    for paper_type in sorted(papers_by_type.keys()):
+        paper_ids = papers_by_type[paper_type]
+        print(f"\n{Colors.MAGENTA}{Colors.BOLD}{paper_type}{Colors.RESET} {Colors.DIM}({len(paper_ids)} papers){Colors.RESET}:")
+        print()
+
+        for paper_id in sorted(paper_ids):
+            if paper_id in paper_details:
+                detail = paper_details[paper_id]
+                print(f"  {Colors.CYAN}[{paper_id}]{Colors.RESET} {detail['title']}")
+                # Show co-authors
+                co_authors = [a['name'] for a in detail['authors'] if a['name'] != full_name]
+                if co_authors:
+                    print(f"      {Colors.DIM}Co-authors:{Colors.RESET} {', '.join(co_authors)}")
+                print()
+
+    print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
+
+
+def display_country_details(search_term, stats_data, paper_details):
+    """Display detailed information about a country."""
+    country_count = stats_data["country_count"]
+    country_authors = stats_data.get("country_authors", {})
+    country_papers = stats_data.get("country_papers", {})
+
+    # Search for country
+    search_lower = search_term.lower()
+    matched_country = None
+
+    # Try exact match
+    for country in country_count:
+        if country.lower() == search_lower:
+            matched_country = country
+            break
+
+    # Try partial match
+    if not matched_country:
+        matches = [c for c in country_count if search_lower in c.lower()]
+        if len(matches) == 1:
+            matched_country = matches[0]
+        elif len(matches) > 1:
+            print(f"\n{Colors.YELLOW}Multiple matches found for '{search_term}':{Colors.RESET}")
+            for i, match in enumerate(matches, 1):
+                count = country_count[match]
+                print(f"  {Colors.BOLD}{i}.{Colors.RESET} {match} {Colors.DIM}({count} authors){Colors.RESET}")
+            return
+        else:
+            print(f"\n{Colors.RED}✗ No country found matching '{search_term}'{Colors.RESET}")
+            return
+
+    # Get data
+    authors = country_authors.get(matched_country, set())
+    papers = country_papers.get(matched_country, set())
+
+    # Display header
+    print("\n" + f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}COUNTRY DETAILS: {Colors.MAGENTA}{matched_country}{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
+    print(f"{Colors.GREEN}Total unique authors:{Colors.RESET} {Colors.BOLD}{len(authors)}{Colors.RESET}")
+    print(f"{Colors.GREEN}Total unique papers:{Colors.RESET} {Colors.BOLD}{len(papers)}{Colors.RESET}")
+
+    # Group papers by track/section
+    papers_by_track = defaultdict(list)
+    for paper_id in papers:
+        if paper_id in paper_details:
+            detail = paper_details[paper_id]
+            track = detail['section'] if detail['section'] else detail['type']
+            papers_by_track[track].append(paper_id)
+
+    # Display papers by track
+    print("\n" + f"{Colors.CYAN}{'-' * 80}{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}PAPERS BY TRACK/SECTION{Colors.RESET}")
+    print(f"{Colors.CYAN}{'-' * 80}{Colors.RESET}")
+
+    for track in sorted(papers_by_track.keys()):
+        paper_ids = papers_by_track[track]
+        print(f"\n{Colors.MAGENTA}{Colors.BOLD}{track}{Colors.RESET} {Colors.DIM}({len(paper_ids)} papers){Colors.RESET}:")
+        print()
+
+        for paper_id in sorted(paper_ids):
+            detail = paper_details[paper_id]
+            print(f"  {Colors.CYAN}[{paper_id}]{Colors.RESET} {detail['title']}")
+
+            # Show all authors, highlighting those from this country
+            author_display = []
+            for author in detail['authors']:
+                if matched_country in author['countries']:
+                    author_display.append(f"{Colors.GREEN}{Colors.BOLD}{author['name']}{Colors.RESET}")
+                else:
+                    author_display.append(author['name'])
+
+            print(f"      {Colors.DIM}Authors:{Colors.RESET} {', '.join(author_display)}")
+            print()
+
+    print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
+
+
+def display_track_details(stats_data, paper_details):
+    """Display papers by track/section."""
+    papers_by_track = stats_data["papers_by_track"]
+
+    print("\n" + f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}AVAILABLE TRACKS/SECTIONS{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
+
+    tracks = sorted(papers_by_track.keys())
+    for i, track in enumerate(tracks, 1):
+        count = papers_by_track[track]
+        print(f"  {Colors.BOLD}{i}.{Colors.RESET} {track} {Colors.DIM}({count} papers){Colors.RESET}")
+
+    choice = input(f"\n{Colors.CYAN}Enter track number to view details (or Enter to cancel): {Colors.RESET}").strip()
+
+    try:
+        idx = int(choice) - 1
+        if 0 <= idx < len(tracks):
+            selected_track = tracks[idx]
+        else:
+            return
+    except (ValueError, IndexError):
+        return
+
+    # Find papers in this track
+    track_papers = []
+    for paper_id, detail in paper_details.items():
+        if detail['section'] == selected_track or (not detail['section'] and detail['type'] == selected_track):
+            track_papers.append((paper_id, detail))
+
+    # Display header
+    print("\n" + f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}TRACK DETAILS: {Colors.MAGENTA}{selected_track}{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
+    print(f"{Colors.GREEN}Total papers:{Colors.RESET} {Colors.BOLD}{len(track_papers)}{Colors.RESET}")
+
+    # Group by paper type if section is used
+    papers_by_type = defaultdict(list)
+    for paper_id, detail in track_papers:
+        papers_by_type[detail['type']].append((paper_id, detail))
+
+    print("\n" + f"{Colors.CYAN}{'-' * 80}{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}PAPERS{Colors.RESET}")
+    print(f"{Colors.CYAN}{'-' * 80}{Colors.RESET}")
+
+    for paper_type in sorted(papers_by_type.keys()):
+        papers = papers_by_type[paper_type]
+        if len(papers_by_type) > 1:
+            print(f"\n{Colors.MAGENTA}{Colors.BOLD}{paper_type}{Colors.RESET} {Colors.DIM}({len(papers)} papers){Colors.RESET}:")
+            print()
+
+        for paper_id, detail in sorted(papers):
+            print(f"  {Colors.CYAN}[{paper_id}]{Colors.RESET} {detail['title']}")
+
+            # Show authors
+            author_names = [a['name'] for a in detail['authors']]
+            print(f"      {Colors.DIM}Authors:{Colors.RESET} {', '.join(author_names)}")
+            print()
+
+    print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
+
+
+def interactive_mode(stats_data, similar_groups, roots):
+    """
+    Interactive mode for exploring statistics.
+
+    Args:
+        stats_data: Merged statistics dictionary
+        similar_groups: Similar affiliation groups (can be None)
+        roots: List of XML root elements
+    """
+    print("\n" + f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}INTERACTIVE MODE{Colors.RESET}")
+    print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
+    print(f"{Colors.YELLOW}Building paper index...{Colors.RESET}")
+
+    # Build paper details
+    paper_details = build_paper_details(roots if isinstance(roots, list) else [roots])
+
+    print(f"{Colors.GREEN}✓ Indexed {len(paper_details)} papers{Colors.RESET}")
+
+    while True:
+        print("\n" + f"{Colors.CYAN}{'-' * 80}{Colors.RESET}")
+        print(f"{Colors.CYAN}{Colors.BOLD}MENU{Colors.RESET}")
+        print(f"{Colors.CYAN}{'-' * 80}{Colors.RESET}")
+        print(f"  {Colors.YELLOW}{Colors.BOLD}1.{Colors.RESET} Search affiliation")
+        print(f"  {Colors.YELLOW}{Colors.BOLD}2.{Colors.RESET} Search author")
+        print(f"  {Colors.YELLOW}{Colors.BOLD}3.{Colors.RESET} Search country")
+        print(f"  {Colors.YELLOW}{Colors.BOLD}4.{Colors.RESET} Browse tracks/sections")
+        print(f"  {Colors.RED}{Colors.BOLD}q.{Colors.RESET} Quit")
+        print(f"{Colors.CYAN}{'-' * 80}{Colors.RESET}")
+
+        choice = input(f"\n{Colors.CYAN}Enter choice: {Colors.RESET}").strip().lower()
+
+        if choice == '1':
+            search_term = input(f"{Colors.CYAN}Enter affiliation name (or part of it): {Colors.RESET}").strip()
+            if search_term:
+                display_affiliation_details(search_term, stats_data, paper_details, similar_groups)
+        elif choice == '2':
+            search_term = input(f"{Colors.CYAN}Enter author name or email (or part of it): {Colors.RESET}").strip()
+            if search_term:
+                display_author_details(search_term, stats_data, paper_details)
+        elif choice == '3':
+            search_term = input(f"{Colors.CYAN}Enter country name (or part of it): {Colors.RESET}").strip()
+            if search_term:
+                display_country_details(search_term, stats_data, paper_details)
+        elif choice == '4':
+            display_track_details(stats_data, paper_details)
+        elif choice == 'q':
+            print(f"\n{Colors.GREEN}Exiting interactive mode.{Colors.RESET}")
+            break
+        else:
+            print(f"\n{Colors.RED}✗ Invalid choice. Please try again.{Colors.RESET}")
 
 
 def write_validation_report(output_prefix, file_results, merged_quality, all_valid):
@@ -224,8 +752,10 @@ def write_statistics_report(output_prefix, merged_stats, similar_groups=None, to
     papers_by_type = merged_stats["papers_by_type"]
     author_paper_count = merged_stats["author_paper_count"]
     affiliation_count = merged_stats["affiliation_count"]
+    affiliation_authors = merged_stats.get("affiliation_authors", {})
     affiliation_papers = merged_stats.get("affiliation_papers", {})
     country_count = merged_stats["country_count"]
+    country_authors = merged_stats.get("country_authors", {})
     country_papers = merged_stats.get("country_papers", {})
 
     total_papers = sum(papers_by_track.values())
@@ -279,13 +809,19 @@ def write_statistics_report(output_prefix, merged_stats, similar_groups=None, to
         f.write(tabulate(author_stats_table, tablefmt="plain"))
         f.write("\n\n")
 
-        # Most prolific authors
-        sorted_authors = sorted(author_paper_count.items(), key=lambda x: len(x[1]), reverse=True)
+        # Most prolific authors (weighted by paper type)
+        sorted_authors = sorted(
+            author_paper_count.items(),
+            key=lambda x: (calculate_author_score(x[1]), len(x[1])),
+            reverse=True
+        )
         if limit is not None:
-            f.write(f"TOP {limit} MOST PROLIFIC AUTHORS\n")
+            f.write(f"TOP {limit} MOST PROLIFIC AUTHORS (WEIGHTED SCORE)\n")
             sorted_authors = sorted_authors[:limit]
         else:
-            f.write("MOST PROLIFIC AUTHORS (ALL)\n")
+            f.write("MOST PROLIFIC AUTHORS (WEIGHTED SCORE - ALL)\n")
+        f.write("-" * 100 + "\n")
+        f.write(f"Scoring: {get_scoring_description()}\n")
         f.write("-" * 100 + "\n\n")
 
         prolific_table = []
@@ -294,14 +830,15 @@ def write_statistics_report(output_prefix, merged_stats, similar_groups=None, to
             name = f"{first} {last}"
             email_str = email if email else "N/A"
             num_papers = len(papers)
+            score = calculate_author_score(papers)
 
             # Paper types breakdown
             type_counts = Counter(ptype for _, ptype in papers)
             type_str = ", ".join(f"{count} {ptype}" for ptype, count in sorted(type_counts.items()))
 
-            prolific_table.append([i, name, email_str, num_papers, type_str])
+            prolific_table.append([i, name, email_str, num_papers, score, type_str])
 
-        f.write(tabulate(prolific_table, headers=["Rank", "Author", "Email", "Papers", "Types"], tablefmt="grid"))
+        f.write(tabulate(prolific_table, headers=["Rank", "Author", "Email", "Papers", "Score", "Types"], tablefmt="grid"))
         f.write("\n\n")
 
         # Top affiliations (unmerged)
@@ -332,7 +869,7 @@ def write_statistics_report(output_prefix, merged_stats, similar_groups=None, to
             if similar_groups:
                 # Merge counts
                 merged_author_counts, merged_paper_counts = merge_similar_affiliation_counts(
-                    affiliation_count, affiliation_papers, similar_groups
+                    affiliation_count, affiliation_papers, similar_groups, affiliation_authors
                 )
 
                 if limit is not None:
@@ -430,7 +967,7 @@ def validate_data_quality(root):
 
             # Check institution from all affiliations
             affiliations = author.findall(".//affiliation")
-            has_affiliation = any(aff.findtext("institution", "").strip() for aff in affiliations)
+            has_affiliation = any(clean_affiliation_string(aff.findtext("institution", "")) for aff in affiliations)
 
             if not first_name:
                 stats["missing_first_names"] += 1
@@ -497,7 +1034,7 @@ def print_data_quality(stats, papers_with_issues):
     print("=" * 80)
 
 
-def validate_xml_file(xml_file, show_header=True, output_prefix=None, top_k=20):
+def validate_xml_file(xml_file, show_header=True, output_prefix=None, top_k=20, interactive=False):
     """
     Main validation and analysis function.
 
@@ -506,6 +1043,7 @@ def validate_xml_file(xml_file, show_header=True, output_prefix=None, top_k=20):
         show_header: Whether to show full header (False for multi-file mode)
         output_prefix: Optional output file prefix for formatted reports
         top_k: Number of items to show in top lists (or "full" for all)
+        interactive: Whether to enter interactive mode after validation
 
     Returns:
         tuple: (is_valid, stats_data, quality_stats, root) for aggregation
@@ -610,10 +1148,15 @@ def validate_xml_file(xml_file, show_header=True, output_prefix=None, top_k=20):
         if similar_groups:
             write_similar_affiliations_report(output_prefix, similar_groups)
 
+    # Enter interactive mode if requested (single file mode)
+    if interactive and show_header:
+        similar_groups = find_similar_affiliations(root, similarity_threshold=0.8)
+        interactive_mode(stats_data, similar_groups, root)
+
     return is_valid, stats_data, quality_stats, root
 
 
-def validate_multiple_files(xml_files, output_prefix=None, top_k=20):
+def validate_multiple_files(xml_files, output_prefix=None, top_k=20, interactive=False):
     """
     Validate multiple XML files and aggregate statistics.
 
@@ -621,6 +1164,7 @@ def validate_multiple_files(xml_files, output_prefix=None, top_k=20):
         xml_files: List of XML file paths
         output_prefix: Optional output file prefix for formatted reports
         top_k: Number of items to show in top lists (or "full" for all)
+        interactive: Whether to enter interactive mode after validation
 
     Returns:
         bool: True if all files pass validation
@@ -733,6 +1277,13 @@ def validate_multiple_files(xml_files, output_prefix=None, top_k=20):
         print("\n✗ Some XML files have issues that should be addressed")
     print("=" * 80)
 
+    # Enter interactive mode if requested (multi-file mode)
+    if interactive and all_stats:
+        # Use merged statistics and all roots
+        merged_stats = merge_statistics(all_stats)
+        similar_groups = find_similar_affiliations_multi_file(all_roots, similarity_threshold=0.8) if all_roots else None
+        interactive_mode(merged_stats, similar_groups, all_roots)
+
     return all_valid
 
 
@@ -754,11 +1305,17 @@ Examples:
   # Validate and show all statistics (not just top items)
   python validate_acm_xml.py acm_output.xml --output sigir2026_report --top_k full
 
+  # Interactive mode - explore statistics interactively
+  python validate_acm_xml.py acm_output.xml --interactive
+
   # Validate multiple files with aggregated statistics
   python validate_acm_xml.py full_papers.xml short_papers.xml demo_papers.xml
 
   # Validate multiple files and write formatted reports
   python validate_acm_xml.py sigir2026-*.xml --output sigir2026_combined
+
+  # Validate multiple files in interactive mode
+  python validate_acm_xml.py sigir2026-*.xml --interactive
         """
     )
 
@@ -786,6 +1343,14 @@ Examples:
         help="Number of items to show in top lists (default: 20). Use 'full' to show all items sorted."
     )
 
+    parser.add_argument(
+        "--interactive",
+        "-i",
+        action="store_true",
+        help="Enter interactive mode after validation to explore statistics. "
+        "Allows searching by affiliation, author, country, and browsing papers by track."
+    )
+
     args = parser.parse_args()
 
     # Check if tabulate is available when output is requested
@@ -800,7 +1365,8 @@ Examples:
                 args.xml_files[0],
                 show_header=True,
                 output_prefix=args.output,
-                top_k=args.top_k
+                top_k=args.top_k,
+                interactive=args.interactive
             )
             sys.exit(0 if validation_passed else 1)
         else:
@@ -808,7 +1374,8 @@ Examples:
             validation_passed = validate_multiple_files(
                 args.xml_files,
                 output_prefix=args.output,
-                top_k=args.top_k
+                top_k=args.top_k,
+                interactive=args.interactive
             )
             sys.exit(0 if validation_passed else 1)
     except Exception as e:

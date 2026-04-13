@@ -27,7 +27,10 @@ from validation.aggregation import (
 )
 
 from validation.statistics import (
+    calculate_author_score,
+    clean_affiliation_string,
     generate_statistics,
+    get_scoring_description,
     print_statistics
 )
 
@@ -47,6 +50,9 @@ __all__ = [
     'merge_quality_stats',
 
     # Statistics
+    'calculate_author_score',
+    'clean_affiliation_string',
     'generate_statistics',
+    'get_scoring_description',
     'print_statistics',
 ]

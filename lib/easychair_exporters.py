@@ -70,6 +70,37 @@ def format_date(dt: Optional[datetime]) -> str:
     return dt.strftime("%d-%b-%Y").upper()
 
 
+def clean_affiliation_string(affiliation_str: Optional[str]) -> str:
+    """
+    Clean affiliation string by stripping whitespace and leading/trailing punctuation.
+
+    Handles common data quality issues like:
+    - ", Tsinghua University" → "Tsinghua University"
+    - "MIT, " → "MIT"
+    - " , Stanford University" → "Stanford University"
+
+    Args:
+        affiliation_str: Raw affiliation string
+
+    Returns:
+        str: Cleaned affiliation string
+    """
+    if not affiliation_str:
+        return ""
+
+    # Strip whitespace
+    cleaned = affiliation_str.strip()
+
+    # Strip leading/trailing punctuation (commas, semicolons, periods, etc.)
+    # Keep stripping until no more leading/trailing punctuation+whitespace
+    while cleaned and cleaned[0] in '.,;:-_':
+        cleaned = cleaned[1:].strip()
+    while cleaned and cleaned[-1] in '.,;:-_':
+        cleaned = cleaned[:-1].strip()
+
+    return cleaned
+
+
 def export_to_xml(
     export: ProceedingsExport,
     output_file: str,
@@ -138,7 +169,7 @@ def export_to_xml(
 
                 # No parsing - just map Affiliation to institution
                 ET.SubElement(affiliation_xml, "department").text = ""
-                ET.SubElement(affiliation_xml, "institution").text = author.affiliation or ""
+                ET.SubElement(affiliation_xml, "institution").text = clean_affiliation_string(author.affiliation)
                 ET.SubElement(affiliation_xml, "city").text = ""
                 ET.SubElement(affiliation_xml, "state_province").text = ""
                 ET.SubElement(affiliation_xml, "country").text = author.country or ""

@@ -17,6 +17,69 @@ except ImportError:
     PYCOUNTRY_AVAILABLE = False
 
 
+# =============================================================================
+# PAPER TYPE SCORING CONFIGURATION
+# =============================================================================
+# Weights for calculating author scores based on paper types.
+# Higher weights indicate more prestigious/impactful publication types.
+#
+# To modify: Change the weight values below. The scoring formula is:
+#            score = 1 + (weight / 10)
+#
+# Examples:
+#   weight=5 → score=1.5 points per paper
+#   weight=3 → score=1.3 points per paper
+#   weight=2 → score=1.2 points per paper
+#   weight=1 → score=1.1 points per paper
+#   weight=0 → score=1.0 points per paper
+#
+# Default weights:
+PAPER_TYPE_WEIGHTS = {
+    "Full Research Paper": 5,    # 1.5 points
+    "Full Paper": 5,              # 1.5 points (variant name)
+    "Perspective Paper": 5,       # 1.5 points
+    "Doctoral Abstract": 1,       # 1.1 points
+    "Tutorial Paper": 2,          # 1.2 points
+    "Workshop Summary": 2,        # 1.2 points
+    # Papers not listed above use DEFAULT_PAPER_WEIGHT
+}
+
+# Default weight for paper types not explicitly listed (Short, Demo, Industry, Resource, Reproducibility, etc.)
+DEFAULT_PAPER_WEIGHT = 3  # 1.3 points
+# =============================================================================
+
+
+def clean_affiliation_string(affiliation_str):
+    """
+    Clean affiliation string by stripping whitespace and leading/trailing punctuation.
+
+    Handles common data quality issues like:
+    - ", Tsinghua University" → "Tsinghua University"
+    - "MIT, " → "MIT"
+    - " , Stanford University" → "Stanford University"
+
+    Args:
+        affiliation_str: Raw affiliation string from XML
+
+    Returns:
+        str: Cleaned affiliation string
+    """
+    if not affiliation_str:
+        return affiliation_str
+
+    # Strip whitespace
+    cleaned = affiliation_str.strip()
+
+    # Strip leading/trailing punctuation (commas, semicolons, periods, etc.)
+    # Keep stripping until no more leading/trailing punctuation+whitespace
+    while cleaned and cleaned[0] in '.,;:-_':
+        cleaned = cleaned[1:].strip()
+    while cleaned and cleaned[-1] in '.,;:-_':
+        cleaned = cleaned[:-1].strip()
+
+    return cleaned
+
+
 def normalize_country_name(country_str):
     """
     Normalize country names and codes to standard full country names.
@@ -191,9 +254,9 @@ def generate_statistics(root):
     papers_by_track = defaultdict(int)
     papers_by_type = defaultdict(int)
     author_paper_count = defaultdict(list)
-    affiliation_count = Counter()
+    affiliation_authors = defaultdict(set)  # affiliation -> set of unique author_keys
     affiliation_papers = defaultdict(set)  # affiliation -> set of paper_ids
-    country_count = Counter()
+    country_authors = defaultdict(set)  # country -> set of unique author_keys
     country_papers = defaultdict(set)  # country -> set of paper_ids
 
     for paper in root.findall("paper"):
@@ -217,27 +280,105 @@ def generate_statistics(root):
             # Track affiliations
             affiliations = author.findall(".//affiliation")
             for aff in affiliations:
-                institution = aff.findtext("institution", "").strip()
+                institution = clean_affiliation_string(aff.findtext("institution", ""))
                 country = aff.findtext("country", "").strip()
 
                 if institution:
-                    affiliation_count[institution] += 1
+                    # Track unique authors per affiliation
+                    affiliation_authors[institution].add(author_key)
                     affiliation_papers[institution].add(paper_id)
                 if country:
                     # Normalize country name/code to standard full name
                     normalized_country = normalize_country_name(country)
-                    country_count[normalized_country] += 1
+                    country_authors[normalized_country].add(author_key)
                     country_papers[normalized_country].add(paper_id)
+
+    # Convert sets to counts for easier consumption
+    affiliation_count = Counter({aff: len(authors) for aff, authors in affiliation_authors.items()})
+    country_count = Counter({country: len(authors) for country, authors in country_authors.items()})
 
     return {
         "papers_by_track": dict(papers_by_track),
         "papers_by_type": dict(papers_by_type),
         "author_paper_count": author_paper_count,
         "affiliation_count": affiliation_count,
+        "affiliation_authors": affiliation_authors,  # Keep for merging
         "affiliation_papers": affiliation_papers,
         "country_count": country_count,
+        "country_authors": country_authors,  # Keep for merging
         "country_papers": country_papers
     }
+
+
+def get_scoring_description():
+    """
+    Generate a human-readable scoring description based on configured weights.
+
+    Returns:
+        str: Description string showing paper types and their scores
+
+    Example output: "Full/Perspective=1.5pts, Tutorial/Workshop=1.2pts, Doctoral=1.1pts, Others=1.3pts"
+    """
+    # Group paper types by their weights for compact display
+    weight_groups = {}
+    for paper_type, weight in PAPER_TYPE_WEIGHTS.items():
+        score = 1.0 + (weight / 10.0)
+        if score not in weight_groups:
+            weight_groups[score] = []
+        # Use short names for common types
+        short_name = paper_type.replace(" Research Paper", "").replace(" Paper", "").replace(" Summary", "")
+        weight_groups[score].append(short_name)
+
+    # Sort by score (descending) for consistent display
+    parts = []
+    for score in sorted(weight_groups.keys(), reverse=True):
+        types = weight_groups[score]
+        # Group similar types (e.g., "Full" and "Full Research" -> "Full")
+        unique_types = []
+        seen_base = set()
+        for t in types:
+            base = t.split()[0] if ' ' in t else t
+            if base not in seen_base:
+                unique_types.append(t)
+                seen_base.add(base)
+
+        type_str = "/".join(sorted(set(unique_types)))
+        parts.append(f"{type_str}={score:.1f}pts")
+
+    # Add default score for unlisted types
+    default_score = 1.0 + (DEFAULT_PAPER_WEIGHT / 10.0)
+    parts.append(f"Others={default_score:.1f}pts")
+
+    return ", ".join(parts)
+
+
+def calculate_author_score(papers):
+    """
+    Calculate weighted score for an author based on paper types.
+
+    Uses the global PAPER_TYPE_WEIGHTS configuration with formula: score = 1 + (weight / 10)
+
+    Default scoring (with default weights):
+    - Full Research Paper (weight=5): 1.5 points per paper
+    - Perspective Paper (weight=5): 1.5 points per paper
+    - Tutorial/Workshop (weight=2): 1.2 points per paper
+    - Doctoral Abstract (weight=1): 1.1 points per paper
+    - Other types (weight=3): 1.3 points per paper
+
+    Args:
+        papers: List of (paper_id, paper_type) tuples
+
+    Returns:
+        float: Total weighted score
+    """
+    total_score = 0.0
+    for _, paper_type in papers:
+        # Get weight from configuration (defaults to DEFAULT_PAPER_WEIGHT if not found)
+        weight = PAPER_TYPE_WEIGHTS.get(paper_type, DEFAULT_PAPER_WEIGHT)
+        # Apply formula: score = 1 + (weight / 10)
+        score = 1.0 + (weight / 10.0)
+        total_score += score
+    return total_score
 
 
 def print_statistics(stats_data, root=None, similar_groups=None):
@@ -256,8 +397,10 @@ def print_statistics(stats_data, root=None, similar_groups=None):
     papers_by_type = stats_data["papers_by_type"]
     author_paper_count = stats_data["author_paper_count"]
     affiliation_count = stats_data["affiliation_count"]
+    affiliation_authors = stats_data.get("affiliation_authors", {})
     affiliation_papers = stats_data.get("affiliation_papers", {})
     country_count = stats_data["country_count"]
+    country_authors = stats_data.get("country_authors", {})
     country_papers = stats_data.get("country_papers", {})
 
     # Papers by track
@@ -294,15 +437,24 @@ def print_statistics(stats_data, root=None, similar_groups=None):
     print(f"  Average authors per paper: {avg_authors_per_paper:.1f}")
     print("=" * 80)
 
-    # Most prolific authors
+    # Most prolific authors (weighted by paper type)
     print("\n" + "=" * 80)
-    print("TOP 10 MOST PROLIFIC AUTHORS")
+    print("TOP 10 MOST PROLIFIC AUTHORS (WEIGHTED SCORE)")
     print("=" * 80)
-    sorted_authors = sorted(author_paper_count.items(), key=lambda x: len(x[1]), reverse=True)[:10]
+    print(f"Scoring: {get_scoring_description()}")
+    print("=" * 80)
+
+    # Sort by weighted score, then by paper count as tiebreaker
+    sorted_authors = sorted(
+        author_paper_count.items(),
+        key=lambda x: (calculate_author_score(x[1]), len(x[1])),
+        reverse=True
+    )[:10]
 
     for i, ((first, last, email), papers) in enumerate(sorted_authors, 1):
+        score = calculate_author_score(papers)
         email_str = f" ({email})" if email else ""
-        print(f"  {i}. {first} {last}{email_str}: {len(papers)} paper(s)")
+        print(f"  {i}. {first} {last}{email_str}: {len(papers)} paper(s), {score} points")
 
         # Paper types breakdown
         type_counts = Counter(ptype for _, ptype in papers)
@@ -337,7 +489,7 @@ def print_statistics(stats_data, root=None, similar_groups=None):
         if similar_groups:
             # Merge counts
             merged_author_counts, merged_paper_counts = merge_similar_affiliation_counts(
-                affiliation_count, affiliation_papers, similar_groups
+                affiliation_count, affiliation_papers, similar_groups, affiliation_authors
             )
 
             # Print top 20

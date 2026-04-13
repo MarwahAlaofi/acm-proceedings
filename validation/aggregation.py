@@ -20,9 +20,9 @@ def merge_statistics(all_stats):
         "papers_by_track": defaultdict(int),
         "papers_by_type": defaultdict(int),
         "author_paper_count": defaultdict(list),
-        "affiliation_count": Counter(),
+        "affiliation_authors": defaultdict(set),  # affiliation -> set of unique author_keys
         "affiliation_papers": defaultdict(set),
-        "country_count": Counter(),
+        "country_authors": defaultdict(set),  # country -> set of unique author_keys
         "country_papers": defaultdict(set)
     }
 
@@ -39,19 +39,25 @@ def merge_statistics(all_stats):
         for author_key, papers in stats["author_paper_count"].items():
             merged["author_paper_count"][author_key].extend(papers)
 
-        # Merge affiliation counts
-        merged["affiliation_count"].update(stats["affiliation_count"])
+        # Merge affiliation authors (union of author sets)
+        for affiliation, author_set in stats.get("affiliation_authors", {}).items():
+            merged["affiliation_authors"][affiliation].update(author_set)
 
         # Merge affiliation papers (union of paper sets)
         for affiliation, paper_set in stats.get("affiliation_papers", {}).items():
             merged["affiliation_papers"][affiliation].update(paper_set)
 
-        # Merge country counts
-        merged["country_count"].update(stats["country_count"])
+        # Merge country authors (union of author sets)
+        for country, author_set in stats.get("country_authors", {}).items():
+            merged["country_authors"][country].update(author_set)
 
         # Merge country papers (union of paper sets)
         for country, paper_set in stats.get("country_papers", {}).items():
             merged["country_papers"][country].update(paper_set)
+
+    # Convert author sets to counts for easier consumption
+    merged["affiliation_count"] = Counter({aff: len(authors) for aff, authors in merged["affiliation_authors"].items()})
+    merged["country_count"] = Counter({country: len(authors) for country, authors in merged["country_authors"].items()})
 
     return merged
 

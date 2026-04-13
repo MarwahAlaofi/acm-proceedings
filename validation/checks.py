@@ -112,6 +112,37 @@ def normalize_affiliation(affiliation):
     return aff
 
 
+def clean_affiliation_string(affiliation_str):
+    """
+    Clean affiliation string by stripping whitespace and leading/trailing punctuation.
+
+    Handles common data quality issues like:
+    - ", Tsinghua University" → "Tsinghua University"
+    - "MIT, " → "MIT"
+    - " , Stanford University" → "Stanford University"
+
+    Args:
+        affiliation_str: Raw affiliation string from XML
+
+    Returns:
+        str: Cleaned affiliation string
+    """
+    if not affiliation_str:
+        return affiliation_str
+
+    # Strip whitespace
+    cleaned = affiliation_str.strip()
+
+    # Strip leading/trailing punctuation (commas, semicolons, periods, etc.)
+    # Keep stripping until no more leading/trailing punctuation+whitespace
+    while cleaned and cleaned[0] in '.,;:-_':
+        cleaned = cleaned[1:].strip()
+    while cleaned and cleaned[-1] in '.,;:-_':
+        cleaned = cleaned[:-1].strip()
+
+    return cleaned
+
+
 def get_distinctive_tokens(affiliation):
     """
     Extract distinctive tokens from affiliation by removing common generic words.
@@ -329,7 +360,7 @@ def find_similar_affiliations(root, similarity_threshold=0.8):
 
             affiliations = author.findall(".//affiliation")
             for aff in affiliations:
-                institution = aff.findtext("institution", "").strip()
+                institution = clean_affiliation_string(aff.findtext("institution", ""))
                 if institution:
                     affiliation_data[institution].append((paper_id, paper_title[:50], author_name))
                     if email_domain:
@@ -569,25 +600,86 @@ def print_email_name_consistency_issues(issues):
         print(f"    ... and {len(issues) - 10} more emails")
 
 
-def merge_similar_affiliation_counts(affiliation_count, affiliation_papers, similar_groups):
+def choose_representative_affiliation(affiliations):
+    """
+    Choose the best representative name from a group of similar affiliations.
+
+    Prefers:
+    1. Shorter names (base institution over department-level)
+    2. Names without common department prefixes
+    3. Among equal quality, alphabetically first
+
+    Examples:
+    - ["Tsinghua University", "School of Software, Tsinghua University"] → "Tsinghua University"
+    - ["RMIT University", "Royal Melbourne Institute of Technology"] → "RMIT University" (shorter)
+    - ["MIT", "Massachusetts Institute of Technology"] → "MIT" (shorter)
+
+    Args:
+        affiliations: List of affiliation name strings
+
+    Returns:
+        str: Best representative affiliation name
+    """
+    if not affiliations:
+        return ""
+
+    # Department/school prefixes that indicate more specific affiliations
+    department_indicators = [
+        "department of", "dept of", "dept.", "school of", "college of",
+        "faculty of", "institute of", "division of", "center for", "centre for"
+    ]
+
+    def affiliation_score(aff):
+        """
+        Score an affiliation for being a good representative.
+        Lower score = better representative.
+
+        Score components:
+        1. Has department prefix: +1000 (deprioritize department-level)
+        2. Length in characters (shorter is better)
+        3. Number of commas (fewer is better, each comma adds 100)
+        """
+        aff_lower = aff.lower()
+        score = 0
+
+        # Penalize department-level affiliations
+        if any(prefix in aff_lower for prefix in department_indicators):
+            score += 1000
+
+        # Penalize longer names (base length score)
+        score += len(aff)
+
+        # Penalize names with commas (usually indicate "Department, Institution")
+        score += aff.count(',') * 100
+
+        return score
+
+    # Sort by score (lower is better), then alphabetically
+    sorted_affs = sorted(affiliations, key=lambda a: (affiliation_score(a), a))
+    return sorted_affs[0]
+
+
+def merge_similar_affiliation_counts(affiliation_count, affiliation_papers, similar_groups, affiliation_authors=None):
     """
     Merge affiliation counts based on similar affiliation groups.
 
     Args:
-        affiliation_count: Counter of affiliation -> author count
+        affiliation_count: Counter of affiliation -> unique author count
         affiliation_papers: dict of affiliation -> set of paper IDs
         similar_groups: List of similar affiliation groups from find_similar_affiliations()
+        affiliation_authors: Optional dict of affiliation -> set of author_keys for accurate merging
 
     Returns:
         tuple: (merged_author_counts, merged_paper_counts) as Counters
-               Keys are canonical affiliation names (first in each group)
+               Keys are canonical affiliation names (chosen by choose_representative_affiliation)
     """
     from collections import Counter
 
     # Create mapping from affiliation to canonical name
     affiliation_to_canonical = {}
     for group in similar_groups:
-        canonical = group["affiliations"][0]  # Use first affiliation as canonical
+        # Choose best representative instead of just first alphabetically
+        canonical = choose_representative_affiliation(group["affiliations"])
         for aff in group["affiliations"]:
             affiliation_to_canonical[aff] = canonical
 
@@ -595,19 +687,37 @@ def merge_similar_affiliation_counts(affiliation_count, affiliation_papers, simi
     merged_author_counts = Counter()
     merged_paper_counts = {}
 
-    # Track which papers we've seen for each canonical affiliation
+    # Track unique authors and papers for each canonical affiliation
+    canonical_authors = {}
     canonical_papers = {}
 
-    for affiliation, author_count in affiliation_count.items():
-        canonical = affiliation_to_canonical.get(affiliation, affiliation)
+    # If we have author sets, merge them properly to avoid double-counting
+    if affiliation_authors:
+        for affiliation, author_set in affiliation_authors.items():
+            canonical = affiliation_to_canonical.get(affiliation, affiliation)
 
-        # Add author count
-        merged_author_counts[canonical] += author_count
+            # Merge author sets (handles same author appearing in multiple variations)
+            if canonical not in canonical_authors:
+                canonical_authors[canonical] = set()
+            canonical_authors[canonical].update(author_set)
 
-        # Merge paper sets
-        if canonical not in canonical_papers:
-            canonical_papers[canonical] = set()
-        canonical_papers[canonical].update(affiliation_papers.get(affiliation, set()))
+            # Merge paper sets
+            if canonical not in canonical_papers:
+                canonical_papers[canonical] = set()
+            canonical_papers[canonical].update(affiliation_papers.get(affiliation, set()))
+
+        # Convert author sets to counts
+        merged_author_counts = Counter({canonical: len(authors) for canonical, authors in canonical_authors.items()})
+    else:
+        # Fallback: use counts directly (less accurate if same author in multiple variations)
+        for affiliation, author_count in affiliation_count.items():
+            canonical = affiliation_to_canonical.get(affiliation, affiliation)
+            merged_author_counts[canonical] += author_count
+
+            # Merge paper sets
+            if canonical not in canonical_papers:
+                canonical_papers[canonical] = set()
+            canonical_papers[canonical].update(affiliation_papers.get(affiliation, set()))
 
     # Convert paper sets to counts
     for canonical, paper_set in canonical_papers.items():
