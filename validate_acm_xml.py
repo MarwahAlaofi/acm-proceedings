@@ -10,10 +10,18 @@ Features:
 - Generates detailed statistics (papers per track, authors, affiliations)
 - Identifies most prolific authors, affiliations, and countries
 - Reports missing data (emails, affiliations, etc.)
+- Outputs formatted reports with configurable top-k limits
 
 Usage:
     python validate_acm_xml.py <xml_file>
     python validate_acm_xml.py acm_output.xml
+    python validate_acm_xml.py acm_output.xml --output report --top_k 10
+    python validate_acm_xml.py acm_output.xml --output report --top_k full
+
+Output Files (when --output is specified):
+    <prefix>_validation.txt - Validation results and data quality
+    <prefix>_statistics.txt - Comprehensive statistics with top-k lists
+    <prefix>_similar_affiliations.txt - Detailed similar affiliation groups
 
 Returns:
     Exit code 0 if all validations pass
@@ -129,7 +137,65 @@ def write_validation_report(output_prefix, file_results, merged_quality, all_val
     print(f"\n✓ Validation report written to: {output_file}")
 
 
-def write_statistics_report(output_prefix, merged_stats, similar_groups=None):
+def write_similar_affiliations_report(output_prefix, similar_groups):
+    """
+    Write detailed similar affiliations to formatted text file.
+
+    Args:
+        output_prefix: Output file prefix
+        similar_groups: Similar affiliation groups
+    """
+    if not TABULATE_AVAILABLE:
+        print("Warning: tabulate not installed, skipping formatted output")
+        return
+
+    output_file = f"{output_prefix}_similar_affiliations.txt"
+
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write("=" * 100 + "\n")
+        f.write("SIMILAR AFFILIATIONS - DETAILED GROUPS\n")
+        f.write("=" * 100 + "\n\n")
+
+        if not similar_groups:
+            f.write("No similar affiliations detected.\n")
+            print(f"✓ Similar affiliations report written to: {output_file}")
+            return
+
+        # Count by match type
+        known_alias_matches = sum(1 for g in similar_groups if g.get("match_type") == "known_alias")
+        email_domain_matches = sum(1 for g in similar_groups if g.get("match_type") == "email_domain")
+        string_similarity_matches = sum(1 for g in similar_groups if g.get("match_type") == "string_similarity")
+
+        f.write(f"Total: {len(similar_groups)} group(s) detected\n")
+        f.write(f"  - {known_alias_matches} known aliases\n")
+        f.write(f"  - {email_domain_matches} matched by email domain\n")
+        f.write(f"  - {string_similarity_matches} matched by string similarity\n\n")
+        f.write("=" * 100 + "\n\n")
+
+        # Write all groups
+        for i, group in enumerate(similar_groups, 1):
+            match_type = group.get("match_type", "unknown")
+            if match_type == "known_alias":
+                canonical = group.get("canonical", "")
+                f.write(f"Group {i} (known alias: {canonical}):\n")
+            elif match_type == "email_domain":
+                domain = group.get("email_domain", "")
+                f.write(f"Group {i} (email domain: @{domain}):\n")
+            else:
+                f.write(f"Group {i} (string similarity):\n")
+
+            group_table = []
+            for aff in group["affiliations"]:
+                count = len(group["details"][aff])
+                group_table.append([aff, count])
+
+            f.write(tabulate(group_table, headers=["Affiliation", "Authors"], tablefmt="simple"))
+            f.write("\n\n")
+
+    print(f"✓ Similar affiliations report written to: {output_file}")
+
+
+def write_statistics_report(output_prefix, merged_stats, similar_groups=None, top_k=20):
     """
     Write statistics to formatted text file.
 
@@ -137,10 +203,20 @@ def write_statistics_report(output_prefix, merged_stats, similar_groups=None):
         output_prefix: Output file prefix
         merged_stats: Merged statistics dictionary
         similar_groups: Optional similar affiliation groups
+        top_k: Number of items to show in top lists (or "full" for all)
     """
     if not TABULATE_AVAILABLE:
         print("Warning: tabulate not installed, skipping formatted output")
         return
+
+    # Parse top_k
+    if top_k == "full":
+        limit = None
+    else:
+        try:
+            limit = int(top_k)
+        except (ValueError, TypeError):
+            limit = 20  # default
 
     output_file = f"{output_prefix}_statistics.txt"
 
@@ -204,11 +280,15 @@ def write_statistics_report(output_prefix, merged_stats, similar_groups=None):
         f.write("\n\n")
 
         # Most prolific authors
-        f.write("TOP 10 MOST PROLIFIC AUTHORS\n")
+        sorted_authors = sorted(author_paper_count.items(), key=lambda x: len(x[1]), reverse=True)
+        if limit is not None:
+            f.write(f"TOP {limit} MOST PROLIFIC AUTHORS\n")
+            sorted_authors = sorted_authors[:limit]
+        else:
+            f.write("MOST PROLIFIC AUTHORS (ALL)\n")
         f.write("-" * 100 + "\n\n")
 
         prolific_table = []
-        sorted_authors = sorted(author_paper_count.items(), key=lambda x: len(x[1]), reverse=True)[:10]
 
         for i, ((first, last, email), papers) in enumerate(sorted_authors, 1):
             name = f"{first} {last}"
@@ -224,21 +304,29 @@ def write_statistics_report(output_prefix, merged_stats, similar_groups=None):
         f.write(tabulate(prolific_table, headers=["Rank", "Author", "Email", "Papers", "Types"], tablefmt="grid"))
         f.write("\n\n")
 
-        # Top 20 affiliations (unmerged)
-        f.write("TOP 20 MOST COMMON AFFILIATIONS\n")
+        # Top affiliations (unmerged)
+        if limit is not None:
+            f.write(f"TOP {limit} MOST COMMON AFFILIATIONS\n")
+            aff_list = affiliation_count.most_common(limit)
+        else:
+            f.write("MOST COMMON AFFILIATIONS (ALL)\n")
+            aff_list = affiliation_count.most_common()
         f.write("-" * 100 + "\n\n")
 
         aff_table = []
-        for i, (affiliation, author_count) in enumerate(affiliation_count.most_common(20), 1):
+        for i, (affiliation, author_count) in enumerate(aff_list, 1):
             paper_count = len(affiliation_papers.get(affiliation, set()))
             aff_table.append([i, affiliation, author_count, paper_count])
 
         f.write(tabulate(aff_table, headers=["Rank", "Affiliation", "Authors", "Papers"], tablefmt="grid"))
         f.write("\n\n")
 
-        # Top 20 affiliations (merged) - if similar groups provided
+        # Top affiliations (merged) - if similar groups provided
         if similar_groups is not None:
-            f.write("TOP 20 MOST COMMON AFFILIATIONS (AFTER MERGING SIMILAR)\n")
+            if limit is not None:
+                f.write(f"TOP {limit} MOST COMMON AFFILIATIONS (AFTER MERGING SIMILAR)\n")
+            else:
+                f.write("MOST COMMON AFFILIATIONS (AFTER MERGING SIMILAR - ALL)\n")
             f.write("-" * 100 + "\n\n")
 
             if similar_groups:
@@ -247,60 +335,38 @@ def write_statistics_report(output_prefix, merged_stats, similar_groups=None):
                     affiliation_count, affiliation_papers, similar_groups
                 )
 
+                if limit is not None:
+                    merged_aff_list = merged_author_counts.most_common(limit)
+                else:
+                    merged_aff_list = merged_author_counts.most_common()
+
                 merged_aff_table = []
-                for i, (affiliation, author_count) in enumerate(merged_author_counts.most_common(20), 1):
+                for i, (affiliation, author_count) in enumerate(merged_aff_list, 1):
                     paper_count = merged_paper_counts.get(affiliation, 0)
                     merged_aff_table.append([i, affiliation, author_count, paper_count])
 
                 f.write(tabulate(merged_aff_table, headers=["Rank", "Affiliation", "Authors", "Papers"], tablefmt="grid"))
-                f.write(f"\n\nNote: {len(similar_groups)} group(s) of similar affiliations were merged.\n\n")
+                f.write(f"\n\nNote: {len(similar_groups)} group(s) of similar affiliations were merged.\n")
+                f.write(f"See {output_prefix}_similar_affiliations.txt for detailed groups.\n\n")
             else:
                 f.write("No similar affiliations detected - counts remain unchanged\n\n")
 
-        # Top 20 countries
-        f.write("TOP 20 MOST COMMON COUNTRIES\n")
+        # Top countries
+        if limit is not None:
+            f.write(f"TOP {limit} MOST COMMON COUNTRIES\n")
+            country_list = country_count.most_common(limit)
+        else:
+            f.write("MOST COMMON COUNTRIES (ALL)\n")
+            country_list = country_count.most_common()
         f.write("-" * 100 + "\n\n")
 
         country_table = []
-        for i, (country, author_count) in enumerate(country_count.most_common(20), 1):
+        for i, (country, author_count) in enumerate(country_list, 1):
             paper_count = len(country_papers.get(country, set()))
             country_table.append([i, country, author_count, paper_count])
 
         f.write(tabulate(country_table, headers=["Rank", "Country", "Authors", "Papers"], tablefmt="grid"))
         f.write("\n\n")
-
-        # Similar affiliations detail
-        if similar_groups:
-            f.write("SIMILAR AFFILIATIONS (DETAILED GROUPS)\n")
-            f.write("-" * 100 + "\n\n")
-
-            # Count by match type
-            email_domain_matches = sum(1 for g in similar_groups if g.get("match_type") == "email_domain")
-            string_similarity_matches = sum(1 for g in similar_groups if g.get("match_type") == "string_similarity")
-
-            f.write(f"Total: {len(similar_groups)} group(s) detected\n")
-            f.write(f"  - {email_domain_matches} matched by email domain\n")
-            f.write(f"  - {string_similarity_matches} matched by string similarity\n\n")
-
-            # Write first 20 groups
-            for i, group in enumerate(similar_groups[:20], 1):
-                match_type = group.get("match_type", "unknown")
-                if match_type == "email_domain":
-                    domain = group.get("email_domain", "")
-                    f.write(f"Group {i} (email domain: @{domain}):\n")
-                else:
-                    f.write(f"Group {i} (string similarity):\n")
-
-                group_table = []
-                for aff in group["affiliations"]:
-                    count = len(group["details"][aff])
-                    group_table.append([aff, count])
-
-                f.write(tabulate(group_table, headers=["Affiliation", "Authors"], tablefmt="simple"))
-                f.write("\n\n")
-
-            if len(similar_groups) > 20:
-                f.write(f"... and {len(similar_groups) - 20} more groups\n\n")
 
     print(f"✓ Statistics report written to: {output_file}")
 
@@ -431,7 +497,7 @@ def print_data_quality(stats, papers_with_issues):
     print("=" * 80)
 
 
-def validate_xml_file(xml_file, show_header=True, output_prefix=None):
+def validate_xml_file(xml_file, show_header=True, output_prefix=None, top_k=20):
     """
     Main validation and analysis function.
 
@@ -439,6 +505,7 @@ def validate_xml_file(xml_file, show_header=True, output_prefix=None):
         xml_file: Path to XML file
         show_header: Whether to show full header (False for multi-file mode)
         output_prefix: Optional output file prefix for formatted reports
+        top_k: Number of items to show in top lists (or "full" for all)
 
     Returns:
         tuple: (is_valid, stats_data, quality_stats, root) for aggregation
@@ -537,18 +604,23 @@ def validate_xml_file(xml_file, show_header=True, output_prefix=None):
 
         # Find similar affiliations for statistics
         similar_groups = find_similar_affiliations(root, similarity_threshold=0.8)
-        write_statistics_report(output_prefix, stats_data, similar_groups)
+        write_statistics_report(output_prefix, stats_data, similar_groups, top_k=top_k)
+
+        # Write similar affiliations to separate file
+        if similar_groups:
+            write_similar_affiliations_report(output_prefix, similar_groups)
 
     return is_valid, stats_data, quality_stats, root
 
 
-def validate_multiple_files(xml_files, output_prefix=None):
+def validate_multiple_files(xml_files, output_prefix=None, top_k=20):
     """
     Validate multiple XML files and aggregate statistics.
 
     Args:
         xml_files: List of XML file paths
         output_prefix: Optional output file prefix for formatted reports
+        top_k: Number of items to show in top lists (or "full" for all)
 
     Returns:
         bool: True if all files pass validation
@@ -640,7 +712,11 @@ def validate_multiple_files(xml_files, output_prefix=None):
         # Write formatted output files if requested
         if output_prefix:
             write_validation_report(output_prefix, file_results, merged_quality, all_valid)
-            write_statistics_report(output_prefix, merged_stats, similar_groups)
+            write_statistics_report(output_prefix, merged_stats, similar_groups, top_k=top_k)
+
+            # Write similar affiliations to separate file
+            if similar_groups:
+                write_similar_affiliations_report(output_prefix, similar_groups)
 
     # Final summary
     print("\n" + "=" * 80)
@@ -672,6 +748,12 @@ Examples:
   # Validate single file and write formatted reports
   python validate_acm_xml.py acm_output.xml --output sigir2026_report
 
+  # Validate with custom top_k (show top 10 instead of default 20)
+  python validate_acm_xml.py acm_output.xml --output sigir2026_report --top_k 10
+
+  # Validate and show all statistics (not just top items)
+  python validate_acm_xml.py acm_output.xml --output sigir2026_report --top_k full
+
   # Validate multiple files with aggregated statistics
   python validate_acm_xml.py full_papers.xml short_papers.xml demo_papers.xml
 
@@ -692,8 +774,16 @@ Examples:
         "-o",
         metavar="PREFIX",
         help="Output file prefix for formatted reports. "
-        "Creates <PREFIX>_validation.txt and <PREFIX>_statistics.txt. "
+        "Creates <PREFIX>_validation.txt, <PREFIX>_statistics.txt, and <PREFIX>_similar_affiliations.txt. "
         "Requires tabulate library (pip install tabulate)."
+    )
+
+    parser.add_argument(
+        "--top_k",
+        "-k",
+        metavar="N",
+        default="20",
+        help="Number of items to show in top lists (default: 20). Use 'full' to show all items sorted."
     )
 
     args = parser.parse_args()
@@ -709,14 +799,16 @@ Examples:
             validation_passed, _, _, _ = validate_xml_file(
                 args.xml_files[0],
                 show_header=True,
-                output_prefix=args.output
+                output_prefix=args.output,
+                top_k=args.top_k
             )
             sys.exit(0 if validation_passed else 1)
         else:
             # Multiple files mode - aggregated statistics
             validation_passed = validate_multiple_files(
                 args.xml_files,
-                output_prefix=args.output
+                output_prefix=args.output,
+                top_k=args.top_k
             )
             sys.exit(0 if validation_passed else 1)
     except Exception as e:

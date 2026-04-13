@@ -153,6 +153,83 @@ def string_similarity(s1, s2):
     return SequenceMatcher(None, s1, s2).ratio()
 
 
+# Known institution aliases and blacklist
+INSTITUTION_ALIASES = {
+    # Key: canonical name, Value: set of variations (all lowercase)
+    "rmit university": {
+        "rmit university",
+        "royal melbourne institute of technology"
+    },
+    "the university of melbourne": {
+        "the university of melbourne",
+        "university of melbourne"
+    },
+    "tsinghua university": {
+        "tsinghua university",
+        "tsinghua univ",
+        "tsinghua univ."
+    },
+    "peking university": {
+        "peking university",
+        "pku",
+        "beijing university"
+    },
+    "chinese academy of sciences": {
+        "chinese academy of sciences",
+        "cas"
+    },
+}
+
+# Institutions that should NEVER be merged with each other
+# Each tuple/set contains institutions that are distinct despite similarities
+INSTITUTION_BLACKLIST = [
+    {"rmit university", "the university of melbourne"},
+    {"royal melbourne institute of technology", "the university of melbourne"},
+    {"rmit university", "university of melbourne"},
+    {"royal melbourne institute of technology", "university of melbourne"},
+    {"alibaba group", "ant group"},  # Related but separate companies
+]
+
+
+def should_never_merge(aff1, aff2):
+    """
+    Check if two affiliations should never be merged together.
+
+    Args:
+        aff1, aff2: Affiliation strings
+
+    Returns:
+        bool: True if these affiliations are blacklisted from merging
+    """
+    aff1_lower = aff1.lower().strip()
+    aff2_lower = aff2.lower().strip()
+
+    for blacklist_set in INSTITUTION_BLACKLIST:
+        if aff1_lower in blacklist_set and aff2_lower in blacklist_set:
+            return True
+
+    return False
+
+
+def get_canonical_affiliation(affiliation):
+    """
+    Get canonical name for an affiliation if it's a known alias.
+
+    Args:
+        affiliation: Affiliation string
+
+    Returns:
+        str: Canonical name, or original affiliation if not in alias list
+    """
+    aff_lower = affiliation.lower().strip()
+
+    for canonical, aliases in INSTITUTION_ALIASES.items():
+        if aff_lower in aliases:
+            return canonical
+
+    return affiliation
+
+
 def extract_email_domain(email):
     """
     Extract domain from email address, excluding common public email providers.
@@ -188,6 +265,38 @@ def extract_email_domain(email):
         return ""
 
 
+def normalize_email_domain(domain):
+    """
+    Normalize email domain for comparison.
+
+    Treats student subdomains as equivalent to main domain:
+    - student.rmit.edu.au -> rmit.edu.au
+    - student.unimelb.edu.au -> unimelb.edu.au
+    - mail.neu.edu.cn -> neu.edu.cn
+    - connect.ust.hk -> ust.hk
+
+    Args:
+        domain: Email domain string (e.g., "student.rmit.edu.au")
+
+    Returns:
+        str: Normalized domain
+    """
+    if not domain:
+        return domain
+
+    # Common subdomain prefixes that should be normalized to main domain
+    subdomain_prefixes = [
+        'student.', 'mail.', 'connect.', 'alumni.', 'staff.',
+        'students.', 'email.', 'webmail.', 'my.', 'campus.'
+    ]
+
+    for prefix in subdomain_prefixes:
+        if domain.startswith(prefix):
+            return domain[len(prefix):]
+
+    return domain
+
+
 def find_similar_affiliations(root, similarity_threshold=0.8):
     """
     Find similar affiliations that might be duplicates or typos.
@@ -204,7 +313,7 @@ def find_similar_affiliations(root, similarity_threshold=0.8):
     """
     # Collect all unique affiliations with their occurrences and email domains
     affiliation_data = defaultdict(list)  # affiliation -> [(paper_id, paper_title, author_name)]
-    affiliation_domains = defaultdict(set)  # affiliation -> set of email domains
+    affiliation_domains = defaultdict(set)  # affiliation -> set of normalized email domains
 
     for paper in root.findall("paper"):
         paper_id = paper.findtext("event_tracking_number", "unknown")
@@ -224,102 +333,142 @@ def find_similar_affiliations(root, similarity_threshold=0.8):
                 if institution:
                     affiliation_data[institution].append((paper_id, paper_title[:50], author_name))
                     if email_domain:
-                        affiliation_domains[institution].add(email_domain)
+                        # Normalize domain (e.g., student.rmit.edu.au -> rmit.edu.au)
+                        normalized_domain = normalize_email_domain(email_domain)
+                        affiliation_domains[institution].add(normalized_domain)
 
     # Find similar affiliations
     affiliations = list(affiliation_data.keys())
     similar_groups = []
     processed = set()
 
-    # Step 1: Group by email domain first (primary signal)
-    # But only when affiliations are also string-similar (to avoid false positives)
+    # Step 0: Group known aliases first (highest confidence)
+    alias_to_canonical = {}
+    for canonical, aliases in INSTITUTION_ALIASES.items():
+        for aff in affiliations:
+            if aff.lower().strip() in aliases:
+                alias_to_canonical[aff] = canonical
+
+    # Group affiliations by their canonical name
+    canonical_groups = {}
+    for aff, canonical in alias_to_canonical.items():
+        if canonical not in canonical_groups:
+            canonical_groups[canonical] = []
+        canonical_groups[canonical].append(aff)
+
+    # Create groups for aliases (only if multiple variations found)
+    for canonical, affs_list in canonical_groups.items():
+        if len(affs_list) > 1:
+            for aff in affs_list:
+                processed.add(aff)
+            group = {
+                "affiliations": sorted(affs_list),
+                "details": {aff: affiliation_data[aff] for aff in affs_list},
+                "match_type": "known_alias",
+                "canonical": canonical
+            }
+            similar_groups.append(group)
+
+    # Step 1: Group by exact email domain match (primary signal)
+    # Affiliations that share the exact same normalized institutional email domain
+    # are merged if they are not blacklisted AND meet a basic similarity check
     domain_to_affiliations = defaultdict(set)
     for aff in affiliations:
+        if aff in processed:
+            continue
         domains = affiliation_domains.get(aff, set())
         for domain in domains:
             domain_to_affiliations[domain].add(aff)
 
-    # Create groups from email domain matches
+    # Create groups from exact email domain matches
     for domain, affs_with_domain in domain_to_affiliations.items():
         if len(affs_with_domain) > 1:
-            # Multiple affiliations share this email domain
-            # Verify they are similar institutions (not just same domain by chance)
+            # Multiple affiliations share this exact normalized email domain
             affs_list = [aff for aff in affs_with_domain if aff not in processed]
 
             if len(affs_list) > 1:
-                # Check if affiliations have high string similarity or share distinctive tokens
-                # This prevents matching "Peking University" with "Px Securities" just because
-                # someone uses @pku.edu.cn email
+                # Apply blacklist filter and basic similarity check
+                # Use union-find to create groups while respecting constraints
+                affiliation_groups = []
+                affiliation_to_group = {}
 
-                # Build similarity graph: find all pairs that are similar
-                similar_pairs = []
                 for i, aff1 in enumerate(affs_list):
                     for j, aff2 in enumerate(affs_list):
                         if i >= j:
                             continue
 
-                        # Check string similarity
-                        norm1 = normalize_affiliation(aff1)
-                        norm2 = normalize_affiliation(aff2)
-                        sim = string_similarity(norm1, norm2)
+                        # Skip if blacklisted
+                        if should_never_merge(aff1, aff2):
+                            continue
 
-                        # More lenient threshold since we have email domain confirmation
-                        # Also check for shared distinctive tokens
-                        tokens1 = get_distinctive_tokens(aff1)
-                        tokens2 = get_distinctive_tokens(aff2)
-
-                        if tokens1 and tokens2:
-                            common_tokens = tokens1 & tokens2
-                            has_common_tokens = len(common_tokens) > 0
+                        # Check if they're known aliases (always merge if true)
+                        canonical1 = get_canonical_affiliation(aff1)
+                        canonical2 = get_canonical_affiliation(aff2)
+                        if canonical1 == canonical2 and canonical1 != aff1:
+                            # Known aliases - definitely merge
+                            should_merge = True
                         else:
-                            has_common_tokens = False
+                            # Basic similarity check to avoid merging completely unrelated institutions
+                            # (e.g., "City University of Hong Kong" and "University of Science and Technology of China"
+                            # both using @ustc.edu.cn due to dual affiliations)
 
-                        # Match if: high similarity (0.5+) OR shared distinctive tokens
-                        if sim >= 0.5 or has_common_tokens:
-                            similar_pairs.append((aff1, aff2))
+                            # Check if they share distinctive tokens
+                            tokens1 = get_distinctive_tokens(aff1)
+                            tokens2 = get_distinctive_tokens(aff2)
 
-                # Group connected affiliations using union-find approach
-                if similar_pairs:
-                    affiliation_groups = []
-                    affiliation_to_group = {}
+                            if tokens1 and tokens2:
+                                common_tokens = tokens1 & tokens2
+                                # Require at least one common distinctive token
+                                has_common_tokens = len(common_tokens) > 0
+                            else:
+                                has_common_tokens = False
 
-                    for aff1, aff2 in similar_pairs:
-                        group1 = affiliation_to_group.get(aff1)
-                        group2 = affiliation_to_group.get(aff2)
+                            # Also check string similarity as fallback
+                            norm1 = normalize_affiliation(aff1)
+                            norm2 = normalize_affiliation(aff2)
+                            sim = string_similarity(norm1, norm2)
 
-                        if group1 is None and group2 is None:
-                            # Create new group
-                            new_group = {aff1, aff2}
-                            affiliation_groups.append(new_group)
-                            affiliation_to_group[aff1] = new_group
-                            affiliation_to_group[aff2] = new_group
-                        elif group1 is None:
-                            # Add aff1 to aff2's group
-                            group2.add(aff1)
-                            affiliation_to_group[aff1] = group2
-                        elif group2 is None:
-                            # Add aff2 to aff1's group
-                            group1.add(aff2)
-                            affiliation_to_group[aff2] = group1
-                        elif group1 != group2:
-                            # Merge two groups
-                            group1.update(group2)
-                            for aff in group2:
-                                affiliation_to_group[aff] = group1
-                            affiliation_groups.remove(group2)
+                            # Merge if: shared distinctive tokens OR reasonable string similarity (0.4+)
+                            should_merge = has_common_tokens or sim >= 0.4
 
-                    # Create a group for each connected component
-                    for similar_subset in affiliation_groups:
-                        if len(similar_subset) > 1:
-                            for aff in similar_subset:
-                                processed.add(aff)
-                            group = {
-                                "affiliations": sorted(similar_subset),
-                                "details": {aff: affiliation_data[aff] for aff in similar_subset},
-                                "match_type": "email_domain",
-                                "email_domain": domain
-                            }
-                            similar_groups.append(group)
+                        if should_merge:
+                            # Merge these two affiliations
+                            group1 = affiliation_to_group.get(aff1)
+                            group2 = affiliation_to_group.get(aff2)
+
+                            if group1 is None and group2 is None:
+                                # Create new group
+                                new_group = {aff1, aff2}
+                                affiliation_groups.append(new_group)
+                                affiliation_to_group[aff1] = new_group
+                                affiliation_to_group[aff2] = new_group
+                            elif group1 is None:
+                                # Add aff1 to aff2's group
+                                group2.add(aff1)
+                                affiliation_to_group[aff1] = group2
+                            elif group2 is None:
+                                # Add aff2 to aff1's group
+                                group1.add(aff2)
+                                affiliation_to_group[aff2] = group1
+                            elif group1 != group2:
+                                # Merge two groups
+                                group1.update(group2)
+                                for aff in group2:
+                                    affiliation_to_group[aff] = group1
+                                affiliation_groups.remove(group2)
+
+                # Create a group for each connected component
+                for similar_subset in affiliation_groups:
+                    if len(similar_subset) > 1:
+                        for aff in similar_subset:
+                            processed.add(aff)
+                        group = {
+                            "affiliations": sorted(similar_subset),
+                            "details": {aff: affiliation_data[aff] for aff in similar_subset},
+                            "match_type": "email_domain",
+                            "email_domain": domain
+                        }
+                        similar_groups.append(group)
 
     # Step 2: String similarity for remaining affiliations (secondary signal)
     remaining_affiliations = [aff for aff in affiliations if aff not in processed]
@@ -332,6 +481,18 @@ def find_similar_affiliations(root, similarity_threshold=0.8):
         similar = [aff1]
         for j, aff2 in enumerate(remaining_affiliations):
             if i >= j or aff2 in processed:
+                continue
+
+            # Check blacklist first
+            if should_never_merge(aff1, aff2):
+                continue
+
+            # Check if they're known aliases
+            canonical1 = get_canonical_affiliation(aff1)
+            canonical2 = get_canonical_affiliation(aff2)
+            if canonical1 == canonical2 and canonical1 != aff1:
+                similar.append(aff2)
+                processed.add(aff2)
                 continue
 
             # Normalize and compare
@@ -487,15 +648,19 @@ def print_similar_affiliations(similar_groups):
         return
 
     # Count by match type
+    known_alias_matches = sum(1 for g in similar_groups if g.get("match_type") == "known_alias")
     email_domain_matches = sum(1 for g in similar_groups if g.get("match_type") == "email_domain")
     string_similarity_matches = sum(1 for g in similar_groups if g.get("match_type") == "string_similarity")
 
     print(f"  ⚠ {len(similar_groups)} group(s) of similar affiliations detected:")
-    print(f"     {email_domain_matches} matched by email domain, {string_similarity_matches} by string similarity")
+    print(f"     {known_alias_matches} known aliases, {email_domain_matches} matched by email domain, {string_similarity_matches} by string similarity")
 
     for i, group in enumerate(similar_groups[:10], 1):  # Show first 10 groups
         match_type = group.get("match_type", "unknown")
-        if match_type == "email_domain":
+        if match_type == "known_alias":
+            canonical = group.get("canonical", "")
+            print(f"\n    Group {i} (known alias: {canonical}):")
+        elif match_type == "email_domain":
             domain = group.get("email_domain", "")
             print(f"\n    Group {i} (email domain: @{domain}):")
         else:
