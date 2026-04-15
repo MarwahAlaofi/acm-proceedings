@@ -328,6 +328,7 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
         ET.SubElement(paper, "art_submission_date").text = submission_date
         ET.SubElement(paper, "art_approval_date").text = approval_date
         ET.SubElement(paper, "paper_title").text = s.content.get("title", {}).get("value", "")
+        # TODO: use sequence numbers as IDs, following the format: sp|fp000
         ET.SubElement(paper, "event_tracking_number").text = s.id
         ET.SubElement(paper, "published_article_number").text = ""
         ET.SubElement(paper, "start_page").text = ""
