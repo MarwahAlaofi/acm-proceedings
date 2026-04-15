@@ -253,7 +253,7 @@ Note: Track name must be EXACT match (case-sensitive) from EasyChair's "Track na
 
     args = parser.parse_args()
 
-    # Set default output filename based on format
+    # Set default output filename based on format, or add extension if missing
     if args.output is None:
         if args.format == "xml":
             args.output = "acm_output.xml"
@@ -261,6 +261,11 @@ Note: Track name must be EXACT match (case-sensitive) from EasyChair's "Track na
             args.output = "acm_output.txt"
         else:  # md
             args.output = "acm_output.md"
+    else:
+        # Add extension if not already present
+        expected_ext = f".{args.format}"
+        if not args.output.endswith(expected_ext):
+            args.output = f"{args.output}{expected_ext}"
 
     # Validate proceeding_id for XML format
     if args.format == "xml" and args.proceeding_id is None:
