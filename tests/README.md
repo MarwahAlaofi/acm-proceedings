@@ -31,6 +31,12 @@ This directory contains test scripts for the EasyChair to ACM converter.
   - Tests all key scenarios (email match, name match, no merge)
   - Useful for quick verification during development
 
+- **`test_affiliation_normalization.py`** - Tests affiliation string normalization
+  - Tests trailing punctuation removal (periods, commas, etc.)
+  - Tests leading punctuation removal
+  - Tests whitespace handling
+  - Ensures validation uses same normalization as export
+
 ### Integration Tests
 
 - **`test_author_order.py`** - Integration tests for output validation
@@ -38,8 +44,9 @@ This directory contains test scripts for the EasyChair to ACM converter.
   - Validates TXT output format
   - Validates MD output format
   - Checks author order preservation
-  - Verifies affiliation matching
+  - Verifies affiliation matching (normalized comparison)
   - Auto-detects format by file extension
+  - Uses same normalization as export (strips trailing punctuation)
 
 ## Running Tests
 
@@ -108,6 +115,18 @@ Unique canonical authors: 6
 ALL TESTS PASSED ✓
 ```
 
+**Affiliation normalization tests:**
+```bash
+python tests/test_affiliation_normalization.py
+```
+
+**Expected output:**
+```
+================================================================================
+✅ All affiliation normalization tests passed!
+================================================================================
+```
+
 ### Run Integration Tests
 
 ```bash
@@ -164,7 +183,8 @@ python tests/test_author_order.py data.xlsx output.md
 - ✅ TXT format validation
 - ✅ MD format validation
 - ✅ Author order preservation
-- ✅ Affiliation matching
+- ✅ Affiliation matching (normalized comparison)
+- ✅ Affiliation normalization (strips trailing punctuation)
 - ✅ Country matching
 - ✅ Department field handling
 

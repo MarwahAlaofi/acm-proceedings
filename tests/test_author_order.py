@@ -29,6 +29,42 @@ import pandas as pd
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 import re
+from typing import Optional
+
+
+def clean_affiliation_string(affiliation_str: Optional[str]) -> str:
+    """
+    Clean affiliation string by stripping whitespace and leading/trailing punctuation.
+
+    This matches the logic in lib/easychair_exporters.py to ensure validation
+    compares normalized strings.
+
+    Handles common data quality issues like:
+    - ", Tsinghua University" → "Tsinghua University"
+    - "MIT, " → "MIT"
+    - " , Stanford University" → "Stanford University"
+    - "Kuaishou Technology Co., Ltd." → "Kuaishou Technology Co., Ltd"
+
+    Args:
+        affiliation_str: Raw affiliation string
+
+    Returns:
+        str: Cleaned affiliation string
+    """
+    if not affiliation_str:
+        return ""
+
+    # Strip whitespace
+    cleaned = affiliation_str.strip()
+
+    # Strip leading/trailing punctuation (commas, semicolons, periods, etc.)
+    # Keep stripping until no more leading/trailing punctuation+whitespace
+    while cleaned and cleaned[0] in '.,;:-_':
+        cleaned = cleaned[1:].strip()
+    while cleaned and cleaned[-1] in '.,;:-_':
+        cleaned = cleaned[:-1].strip()
+
+    return cleaned
 
 
 def parse_authors_from_string(authors_str):
@@ -294,13 +330,17 @@ def validate_text_format(excel_file, text_file):
                 break
 
             # Check affiliation (allow empty if both are empty)
-            if exp_aff != act_aff:
-                if exp_aff or act_aff:  # Only flag if at least one is non-empty
+            # Normalize both sides to handle trailing punctuation differences
+            exp_aff_normalized = clean_affiliation_string(exp_aff)
+            act_aff_normalized = clean_affiliation_string(act_aff)
+
+            if exp_aff_normalized != act_aff_normalized:
+                if exp_aff_normalized or act_aff_normalized:  # Only flag if at least one is non-empty
                     mismatches.append({
                         "paper_id": expected_data["paper_id"],
                         "title": title,
                         "error": f"Author '{exp_name}' affiliation mismatch",
-                        "detail": f"Expected: '{exp_aff}', Got: '{act_aff}'",
+                        "detail": f"Expected: '{exp_aff_normalized}', Got: '{act_aff_normalized}'",
                         "expected": [],
                         "actual": [],
                     })
@@ -546,13 +586,17 @@ def validate_author_order(excel_file, xml_file):
                         })
                         continue
 
-                    # Institution should match Affiliation field exactly
-                    if xml_inst.strip() != expected_aff["affiliation"]:
+                    # Institution should match Affiliation field after normalization
+                    # Normalize both sides to handle trailing punctuation differences
+                    expected_inst_normalized = clean_affiliation_string(expected_aff["affiliation"])
+                    xml_inst_normalized = clean_affiliation_string(xml_inst)
+
+                    if xml_inst_normalized != expected_inst_normalized:
                         affiliation_issues += 1
                         mismatches.append({
                             "paper_id": paper_id,
                             "error": f"Affiliation mismatch for author {expected_aff['name']}",
-                            "detail": f"Expected: institution='{expected_aff['affiliation']}', Got: institution='{xml_inst}'",
+                            "detail": f"Expected: institution='{expected_inst_normalized}', Got: institution='{xml_inst_normalized}'",
                             "expected": [],
                             "actual": [],
                         })
