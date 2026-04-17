@@ -91,6 +91,7 @@ def parse_authors_from_string(authors_str: str) -> List[str]:
 def load_easychair_data(
     excel_file_path: str,
     track_filter: Optional[str] = None,
+    paper_id_filter: Optional[int] = None,
     proceeding_id: Optional[str] = None,
     submission_date_override: Optional[str] = None,
     approval_date_override: Optional[str] = None,
@@ -103,6 +104,7 @@ def load_easychair_data(
     Args:
         excel_file_path: Path to EasyChair Excel export
         track_filter: Optional track name to filter
+        paper_id_filter: Optional paper ID to filter (submission number)
         proceeding_id: Optional ACM proceeding ID
         submission_date_override: Optional submission date to use for all papers (e.g., '22-JAN-2026')
         approval_date_override: Optional approval date to use for all papers (e.g., '02-APR-2026')
@@ -173,6 +175,13 @@ def load_easychair_data(
     if track_filter:
         submissions_df = submissions_df[submissions_df["Track name"] == track_filter]
         logger.info(f"Filtered to {len(submissions_df)} submissions in track: {track_filter}")
+
+    # Filter by paper ID if specified
+    if paper_id_filter is not None:
+        submissions_df = submissions_df[submissions_df["#"] == paper_id_filter]
+        if len(submissions_df) == 0:
+            raise ValueError(f"Paper ID {paper_id_filter} not found in Excel file")
+        logger.info(f"Filtered to paper ID: {paper_id_filter}")
 
     # Filter for accepted papers only
     submissions_df = submissions_df[
