@@ -222,6 +222,15 @@ Note: Track name must be EXACT match (case-sensitive) from EasyChair's "Track na
     )
 
     parser.add_argument(
+        "--paper_id",
+        type=int,
+        default=None,
+        metavar="ID",
+        help="Export ONLY a specific paper by submission ID (e.g., 42). "
+        "Paper ID must match the '#' column from EasyChair's Submissions sheet.",
+    )
+
+    parser.add_argument(
         "--submission_date",
         default=None,
         metavar="DATE",
@@ -287,6 +296,7 @@ Note: Track name must be EXACT match (case-sensitive) from EasyChair's "Track na
         export = load_easychair_data(
             excel_file_path=args.input,
             track_filter=args.track,
+            paper_id_filter=args.paper_id,
             proceeding_id=args.proceeding_id,
             submission_date_override=args.submission_date,
             approval_date_override=args.approval_date,
