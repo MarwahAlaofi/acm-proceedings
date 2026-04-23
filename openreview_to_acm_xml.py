@@ -8,7 +8,7 @@ import argparse
 load_dotenv()
 
 # Map paper type to track abbreviation
-track_map = {
+TRACK_MAP = {
     "Full Paper": "fp",
     "Short Paper": "sp",
     "N/A": "na"
@@ -342,6 +342,7 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
         tracking_id_test = f"{track_prefix}{s.number:03d}"
 
         ET.SubElement(paper, "event_tracking_number").text = tracking_id
+        # DEBUG ONLY – not part of ACM schema
         ET.SubElement(paper, "event_tracking_number_testing").text = tracking_id_test
 
         ET.SubElement(paper, "published_article_number").text = ""
