@@ -333,8 +333,8 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
         ET.SubElement(paper, "paper_type").text = paper_type
         ET.SubElement(paper, "art_submission_date").text = submission_date
         ET.SubElement(paper, "art_approval_date").text = approval_date
-        ET.SubElement(paper, "paper_title").text = s.content.get("title", {}).get("value", "")
-
+        ET.SubElement(paper, "paper_title").text = s.content.get("title", {}).get("value", "").strip()
+        ET.SubElement(paper, "abstract").text = s.content.get("abstract", {}).get("value", "").strip()
         #  use sequence numbers as IDs, following the format: sp|fp000
         track_prefix = TRACK_MAP.get(paper_type, "na")
         tracking_id = f"{track_prefix}{paper_seq:03d}"
