@@ -7,6 +7,12 @@ import argparse
 
 load_dotenv()
 
+# Map paper type to track abbreviation
+track_map = {
+    "Full Paper": "fp",
+    "Short Paper": "sp",
+    "N/A": "na"
+}
 # ----------------------------
 # format/data helpers
 # ----------------------------
@@ -328,8 +334,16 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
         ET.SubElement(paper, "art_submission_date").text = submission_date
         ET.SubElement(paper, "art_approval_date").text = approval_date
         ET.SubElement(paper, "paper_title").text = s.content.get("title", {}).get("value", "")
-        # TODO: use sequence numbers as IDs, following the format: sp|fp000
-        ET.SubElement(paper, "event_tracking_number").text = s.id
+
+        #  use sequence numbers as IDs, following the format: sp|fp000
+        track_prefix = TRACK_MAP.get(paper_type, "na")
+        tracking_id = f"{track_prefix}{paper_seq:03d}"
+        #  test using event specific id numbers, following the format: sp|fp000
+        tracking_id_test = f"{track_prefix}{s.number:03d}"
+
+        ET.SubElement(paper, "event_tracking_number").text = tracking_id
+        ET.SubElement(paper, "event_tracking_number_testing").text = tracking_id_test
+
         ET.SubElement(paper, "published_article_number").text = ""
         ET.SubElement(paper, "start_page").text = ""
         ET.SubElement(paper, "end_page").text = ""
@@ -388,8 +402,6 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
             ET.SubElement(author_xml, "ORCID").text = orcid
             ET.SubElement(author_xml, "role").text = "author"
 
-        ET.SubElement(paper, "section").text = ""
-        ET.SubElement(paper, "sequence_no").text = str(paper_seq)
 
         paper_seq += 1
 
