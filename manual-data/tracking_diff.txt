@@ -1,0 +1,604 @@
+GLoMar: Benchmarking Web Retrieval in LLMs in Global and Local Marathi Contexts
+  OLD: zM9LhBKmwC
+  NEW: sp001
+
+RoTE: Coarse-to-Fine Multi-Level Rotary Time Embedding for Sequential Recommendation
+  OLD: My9IexxwP5
+  NEW: sp002
+
+Delay-Aware Sequential Recommendation with Dynamic Graphs and Variate-Temporal Decomposition
+  OLD: eJXsIgKbmK
+  NEW: sp003
+
+Humans, LLMs, and Measures Do Not Align in Attributed Information Retrieval
+  OLD: HbgsO6EXJA
+  NEW: sp004
+
+Named Entity-Driven Graph Smoothing to Enhance Pretrained Document Embeddings in Clustering Tasks
+  OLD: LUlXm3iiv4
+  NEW: sp005
+
+TDHGNN: A Temporal Directed Hypergraph Neural Network for Bitcoin Fraud Detection
+  OLD: HvTkKsRxQy
+  NEW: sp006
+
+Temporal User-Agnostic Ranking: Detecting Preference Evolution while Preserving Ethical Principles
+  OLD: BKPAuJ6PKN
+  NEW: sp007
+
+Better than Dense? Investigating the Natural Backward Compatibility of Learned Sparse Representations
+  OLD: HRxSOirUTJ
+  NEW: sp008
+
+CoCo: Conformal Confidence Suppression to Optimize Search Results
+  OLD: dnsw33kEhw
+  NEW: sp009
+
+PrepRet: Automated Data Preparation Pipeline Selection for Neural Retrieval
+  OLD: JbfBnvUtMu
+  NEW: sp010
+
+FEDIN: Frequency-Enhanced Deep Interest Network for Click-Through Rate Prediction
+  OLD: Dz62UFpE6R
+  NEW: sp011
+
+ZoRRO: A Zero-Weight Personalized Recommender System for Scalable News Recommendation
+  OLD: mkMpySMUdw
+  NEW: sp012
+
+Individual Turing Test: A Case Study of LLM-based Simulation Using Longitudinal Personal Data
+  OLD: S0MmMp3pdx
+  NEW: sp013
+
+ZIPBid: Hierarchical Zero-shot Incremental Spend Planning for Auto-bidding
+  OLD: lL1WcJkMwT
+  NEW: sp014
+
+When RAG Disagrees: Detecting Latent Epistemic Conflict via Logit Interactions
+  OLD: GGgrxG9LiL
+  NEW: sp015
+
+Counterfactual Multi-task Learning for Delayed Conversion Modeling in E-commerce Sales Pre-Promotion
+  OLD: 3vuLsQzPK9
+  NEW: sp016
+
+ADaFuSE: Adaptive Diffusion-generated Image and Text Fusion for Interactive Text-to-Image Retrieval
+  OLD: Psv8edmAv2
+  NEW: sp017
+
+Separating Wheat from Chaff: Fine-Grained Defenses Against Poisoning in Multi-Perspective RAG
+  OLD: U7zldJ1l62
+  NEW: sp018
+
+On the Robustness of LLM Re-Rankings
+  OLD: Z1aDD36kKZ
+  NEW: sp019
+
+RCLRec: Reverse Curriculum Learning for Modeling Sparse Conversions in Generative Recommendation
+  OLD: R0VSUVHusk
+  NEW: sp020
+
+AdversarialCoT: Single-Document Retrieval Poisoning for LLM Reasoning
+  OLD: oBBsW9L8Y4
+  NEW: sp021
+
+Differentiable Dual Anchor Negative Sampling for Graph-based Recommendation
+  OLD: vvCiXFJwV6
+  NEW: sp022
+
+WPGRec: Wavelet Packet Guided Graph Enhanced Sequential Recommendation
+  OLD: VjyUuSFTEN
+  NEW: sp023
+
+Additive Control Variates Dominate Self-Normalisation in Off-Policy Evaluation
+  OLD: yvHGUYNizG
+  NEW: sp024
+
+Calibrating Uncertainty with Cross-Model Consistency for LLM Hallucination Mitigation
+  OLD: A26Y0x6L4I
+  NEW: sp025
+
+Reward Shaping for Robust Refusal in Small Language Models for Retrieval-Augmented Question Answering
+  OLD: KyL4aYJ2FB
+  NEW: sp026
+
+Equip Pre-ranking with Target Attention by Residual Quantization
+  OLD: 6LC1iSgTZd
+  NEW: sp027
+
+A Multi-Granularity Game-Theoretic Approach to Weakly Supervised Temporal Article Grounding
+  OLD: SPVCtgLSZr
+  NEW: sp028
+
+An Asymmetric-difference based Document Exact Similarity Search Algorithm
+  OLD: 5wigLLdC3w
+  NEW: sp029
+
+Beyond Hard Negatives: The Importance of Score Distribution in Knowledge Distillation for Dense Retrieval
+  OLD: KAfmZ7rJBz
+  NEW: sp030
+
+Latent Retrieval Augmented Generation
+  OLD: gv0mtgGycH
+  NEW: sp031
+
+Context Convergence Improves Answering Inferential Questions
+  OLD: Ul856fSntC
+  NEW: sp032
+
+Beyond Unimodal Perspectives: Generative Retrieval with Multimodal Semantics
+  OLD: fw9uIgmFQ4
+  NEW: sp033
+
+GraphSynthQA: Knowledge-Graph-Guided Query Synthesis and Step-Level Preference Optimization for Web Agents
+  OLD: PXZdJgMJg9
+  NEW: sp034
+
+Targeted Parameter Selection for Rank-Biased Measurement
+  OLD: SPuncwNfBx
+  NEW: sp035
+
+HE-DeepFM: An FHE Inference System for CTR Prediction with Efficient FM Interactions
+  OLD: ILANDyTafk
+  NEW: sp036
+
+Booking Funnel and Substitution-Aware User Behavior Modeling for Demand Prediction and Joint Room Pricing
+  OLD: QTj3QpPr2d
+  NEW: sp037
+
+When Context Bites: Detecting RAG Poisoning via Document-Level Attention Collapse
+  OLD: nY2SbywgqP
+  NEW: sp038
+
+Semantic Recall for Vector Search
+  OLD: cuHpFjC18z
+  NEW: sp039
+
+LLM-based Semantic and ID Representations for Sequential Recommendation
+  OLD: BqOfTSTvmq
+  NEW: sp040
+
+Diagnosing LLM Reranker Behavior Under Fixed Evidence Pools
+  OLD: 8BUd7Xr006
+  NEW: sp041
+
+MSW-NTM: A Spherical Wasserstein Autoencoder for Multimodal Neural Topic Modeling with LLM-Guided Topic Refinement
+  OLD: uMdY18tCgN
+  NEW: sp042
+
+Negotiating the Punchline: Contextual Meme Understanding via Discrete Semantic Energy Minimization
+  OLD: 36o1F8b3En
+  NEW: sp043
+
+The LLM Effect on IR Benchmarks: A Meta-Analysis of Effectiveness, Baselines, and Contamination
+  OLD: iM71gRUXK3
+  NEW: sp044
+
+Revisiting Feedback Models for HyDE
+  OLD: lCpbverS8O
+  NEW: sp045
+
+From Raw Features to Effective Embeddings: A Three-Stage Approach for Multimodal Recipe Recommendation
+  OLD: 2bTHPtj1Zv
+  NEW: sp046
+
+An Analysis of Attribute Utilization in Side Information-integrated Sequential Recommendation
+  OLD: 6hauQwey5R
+  NEW: sp047
+
+CRED: Calibrated Relational Enhanced Distillation for LLM-Based Pointwise Reranking
+  OLD: Z1J9VzOSre
+  NEW: sp048
+
+Not All Imputations are Trustworthy: An Uncertainty-aware Multi-modal Entity Alignment Framework
+  OLD: 9pWSYVnOPz
+  NEW: sp049
+
+Does LLM Relevance Labelling Work for Arabic?
+  OLD: EHuXXWfRrc
+  NEW: sp050
+
+Follow the TRACE: Exploiting Post-Click Trajectories for Online Delayed Conversion Rate Prediction
+  OLD: N7sHyXbsDG
+  NEW: sp051
+
+StAR: Adaptive Structure-Aware Reranking for Semantic–Structural Alignment in GraphRAG
+  OLD: HisIDIDy02
+  NEW: sp052
+
+REMICA: Reflective Memory and Interventional Context Alignment with Multi-Agent LLMs for Inappropriate Utterance Detection
+  OLD: IwZV8AKsaU
+  NEW: sp053
+
+ExODRec: An Explainable Framework for Outlier Detection Model Recommendation
+  OLD: 7YVeW2Buf8
+  NEW: sp054
+
+One-Pass Decoding for Generative Recommendation with WFST-Constrained A$^*$ Search
+  OLD: B3lDjEdAPk
+  NEW: sp055
+
+Load-sensitive Selective Pruning in Dense Retrieval
+  OLD: iLWpg8CCAv
+  NEW: sp056
+
+DisCoRec: Disentangled Conformity-aware Recommendation with LLM-Guided Multi-View Learning
+  OLD: 1N6j71gmb8
+  NEW: sp057
+
+Efficient Query Region Expansion and Decomposition based Spatial Range Query Algorithm
+  OLD: BnRkmP2Its
+  NEW: sp058
+
+When LLM Judges Inflate Scores: Exploring Overrating in Relevance Assessment
+  OLD: i3w0JUIQPO
+  NEW: sp059
+
+Revisiting Poison Pills for Neural Information Retrieval
+  OLD: RfPma7tU9w
+  NEW: sp060
+
+SCORE-RAG: Self-Correcting Exploration-Exploitation Retrieval for Multi-hop Question Answering
+  OLD: c52wfOjH30
+  NEW: sp061
+
+Prototype-Calibrated Graph Prompting for Few-Shot Graph Adaptation
+  OLD: DOtYPUWgdQ
+  NEW: sp062
+
+Numerical Hallucinations in Retrieval-Augmented Generation: Detection and Analysis
+  OLD: qORNa0UjUF
+  NEW: sp063
+
+Unifying On- and Off-Policy Variance Reduction Methods
+  OLD: QjNzPjhZDj
+  NEW: sp064
+
+Failing Forward: Understanding Query Failure in Retrieval, Judgment, and Generation
+  OLD: Djo4UdGWmG
+  NEW: sp065
+
+Mitigating Collaborative Semantic ID Staleness in Generative Retrieval
+  OLD: 6bVxEtrTn9
+  NEW: sp066
+
+LUMI: Unsupervised Intent Clustering with Multiple Pseudo-Labels
+  OLD: tloDFe2wvE
+  NEW: sp067
+
+FAST-MEL: A Fast, Accurate, and Storage Efficient Solution for Multimodal Entity Linking
+  OLD: 39rDaRIwgN
+  NEW: sp068
+
+Learning Evidence of Depression Symptoms via Prompt Induction
+  OLD: oSimdGBEUj
+  NEW: sp069
+
+Spectral Tempering for Embedding Compression in Dense Passage Retrieval
+  OLD: ihGYrFiGIu
+  NEW: sp070
+
+Layer-wise Token Compression for Efficient Document Reranking
+  OLD: YTLjyGGnzD
+  NEW: sp071
+
+BANANA: Bounded Adaptive Navigation Architecture for Nested Archives
+  OLD: lAC2lK8UFw
+  NEW: sp072
+
+LearnDCG: End-to-End Joint Optimization of Ranker and Loss in Neural Ranking
+  OLD: lTUufVOHal
+  NEW: sp073
+
+LACONIC: Dense-Level Effectiveness for Scalable Sparse Retrieval via a Two-Phase Training Curriculum
+  OLD: Hch2R8eAHy
+  NEW: sp074
+
+Towards emotional intelligence in conversational AI: How well can LLMs recognise emotion in conversations?
+  OLD: wnTcORIe3x
+  NEW: sp075
+
+PeaCap: Patch-Level Retrieval for Lightweight Retrieval-Augmented Image Captioning
+  OLD: SQZVXFeTFV
+  NEW: sp076
+
+Modalities of Expert Search: How Users Transition Between Names and Topics
+  OLD: qNALTL1EES
+  NEW: sp077
+
+Retrieval-Augmented Contrastive Learning for Dynamic Graph Anomaly Detection
+  OLD: 06PgG3YQ83
+  NEW: sp078
+
+Task-Adaptive Retrieval over Multi-Modal Web Histories via Learned Graph Memory
+  OLD: WC6Dm7wITh
+  NEW: sp079
+
+Exploring and Improving Cross- and Multi-Domain Personalized Question Answering via a Dual Retrieval Augmentation Approach
+  OLD: hvbbvUCRGB
+  NEW: sp080
+
+HuffmanEmbed: Using Huffman Coding for Embedding Table Compression in Deep Learning Recommendation Models
+  OLD: jYUtfDm78S
+  NEW: sp081
+
+Answer First, Evidence Second? Uncovering Hidden Risks in Well-Structured AI Search Summaries
+  OLD: GTqbKjY0UQ
+  NEW: sp082
+
+MuPP: Multi-Preference Padding for Sequential Recommendation
+  OLD: HxilLOLfyz
+  NEW: sp083
+
+RQ-GMM: Residual Quantized Gaussian Mixture Model for Multimodal Semantic Discretization in CTR Prediction
+  OLD: bbI06LjG5L
+  NEW: sp084
+
+CSyMR: Benchmarking Compositional Music Information Retrieval in Symbolic Music Reasoning
+  OLD: ygsP0Jyskr
+  NEW: sp085
+
+Attend to Fragments: How Key Information Affects Large Language Models for Factual Inconsistency Detection
+  OLD: oIP31z0HuR
+  NEW: sp086
+
+Optimal Re-Ranking Depth
+  OLD: BTTozQLPVw
+  NEW: sp087
+
+From continuous Pretraining to Domain-Adaptive Reranking via Task Vector Adaptation
+  OLD: FD8HlduAqK
+  NEW: sp088
+
+Every Preference Has Its Strength: Injecting Ordinal Semantics into LLM-Based Recommenders
+  OLD: r80AFXeIu3
+  NEW: sp089
+
+Selective Distillation for Continual Named Entity Recognition with Memory Replay
+  OLD: k78B8SOuLj
+  NEW: sp090
+
+GeoSearch: Augmenting Worldwide Geolocalization with Web-Scale Reverse Image Search and Image Matching
+  OLD: 0GEvpNtS4R
+  NEW: sp091
+
+Understanding DNNs in Feature Interaction Models: A Dimensional Collapse Perspective
+  OLD: 3VKYL0SzO7
+  NEW: sp092
+
+ACE: Anisotropy-Controllable Embedding for LLM-enhanced Sequential Recommendation
+  OLD: vJ4larPNN5
+  NEW: sp093
+
+One Pass, Any Order: Position-Invariant Listwise Ranking for LLM Recommenders
+  OLD: YsFJTlMMZk
+  NEW: sp094
+
+GATHER: Convergence-Centric Hyper-Entity Retrieval for Zero-Shot Cell-Type Annotation
+  OLD: OMTL9BvLlv
+  NEW: sp095
+
+Towards Unified Affective Reasoning via In-Context Reinforcement Learning
+  OLD: avtPKH48g6
+  NEW: sp096
+
+Same Image, Different Meanings: Toward Retrieval of Context-Dependent Meanings
+  OLD: YKVPdpEJyd
+  NEW: sp097
+
+SocialDropout: Dynamic Agent Dropout for Social Simulation
+  OLD: dWGAbYsHoV
+  NEW: sp098
+
+Is a Busy Search Agent a Good One? Overthinking and Overretrieval at Scale
+  OLD: iY46oeR4VM
+  NEW: sp099
+
+Teaching Small Models When Not to Call Functions: Structured Reasoning for Tool Refusal in Low-Resource Languages
+  OLD: Y6zoKXNIX9
+  NEW: sp100
+
+A Graph-Enhanced MLLM for Hierarchical Multimodal Emotion Understanding and Support in Conversations
+  OLD: A7eHFraRf2
+  NEW: sp101
+
+Adaptive Autoguidance for Item-Side Fairness in Diffusion Recommender Systems
+  OLD: pE13a5dyW7
+  NEW: sp102
+
+Sparton: Fast and Memory-Efficient Triton Kernel for Learned Sparse Retrieval
+  OLD: 1xBlpGRmZB
+  NEW: sp103
+
+G-CoS: An Interpretable Gain-Cost Framework for User Satisfaction Estimation in Generative Information Retrieval
+  OLD: K0wp4SqUag
+  NEW: sp104
+
+Pretraining Exposure Explains Popularity Judgments in Large Language Models
+  OLD: 2ZFLWF1XFs
+  NEW: sp105
+
+Query Performance Prediction under Corpus Growth in Dense Retrieval
+  OLD: DAQiyArTTF
+  NEW: sp106
+
+On the Scaling of Efficiency and Effectiveness in Dense Retrieval
+  OLD: jVRzUvoSAL
+  NEW: sp107
+
+Revisiting the Role of Learned Attention Weighting in SASRec
+  OLD: fsPcSfOmGP
+  NEW: sp108
+
+Mine over Yours: How Authorship Biases Evaluation in Generative Information Retrieval
+  OLD: Ceg21EGxqN
+  NEW: sp109
+
+Efficient Multivector Retrieval with Token-Aware Clustering and Hierarchical Indexing
+  OLD: uS6acptgUq
+  NEW: sp110
+
+Reinforcing User Interest Evolution in Multi-Scenario Learning for recommender systems
+  OLD: WjCQz1rEKy
+  NEW: sp111
+
+Query-Aware Context Selection for Retrieval-Augmented Generation
+  OLD: oDHcijxgRU
+  NEW: sp112
+
+APR: Adaptive Personalised Reranking For Conversational Search
+  OLD: BiufBa1PCW
+  NEW: sp113
+
+Too Many Questions: Deriving Concise and Effective Nugget Banks
+  OLD: 2jTvNgPhcb
+  NEW: sp114
+
+ColBERTSaR: Sparsified ColBERT Index via Product Quantization
+  OLD: kM3V6S2awe
+  NEW: sp115
+
+Auditing Query Drift: Do Users Actually Benefit from Pseudo-Relevance Feedback?
+  OLD: kkW8dFVBgk
+  NEW: sp116
+
+Interpretable Evaluation using Query-Specific Rubric Generation
+  OLD: Ekgy5FTIVY
+  NEW: sp117
+
+SAGE: Solver-Aligned Guided Exploration
+  OLD: 0WF6iwB4zA
+  NEW: sp118
+
+BeLink: Biomedical Entity Linking meets Generative Re-Ranking
+  OLD: rbtlYlDnOi
+  NEW: sp119
+
+The Matryoshka Hypencoder
+  OLD: mZnvWYKjTn
+  NEW: sp120
+
+Simulating the Lateral Reader for News Trustworthiness Reports with an Iterative Multi-Agent RAG System
+  OLD: ZvAXK69h3L
+  NEW: sp121
+
+Learning to Reason for Multi-Step Retrieval of Personal Context in Personalized Question Answering
+  OLD: c8Imcpg1pG
+  NEW: sp122
+
+Sparse Contrastive Learning for Content-Based Cold Item Recommendation
+  OLD: xbRRoV9gEY
+  NEW: sp123
+
+Learning to Route Queries to Heads for Attention-based Re-ranking with Large Language Models
+  OLD: tax7RXfOPP
+  NEW: sp124
+
+Decision-Based Stopping Methods for Systematic Reviews
+  OLD: yPumoCSqVU
+  NEW: sp125
+
+RankEvolve: Automating the Discovery of Retrieval Algorithms via LLM-Driven Evolution
+  OLD: ipEOpCQvIU
+  NEW: sp126
+
+Efficient Memory Alignment for Long-term Conversational Information Seeking
+  OLD: hoEGqBvu6G
+  NEW: sp127
+
+Who Is Shopping With You? How Persona Design Shapes Cognitive and Social Engagement in AI Shopping Agents
+  OLD: a8VEVWnWfp
+  NEW: sp128
+
+Automating Generation of Long-Form Queries
+  OLD: Fsd9V9jDUo
+  NEW: sp129
+
+Optimizing Retriever Selection for LLMs via Learning to Rank
+  OLD: Oo8RvXiNoi
+  NEW: sp130
+
+Scalable K-Means Guided Partitioning for Block-based Sparse Document Retrieval
+  OLD: 51c90XtN4o
+  NEW: sp131
+
+Improving Ad-hoc Search Effectiveness for Conversational Information Retrieval via Model Merging
+  OLD: GPB0o5uZ15
+  NEW: sp132
+
+M-DaQ: Retrieving Multilingual High Quality and Diverse Samples for Instruction Fine-Tuning Datasets
+  OLD: S5l5Nt6Gvu
+  NEW: sp133
+
+Retrieval-Augmented Contrastive Learning for Knowledge Tracing
+  OLD: QbBAjB2Etv
+  NEW: sp134
+
+Clustering-Based Methods for Vector-Based Pseudo-Relevance Feedback
+  OLD: bqfzTFP9Uq
+  NEW: sp135
+
+EvoMem: Timeline-Grounded Validity Adjudication for Non-Monotonic Multi-Agent Memory
+  OLD: Z0Gnv9kMSV
+  NEW: sp136
+
+EviRAG: Evidence-Guided Retrieval-Augmented Generation for Medical Vision-Language Models
+  OLD: uGXyb7QFMd
+  NEW: sp137
+
+MEG-RAG: Quantifying Multi-modal Evidence Grounding for Evidence Selection in RAG
+  OLD: lmk04C7buA
+  NEW: sp138
+
+Rank-R1: Enhancing Reasoning in LLM-based Document Rerankers via Reinforcement Learning
+  OLD: WTqbL8hFXH
+  NEW: sp139
+
+ItemRAG: Item-Based Retrieval-Augmented Generation for LLM-Based Recommendation
+  OLD: IweEV1vgmY
+  NEW: sp140
+
+CroSearch-R1: Better Leveraging Cross-lingual Knowledge for Retrieval-Augmented Generation
+  OLD: yPp5YXTLeP
+  NEW: sp141
+
+Designing Diverse RAG Benchmarks: A Hierarchical Framework for Synthetic Question Generation
+  OLD: gFxWHQwNck
+  NEW: sp142
+
+Why Knowledge Distillation Fails to Scale in Neural Retrieval
+  OLD: 2s3YVtaOen
+  NEW: sp143
+
+Structural and Disentangled Adaptation of Large Vision Language Models for Multimodal Recommendation
+  OLD: yOaNHyYMT2
+  NEW: sp144
+
+Reformulating Post-Training as Matrix Factorization for Joint Embedding Refinement
+  OLD: ZNTaUMWv8S
+  NEW: sp145
+
+HALO: Hyperbolic Adaptation via LoRA Overlay for Hierarchy-Aware Cross-Modal Retrieval
+  OLD: rCGz5Fi0Bz
+  NEW: sp146
+
+Cross-Sensory Comparison of EEG Signals for Brain-Based Information Retrieval
+  OLD: MIpyta3c3k
+  NEW: sp147
+
+PEARL: Profile-based Explainable Agent for Edge LLM Recommendation via Latent Decomposition
+  OLD: WD1vqjvF6z
+  NEW: sp148
+
+Enhancing Judgment Document Generation via Agentic Legal Information Collection and Rubric-Guided Optimization
+  OLD: vGcIymJZdX
+  NEW: sp149
+
+Partial Label Learning-Inspired Denoising Implicit Feedback for Recommendation
+  OLD: CsgjV6ypR3
+  NEW: sp150
+
+L2Rec: Towards Dual-View Understanding of LLMs for Personalized Recommendation
+  OLD: mllkofK2x9
+  NEW: sp151
+

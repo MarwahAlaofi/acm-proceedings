@@ -1,0 +1,2569 @@
+--- sigir26-short-sheridan.xml
++++ sigir26-short-sp-sheridan.xml
+@@ -12,7 +12,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>GLoMar: Benchmarking Web Retrieval in LLMs in Global and Local Marathi Contexts</paper_title>
+
+-    <event_tracking_number>zM9LhBKmwC</event_tracking_number>
+
++    <event_tracking_number>sp001</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -58,7 +58,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>RoTE: Coarse-to-Fine Multi-Level Rotary Time Embedding for Sequential Recommendation</paper_title>
+
+-    <event_tracking_number>My9IexxwP5</event_tracking_number>
+
++    <event_tracking_number>sp002</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -200,7 +200,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Delay-Aware Sequential Recommendation with Dynamic Graphs and Variate-Temporal Decomposition</paper_title>
+
+-    <event_tracking_number>eJXsIgKbmK</event_tracking_number>
+
++    <event_tracking_number>sp003</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -238,7 +238,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Humans, LLMs, and Measures Do Not Align in Attributed Information Retrieval</paper_title>
+
+-    <event_tracking_number>HbgsO6EXJA</event_tracking_number>
+
++    <event_tracking_number>sp004</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -348,7 +348,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Named Entity-Driven Graph Smoothing to Enhance Pretrained Document Embeddings in Clustering Tasks</paper_title>
+
+-    <event_tracking_number>LUlXm3iiv4</event_tracking_number>
+
++    <event_tracking_number>sp005</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -410,7 +410,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>TDHGNN: A Temporal Directed Hypergraph Neural Network for Bitcoin Fraud Detection</paper_title>
+
+-    <event_tracking_number>HvTkKsRxQy</event_tracking_number>
+
++    <event_tracking_number>sp006</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -520,7 +520,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Temporal User-Agnostic Ranking: Detecting Preference Evolution while Preserving Ethical Principles</paper_title>
+
+-    <event_tracking_number>BKPAuJ6PKN</event_tracking_number>
+
++    <event_tracking_number>sp007</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -606,7 +606,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Better than Dense? Investigating the Natural Backward Compatibility of Learned Sparse Representations</paper_title>
+
+-    <event_tracking_number>HRxSOirUTJ</event_tracking_number>
+
++    <event_tracking_number>sp008</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -788,7 +788,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>CoCo: Conformal Confidence Suppression to Optimize Search Results</paper_title>
+
+-    <event_tracking_number>dnsw33kEhw</event_tracking_number>
+
++    <event_tracking_number>sp009</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -922,7 +922,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>PrepRet: Automated Data Preparation Pipeline Selection for Neural Retrieval</paper_title>
+
+-    <event_tracking_number>JbfBnvUtMu</event_tracking_number>
+
++    <event_tracking_number>sp010</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -984,7 +984,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>FEDIN: Frequency-Enhanced Deep Interest Network for Click-Through Rate Prediction</paper_title>
+
+-    <event_tracking_number>Dz62UFpE6R</event_tracking_number>
+
++    <event_tracking_number>sp011</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -1142,7 +1142,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>ZoRRO: A Zero-Weight Personalized Recommender System for Scalable News Recommendation</paper_title>
+
+-    <event_tracking_number>mkMpySMUdw</event_tracking_number>
+
++    <event_tracking_number>sp012</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -1332,7 +1332,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Individual Turing Test: A Case Study of LLM-based Simulation Using Longitudinal Personal Data</paper_title>
+
+-    <event_tracking_number>S0MmMp3pdx</event_tracking_number>
+
++    <event_tracking_number>sp013</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -1498,7 +1498,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>ZIPBid: Hierarchical Zero-shot Incremental Spend Planning for Auto-bidding</paper_title>
+
+-    <event_tracking_number>lL1WcJkMwT</event_tracking_number>
+
++    <event_tracking_number>sp014</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -1728,7 +1728,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>When RAG Disagrees: Detecting Latent Epistemic Conflict via Logit Interactions</paper_title>
+
+-    <event_tracking_number>GGgrxG9LiL</event_tracking_number>
+
++    <event_tracking_number>sp015</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -1814,7 +1814,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Counterfactual Multi-task Learning for Delayed Conversion Modeling in E-commerce Sales Pre-Promotion</paper_title>
+
+-    <event_tracking_number>3vuLsQzPK9</event_tracking_number>
+
++    <event_tracking_number>sp016</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -1900,7 +1900,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>ADaFuSE: Adaptive Diffusion-generated Image and Text Fusion for Interactive Text-to-Image Retrieval</paper_title>
+
+-    <event_tracking_number>Psv8edmAv2</event_tracking_number>
+
++    <event_tracking_number>sp017</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -2066,7 +2066,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Separating Wheat from Chaff: Fine-Grained Defenses Against Poisoning in Multi-Perspective RAG</paper_title>
+
+-    <event_tracking_number>U7zldJ1l62</event_tracking_number>
+
++    <event_tracking_number>sp018</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -2176,7 +2176,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>On the Robustness of LLM Re-Rankings</paper_title>
+
+-    <event_tracking_number>Z1aDD36kKZ</event_tracking_number>
+
++    <event_tracking_number>sp019</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -2238,7 +2238,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>RCLRec: Reverse Curriculum Learning for Modeling Sparse Conversions in Generative Recommendation</paper_title>
+
+-    <event_tracking_number>R0VSUVHusk</event_tracking_number>
+
++    <event_tracking_number>sp020</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -2444,7 +2444,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>AdversarialCoT: Single-Document Retrieval Poisoning for LLM Reasoning</paper_title>
+
+-    <event_tracking_number>oBBsW9L8Y4</event_tracking_number>
+
++    <event_tracking_number>sp021</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -2626,7 +2626,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Differentiable Dual Anchor Negative Sampling for Graph-based Recommendation</paper_title>
+
+-    <event_tracking_number>vvCiXFJwV6</event_tracking_number>
+
++    <event_tracking_number>sp022</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -2760,7 +2760,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>WPGRec: Wavelet Packet Guided Graph Enhanced Sequential Recommendation</paper_title>
+
+-    <event_tracking_number>VjyUuSFTEN</event_tracking_number>
+
++    <event_tracking_number>sp023</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -2846,7 +2846,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Additive Control Variates Dominate Self-Normalisation in Off-Policy Evaluation</paper_title>
+
+-    <event_tracking_number>yvHGUYNizG</event_tracking_number>
+
++    <event_tracking_number>sp024</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -2908,7 +2908,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Calibrating Uncertainty with Cross-Model Consistency for LLM Hallucination Mitigation</paper_title>
+
+-    <event_tracking_number>A26Y0x6L4I</event_tracking_number>
+
++    <event_tracking_number>sp025</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -3042,7 +3042,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Reward Shaping for Robust Refusal in Small Language Models for Retrieval-Augmented Question Answering</paper_title>
+
+-    <event_tracking_number>KyL4aYJ2FB</event_tracking_number>
+
++    <event_tracking_number>sp026</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -3104,7 +3104,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Equip Pre-ranking with Target Attention by Residual Quantization</paper_title>
+
+-    <event_tracking_number>6LC1iSgTZd</event_tracking_number>
+
++    <event_tracking_number>sp027</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -3286,7 +3286,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>A Multi-Granularity Game-Theoretic Approach to Weakly Supervised Temporal Article Grounding</paper_title>
+
+-    <event_tracking_number>SPVCtgLSZr</event_tracking_number>
+
++    <event_tracking_number>sp028</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -3420,7 +3420,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>An Asymmetric-difference based Document Exact Similarity Search Algorithm</paper_title>
+
+-    <event_tracking_number>5wigLLdC3w</event_tracking_number>
+
++    <event_tracking_number>sp029</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -3578,7 +3578,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Beyond Hard Negatives: The Importance of Score Distribution in Knowledge Distillation for Dense Retrieval</paper_title>
+
+-    <event_tracking_number>KAfmZ7rJBz</event_tracking_number>
+
++    <event_tracking_number>sp030</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -3688,7 +3688,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Latent Retrieval Augmented Generation</paper_title>
+
+-    <event_tracking_number>gv0mtgGycH</event_tracking_number>
+
++    <event_tracking_number>sp031</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -3822,7 +3822,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Context Convergence Improves Answering Inferential Questions</paper_title>
+
+-    <event_tracking_number>Ul856fSntC</event_tracking_number>
+
++    <event_tracking_number>sp032</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -3908,7 +3908,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Beyond Unimodal Perspectives: Generative Retrieval with Multimodal Semantics</paper_title>
+
+-    <event_tracking_number>fw9uIgmFQ4</event_tracking_number>
+
++    <event_tracking_number>sp033</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -4098,7 +4098,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>GraphSynthQA: Knowledge-Graph-Guided Query Synthesis and Step-Level Preference Optimization for Web Agents</paper_title>
+
+-    <event_tracking_number>PXZdJgMJg9</event_tracking_number>
+
++    <event_tracking_number>sp034</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -4256,7 +4256,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Targeted Parameter Selection for Rank-Biased Measurement</paper_title>
+
+-    <event_tracking_number>SPuncwNfBx</event_tracking_number>
+
++    <event_tracking_number>sp035</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -4294,7 +4294,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>HE-DeepFM: An FHE Inference System for CTR Prediction with Efficient FM Interactions</paper_title>
+
+-    <event_tracking_number>ILANDyTafk</event_tracking_number>
+
++    <event_tracking_number>sp036</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -4500,7 +4500,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Booking Funnel and Substitution-Aware User Behavior Modeling for Demand Prediction and Joint Room Pricing</paper_title>
+
+-    <event_tracking_number>QTj3QpPr2d</event_tracking_number>
+
++    <event_tracking_number>sp037</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -4754,7 +4754,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>When Context Bites: Detecting RAG Poisoning via Document-Level Attention Collapse</paper_title>
+
+-    <event_tracking_number>nY2SbywgqP</event_tracking_number>
+
++    <event_tracking_number>sp038</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -4912,7 +4912,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Semantic Recall for Vector Search</paper_title>
+
+-    <event_tracking_number>cuHpFjC18z</event_tracking_number>
+
++    <event_tracking_number>sp039</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -5070,7 +5070,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>LLM-based Semantic and ID Representations for Sequential Recommendation</paper_title>
+
+-    <event_tracking_number>BqOfTSTvmq</event_tracking_number>
+
++    <event_tracking_number>sp040</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -5156,7 +5156,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Diagnosing LLM Reranker Behavior Under Fixed Evidence Pools</paper_title>
+
+-    <event_tracking_number>8BUd7Xr006</event_tracking_number>
+
++    <event_tracking_number>sp041</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -5218,7 +5218,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>MSW-NTM: A Spherical Wasserstein Autoencoder for Multimodal Neural Topic Modeling with LLM-Guided Topic Refinement</paper_title>
+
+-    <event_tracking_number>uMdY18tCgN</event_tracking_number>
+
++    <event_tracking_number>sp042</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -5328,7 +5328,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Negotiating the Punchline: Contextual Meme Understanding via Discrete Semantic Energy Minimization</paper_title>
+
+-    <event_tracking_number>36o1F8b3En</event_tracking_number>
+
++    <event_tracking_number>sp043</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -5494,7 +5494,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>The LLM Effect on IR Benchmarks: A Meta-Analysis of Effectiveness, Baselines, and Contamination</paper_title>
+
+-    <event_tracking_number>iM71gRUXK3</event_tracking_number>
+
++    <event_tracking_number>sp044</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -5596,7 +5596,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Revisiting Feedback Models for HyDE</paper_title>
+
+-    <event_tracking_number>lCpbverS8O</event_tracking_number>
+
++    <event_tracking_number>sp045</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -5658,7 +5658,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>From Raw Features to Effective Embeddings: A Three-Stage Approach for Multimodal Recipe Recommendation</paper_title>
+
+-    <event_tracking_number>2bTHPtj1Zv</event_tracking_number>
+
++    <event_tracking_number>sp046</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -5744,7 +5744,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>An Analysis of Attribute Utilization in Side Information-integrated Sequential Recommendation</paper_title>
+
+-    <event_tracking_number>6hauQwey5R</event_tracking_number>
+
++    <event_tracking_number>sp047</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -5878,7 +5878,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>CRED: Calibrated Relational Enhanced Distillation for LLM-Based Pointwise Reranking</paper_title>
+
+-    <event_tracking_number>Z1J9VzOSre</event_tracking_number>
+
++    <event_tracking_number>sp048</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -6012,7 +6012,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Not All Imputations are Trustworthy: An Uncertainty-aware Multi-modal Entity Alignment Framework</paper_title>
+
+-    <event_tracking_number>9pWSYVnOPz</event_tracking_number>
+
++    <event_tracking_number>sp049</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -6146,7 +6146,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Does LLM Relevance Labelling Work for Arabic?</paper_title>
+
+-    <event_tracking_number>EHuXXWfRrc</event_tracking_number>
+
++    <event_tracking_number>sp050</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -6208,7 +6208,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Follow the TRACE: Exploiting Post-Click Trajectories for Online Delayed Conversion Rate Prediction</paper_title>
+
+-    <event_tracking_number>N7sHyXbsDG</event_tracking_number>
+
++    <event_tracking_number>sp051</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -6302,7 +6302,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>StAR: Adaptive Structure-Aware Reranking for Semantic–Structural Alignment in GraphRAG</paper_title>
+
+-    <event_tracking_number>HisIDIDy02</event_tracking_number>
+
++    <event_tracking_number>sp052</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -6364,7 +6364,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>REMICA: Reflective Memory and Interventional Context Alignment with Multi-Agent LLMs for Inappropriate Utterance Detection</paper_title>
+
+-    <event_tracking_number>IwZV8AKsaU</event_tracking_number>
+
++    <event_tracking_number>sp053</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -6474,7 +6474,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>ExODRec: An Explainable Framework for Outlier Detection Model Recommendation</paper_title>
+
+-    <event_tracking_number>7YVeW2Buf8</event_tracking_number>
+
++    <event_tracking_number>sp054</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -6560,7 +6560,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>One-Pass Decoding for Generative Recommendation with WFST-Constrained A$^*$ Search</paper_title>
+
+-    <event_tracking_number>B3lDjEdAPk</event_tracking_number>
+
++    <event_tracking_number>sp055</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -6694,7 +6694,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Load-sensitive Selective Pruning in Dense Retrieval</paper_title>
+
+-    <event_tracking_number>iLWpg8CCAv</event_tracking_number>
+
++    <event_tracking_number>sp056</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -6828,7 +6828,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>DisCoRec: Disentangled Conformity-aware Recommendation with LLM-Guided Multi-View Learning</paper_title>
+
+-    <event_tracking_number>1N6j71gmb8</event_tracking_number>
+
++    <event_tracking_number>sp057</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -6914,7 +6914,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Efficient Query Region Expansion and Decomposition based Spatial Range Query Algorithm</paper_title>
+
+-    <event_tracking_number>BnRkmP2Its</event_tracking_number>
+
++    <event_tracking_number>sp058</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -7072,7 +7072,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>When LLM Judges Inflate Scores: Exploring Overrating in Relevance Assessment</paper_title>
+
+-    <event_tracking_number>i3w0JUIQPO</event_tracking_number>
+
++    <event_tracking_number>sp059</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -7206,7 +7206,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Revisiting Poison Pills for Neural Information Retrieval</paper_title>
+
+-    <event_tracking_number>RfPma7tU9w</event_tracking_number>
+
++    <event_tracking_number>sp060</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -7292,7 +7292,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>SCORE-RAG: Self-Correcting Exploration-Exploitation Retrieval for Multi-hop Question Answering</paper_title>
+
+-    <event_tracking_number>c52wfOjH30</event_tracking_number>
+
++    <event_tracking_number>sp061</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -7426,7 +7426,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Prototype-Calibrated Graph Prompting for Few-Shot Graph Adaptation</paper_title>
+
+-    <event_tracking_number>DOtYPUWgdQ</event_tracking_number>
+
++    <event_tracking_number>sp062</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -7584,7 +7584,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Numerical Hallucinations in Retrieval-Augmented Generation: Detection and Analysis</paper_title>
+
+-    <event_tracking_number>qORNa0UjUF</event_tracking_number>
+
++    <event_tracking_number>sp063</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -7622,7 +7622,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Unifying On- and Off-Policy Variance Reduction Methods</paper_title>
+
+-    <event_tracking_number>QjNzPjhZDj</event_tracking_number>
+
++    <event_tracking_number>sp064</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -7660,7 +7660,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Failing Forward: Understanding Query Failure in Retrieval, Judgment, and Generation</paper_title>
+
+-    <event_tracking_number>Djo4UdGWmG</event_tracking_number>
+
++    <event_tracking_number>sp065</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -7818,7 +7818,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Mitigating Collaborative Semantic ID Staleness in Generative Retrieval</paper_title>
+
+-    <event_tracking_number>6bVxEtrTn9</event_tracking_number>
+
++    <event_tracking_number>sp066</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -7912,7 +7912,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>LUMI: Unsupervised Intent Clustering with Multiple Pseudo-Labels</paper_title>
+
+-    <event_tracking_number>tloDFe2wvE</event_tracking_number>
+
++    <event_tracking_number>sp067</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -7998,7 +7998,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>FAST-MEL: A Fast, Accurate, and Storage Efficient Solution for Multimodal Entity Linking</paper_title>
+
+-    <event_tracking_number>39rDaRIwgN</event_tracking_number>
+
++    <event_tracking_number>sp068</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -8084,7 +8084,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Learning Evidence of Depression Symptoms via Prompt Induction</paper_title>
+
+-    <event_tracking_number>oSimdGBEUj</event_tracking_number>
+
++    <event_tracking_number>sp069</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -8194,7 +8194,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Spectral Tempering for Embedding Compression in Dense Passage Retrieval</paper_title>
+
+-    <event_tracking_number>ihGYrFiGIu</event_tracking_number>
+
++    <event_tracking_number>sp070</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -8280,7 +8280,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Layer-wise Token Compression for Efficient Document Reranking</paper_title>
+
+-    <event_tracking_number>YTLjyGGnzD</event_tracking_number>
+
++    <event_tracking_number>sp071</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -8366,7 +8366,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>BANANA: Bounded Adaptive Navigation Architecture for Nested Archives</paper_title>
+
+-    <event_tracking_number>lAC2lK8UFw</event_tracking_number>
+
++    <event_tracking_number>sp072</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -8524,7 +8524,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>LearnDCG: End-to-End Joint Optimization of Ranker and Loss in Neural Ranking</paper_title>
+
+-    <event_tracking_number>lTUufVOHal</event_tracking_number>
+
++    <event_tracking_number>sp073</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -8610,7 +8610,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>LACONIC: Dense-Level Effectiveness for Scalable Sparse Retrieval via a Two-Phase Training Curriculum</paper_title>
+
+-    <event_tracking_number>Hch2R8eAHy</event_tracking_number>
+
++    <event_tracking_number>sp074</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -8816,7 +8816,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Towards emotional intelligence in conversational AI: How well can LLMs recognise emotion in conversations?</paper_title>
+
+-    <event_tracking_number>wnTcORIe3x</event_tracking_number>
+
++    <event_tracking_number>sp075</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -8878,7 +8878,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>PeaCap: Patch-Level Retrieval for Lightweight Retrieval-Augmented Image Captioning</paper_title>
+
+-    <event_tracking_number>SQZVXFeTFV</event_tracking_number>
+
++    <event_tracking_number>sp076</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -9012,7 +9012,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Modalities of Expert Search: How Users Transition Between Names and Topics</paper_title>
+
+-    <event_tracking_number>qNALTL1EES</event_tracking_number>
+
++    <event_tracking_number>sp077</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -9098,7 +9098,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Retrieval-Augmented Contrastive Learning for Dynamic Graph Anomaly Detection</paper_title>
+
+-    <event_tracking_number>06PgG3YQ83</event_tracking_number>
+
++    <event_tracking_number>sp078</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -9208,7 +9208,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Task-Adaptive Retrieval over Multi-Modal Web Histories via Learned Graph Memory</paper_title>
+
+-    <event_tracking_number>WC6Dm7wITh</event_tracking_number>
+
++    <event_tracking_number>sp079</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -9294,7 +9294,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Exploring and Improving Cross- and Multi-Domain Personalized Question Answering via a Dual Retrieval Augmentation Approach</paper_title>
+
+-    <event_tracking_number>hvbbvUCRGB</event_tracking_number>
+
++    <event_tracking_number>sp080</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -9396,7 +9396,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>HuffmanEmbed: Using Huffman Coding for Embedding Table Compression in Deep Learning Recommendation Models</paper_title>
+
+-    <event_tracking_number>jYUtfDm78S</event_tracking_number>
+
++    <event_tracking_number>sp081</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -9530,7 +9530,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Answer First, Evidence Second? Uncovering Hidden Risks in Well-Structured AI Search Summaries</paper_title>
+
+-    <event_tracking_number>GTqbKjY0UQ</event_tracking_number>
+
++    <event_tracking_number>sp082</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -9736,7 +9736,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>MuPP: Multi-Preference Padding for Sequential Recommendation</paper_title>
+
+-    <event_tracking_number>HxilLOLfyz</event_tracking_number>
+
++    <event_tracking_number>sp083</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -9870,7 +9870,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>RQ-GMM: Residual Quantized Gaussian Mixture Model for Multimodal Semantic Discretization in CTR Prediction</paper_title>
+
+-    <event_tracking_number>bbI06LjG5L</event_tracking_number>
+
++    <event_tracking_number>sp084</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -10124,7 +10124,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>CSyMR: Benchmarking Compositional Music Information Retrieval in Symbolic Music Reasoning</paper_title>
+
+-    <event_tracking_number>ygsP0Jyskr</event_tracking_number>
+
++    <event_tracking_number>sp085</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -10306,7 +10306,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Attend to Fragments: How Key Information Affects Large Language Models for Factual Inconsistency Detection</paper_title>
+
+-    <event_tracking_number>oIP31z0HuR</event_tracking_number>
+
++    <event_tracking_number>sp086</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -10392,7 +10392,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Optimal Re-Ranking Depth</paper_title>
+
+-    <event_tracking_number>BTTozQLPVw</event_tracking_number>
+
++    <event_tracking_number>sp087</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -10502,7 +10502,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>From continuous Pretraining to Domain-Adaptive Reranking via Task Vector Adaptation</paper_title>
+
+-    <event_tracking_number>FD8HlduAqK</event_tracking_number>
+
++    <event_tracking_number>sp088</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -10660,7 +10660,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Every Preference Has Its Strength: Injecting Ordinal Semantics into LLM-Based Recommenders</paper_title>
+
+-    <event_tracking_number>r80AFXeIu3</event_tracking_number>
+
++    <event_tracking_number>sp089</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -10794,7 +10794,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Selective Distillation for Continual Named Entity Recognition with Memory Replay</paper_title>
+
+-    <event_tracking_number>k78B8SOuLj</event_tracking_number>
+
++    <event_tracking_number>sp090</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -10880,7 +10880,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>GeoSearch: Augmenting Worldwide Geolocalization with Web-Scale Reverse Image Search and Image Matching</paper_title>
+
+-    <event_tracking_number>0GEvpNtS4R</event_tracking_number>
+
++    <event_tracking_number>sp091</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -10966,7 +10966,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Understanding DNNs in Feature Interaction Models: A Dimensional Collapse Perspective</paper_title>
+
+-    <event_tracking_number>3VKYL0SzO7</event_tracking_number>
+
++    <event_tracking_number>sp092</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -11076,7 +11076,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>ACE: Anisotropy-Controllable Embedding for LLM-enhanced Sequential Recommendation</paper_title>
+
+-    <event_tracking_number>vJ4larPNN5</event_tracking_number>
+
++    <event_tracking_number>sp093</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -11162,7 +11162,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>One Pass, Any Order: Position-Invariant Listwise Ranking for LLM Recommenders</paper_title>
+
+-    <event_tracking_number>YsFJTlMMZk</event_tracking_number>
+
++    <event_tracking_number>sp094</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -11256,7 +11256,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>GATHER: Convergence-Centric Hyper-Entity Retrieval for Zero-Shot Cell-Type Annotation</paper_title>
+
+-    <event_tracking_number>OMTL9BvLlv</event_tracking_number>
+
++    <event_tracking_number>sp095</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -11390,7 +11390,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Towards Unified Affective Reasoning via In-Context Reinforcement Learning</paper_title>
+
+-    <event_tracking_number>avtPKH48g6</event_tracking_number>
+
++    <event_tracking_number>sp096</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -11476,7 +11476,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Same Image, Different Meanings: Toward Retrieval of Context-Dependent Meanings</paper_title>
+
+-    <event_tracking_number>YKVPdpEJyd</event_tracking_number>
+
++    <event_tracking_number>sp097</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -11538,7 +11538,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>SocialDropout: Dynamic Agent Dropout for Social Simulation</paper_title>
+
+-    <event_tracking_number>dWGAbYsHoV</event_tracking_number>
+
++    <event_tracking_number>sp098</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -11680,7 +11680,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Is a Busy Search Agent a Good One? Overthinking and Overretrieval at Scale</paper_title>
+
+-    <event_tracking_number>iY46oeR4VM</event_tracking_number>
+
++    <event_tracking_number>sp099</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -11838,7 +11838,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Teaching Small Models When Not to Call Functions: Structured Reasoning for Tool Refusal in Low-Resource Languages</paper_title>
+
+-    <event_tracking_number>Y6zoKXNIX9</event_tracking_number>
+
++    <event_tracking_number>sp100</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -11932,7 +11932,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>A Graph-Enhanced MLLM for Hierarchical Multimodal Emotion Understanding and Support in Conversations</paper_title>
+
+-    <event_tracking_number>A7eHFraRf2</event_tracking_number>
+
++    <event_tracking_number>sp101</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -12074,7 +12074,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Adaptive Autoguidance for Item-Side Fairness in Diffusion Recommender Systems</paper_title>
+
+-    <event_tracking_number>pE13a5dyW7</event_tracking_number>
+
++    <event_tracking_number>sp102</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -12208,7 +12208,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Sparton: Fast and Memory-Efficient Triton Kernel for Learned Sparse Retrieval</paper_title>
+
+-    <event_tracking_number>1xBlpGRmZB</event_tracking_number>
+
++    <event_tracking_number>sp103</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -12342,7 +12342,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>G-CoS: An Interpretable Gain-Cost Framework for User Satisfaction Estimation in Generative Information Retrieval</paper_title>
+
+-    <event_tracking_number>K0wp4SqUag</event_tracking_number>
+
++    <event_tracking_number>sp104</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -12452,7 +12452,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Pretraining Exposure Explains Popularity Judgments in Large Language Models</paper_title>
+
+-    <event_tracking_number>2ZFLWF1XFs</event_tracking_number>
+
++    <event_tracking_number>sp105</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -12538,7 +12538,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Query Performance Prediction under Corpus Growth in Dense Retrieval</paper_title>
+
+-    <event_tracking_number>DAQiyArTTF</event_tracking_number>
+
++    <event_tracking_number>sp106</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -12680,7 +12680,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>On the Scaling of Efficiency and Effectiveness in Dense Retrieval</paper_title>
+
+-    <event_tracking_number>jVRzUvoSAL</event_tracking_number>
+
++    <event_tracking_number>sp107</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -12814,7 +12814,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Revisiting the Role of Learned Attention Weighting in SASRec</paper_title>
+
+-    <event_tracking_number>fsPcSfOmGP</event_tracking_number>
+
++    <event_tracking_number>sp108</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -12948,7 +12948,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Mine over Yours: How Authorship Biases Evaluation in Generative Information Retrieval</paper_title>
+
+-    <event_tracking_number>Ceg21EGxqN</event_tracking_number>
+
++    <event_tracking_number>sp109</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -13106,7 +13106,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Efficient Multivector Retrieval with Token-Aware Clustering and Hierarchical Indexing</paper_title>
+
+-    <event_tracking_number>uS6acptgUq</event_tracking_number>
+
++    <event_tracking_number>sp110</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -13216,7 +13216,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Reinforcing User Interest Evolution in Multi-Scenario Learning for recommender systems</paper_title>
+
+-    <event_tracking_number>WjCQz1rEKy</event_tracking_number>
+
++    <event_tracking_number>sp111</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -13302,7 +13302,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Query-Aware Context Selection for Retrieval-Augmented Generation</paper_title>
+
+-    <event_tracking_number>oDHcijxgRU</event_tracking_number>
+
++    <event_tracking_number>sp112</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -13388,7 +13388,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>APR: Adaptive Personalised Reranking For Conversational Search</paper_title>
+
+-    <event_tracking_number>BiufBa1PCW</event_tracking_number>
+
++    <event_tracking_number>sp113</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -13474,7 +13474,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Too Many Questions: Deriving Concise and Effective Nugget Banks</paper_title>
+
+-    <event_tracking_number>2jTvNgPhcb</event_tracking_number>
+
++    <event_tracking_number>sp114</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -13584,7 +13584,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>ColBERTSaR: Sparsified ColBERT Index via Product Quantization</paper_title>
+
+-    <event_tracking_number>kM3V6S2awe</event_tracking_number>
+
++    <event_tracking_number>sp115</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -13750,7 +13750,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Auditing Query Drift: Do Users Actually Benefit from Pseudo-Relevance Feedback?</paper_title>
+
+-    <event_tracking_number>kkW8dFVBgk</event_tracking_number>
+
++    <event_tracking_number>sp116</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -13836,7 +13836,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Interpretable Evaluation using Query-Specific Rubric Generation</paper_title>
+
+-    <event_tracking_number>Ekgy5FTIVY</event_tracking_number>
+
++    <event_tracking_number>sp117</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -13898,7 +13898,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>SAGE: Solver-Aligned Guided Exploration</paper_title>
+
+-    <event_tracking_number>0WF6iwB4zA</event_tracking_number>
+
++    <event_tracking_number>sp118</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -14008,7 +14008,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>BeLink: Biomedical Entity Linking meets Generative Re-Ranking</paper_title>
+
+-    <event_tracking_number>rbtlYlDnOi</event_tracking_number>
+
++    <event_tracking_number>sp119</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -14094,7 +14094,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>The Matryoshka Hypencoder</paper_title>
+
+-    <event_tracking_number>mZnvWYKjTn</event_tracking_number>
+
++    <event_tracking_number>sp120</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -14156,7 +14156,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Simulating the Lateral Reader for News Trustworthiness Reports with an Iterative Multi-Agent RAG System</paper_title>
+
+-    <event_tracking_number>ZvAXK69h3L</event_tracking_number>
+
++    <event_tracking_number>sp121</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -14218,7 +14218,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Learning to Reason for Multi-Step Retrieval of Personal Context in Personalized Question Answering</paper_title>
+
+-    <event_tracking_number>c8Imcpg1pG</event_tracking_number>
+
++    <event_tracking_number>sp122</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -14304,7 +14304,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Sparse Contrastive Learning for Content-Based Cold Item Recommendation</paper_title>
+
+-    <event_tracking_number>xbRRoV9gEY</event_tracking_number>
+
++    <event_tracking_number>sp123</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -14366,7 +14366,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Learning to Route Queries to Heads for Attention-based Re-ranking with Large Language Models</paper_title>
+
+-    <event_tracking_number>tax7RXfOPP</event_tracking_number>
+
++    <event_tracking_number>sp124</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -14508,7 +14508,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Decision-Based Stopping Methods for Systematic Reviews</paper_title>
+
+-    <event_tracking_number>yPumoCSqVU</event_tracking_number>
+
++    <event_tracking_number>sp125</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -14570,7 +14570,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>RankEvolve: Automating the Discovery of Retrieval Algorithms via LLM-Driven Evolution</paper_title>
+
+-    <event_tracking_number>ipEOpCQvIU</event_tracking_number>
+
++    <event_tracking_number>sp126</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -14680,7 +14680,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Efficient Memory Alignment for Long-term Conversational Information Seeking</paper_title>
+
+-    <event_tracking_number>hoEGqBvu6G</event_tracking_number>
+
++    <event_tracking_number>sp127</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -14862,7 +14862,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Who Is Shopping With You? How Persona Design Shapes Cognitive and Social Engagement in AI Shopping Agents</paper_title>
+
+-    <event_tracking_number>a8VEVWnWfp</event_tracking_number>
+
++    <event_tracking_number>sp128</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -14996,7 +14996,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Automating Generation of Long-Form Queries</paper_title>
+
+-    <event_tracking_number>Fsd9V9jDUo</event_tracking_number>
+
++    <event_tracking_number>sp129</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -15154,7 +15154,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Optimizing Retriever Selection for LLMs via Learning to Rank</paper_title>
+
+-    <event_tracking_number>Oo8RvXiNoi</event_tracking_number>
+
++    <event_tracking_number>sp130</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -15224,7 +15224,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Scalable K-Means Guided Partitioning for Block-based Sparse Document Retrieval</paper_title>
+
+-    <event_tracking_number>51c90XtN4o</event_tracking_number>
+
++    <event_tracking_number>sp131</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -15334,7 +15334,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Improving Ad-hoc Search Effectiveness for Conversational Information Retrieval via Model Merging</paper_title>
+
+-    <event_tracking_number>GPB0o5uZ15</event_tracking_number>
+
++    <event_tracking_number>sp132</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -15420,7 +15420,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>M-DaQ: Retrieving Multilingual High Quality and Diverse Samples for Instruction Fine-Tuning Datasets</paper_title>
+
+-    <event_tracking_number>S5l5Nt6Gvu</event_tracking_number>
+
++    <event_tracking_number>sp133</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -15746,7 +15746,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Retrieval-Augmented Contrastive Learning for Knowledge Tracing</paper_title>
+
+-    <event_tracking_number>QbBAjB2Etv</event_tracking_number>
+
++    <event_tracking_number>sp134</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -15856,7 +15856,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Clustering-Based Methods for Vector-Based Pseudo-Relevance Feedback</paper_title>
+
+-    <event_tracking_number>bqfzTFP9Uq</event_tracking_number>
+
++    <event_tracking_number>sp135</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -16006,7 +16006,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>EvoMem: Timeline-Grounded Validity Adjudication for Non-Monotonic Multi-Agent Memory</paper_title>
+
+-    <event_tracking_number>Z0Gnv9kMSV</event_tracking_number>
+
++    <event_tracking_number>sp136</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -16140,7 +16140,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>EviRAG: Evidence-Guided Retrieval-Augmented Generation for Medical Vision-Language Models</paper_title>
+
+-    <event_tracking_number>uGXyb7QFMd</event_tracking_number>
+
++    <event_tracking_number>sp137</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -16394,7 +16394,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>MEG-RAG: Quantifying Multi-modal Evidence Grounding for Evidence Selection in RAG</paper_title>
+
+-    <event_tracking_number>lmk04C7buA</event_tracking_number>
+
++    <event_tracking_number>sp138</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -16528,7 +16528,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Rank-R1: Enhancing Reasoning in LLM-based Document Rerankers via Reinforcement Learning</paper_title>
+
+-    <event_tracking_number>WTqbL8hFXH</event_tracking_number>
+
++    <event_tracking_number>sp139</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -16718,7 +16718,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>ItemRAG: Item-Based Retrieval-Augmented Generation for LLM-Based Recommendation</paper_title>
+
+-    <event_tracking_number>IweEV1vgmY</event_tracking_number>
+
++    <event_tracking_number>sp140</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -16852,7 +16852,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>CroSearch-R1: Better Leveraging Cross-lingual Knowledge for Retrieval-Augmented Generation</paper_title>
+
+-    <event_tracking_number>yPp5YXTLeP</event_tracking_number>
+
++    <event_tracking_number>sp141</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -17010,7 +17010,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Designing Diverse RAG Benchmarks: A Hierarchical Framework for Synthetic Question Generation</paper_title>
+
+-    <event_tracking_number>gFxWHQwNck</event_tracking_number>
+
++    <event_tracking_number>sp142</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -17144,7 +17144,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Why Knowledge Distillation Fails to Scale in Neural Retrieval</paper_title>
+
+-    <event_tracking_number>2s3YVtaOen</event_tracking_number>
+
++    <event_tracking_number>sp143</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -17278,7 +17278,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Structural and Disentangled Adaptation of Large Vision Language Models for Multimodal Recommendation</paper_title>
+
+-    <event_tracking_number>yOaNHyYMT2</event_tracking_number>
+
++    <event_tracking_number>sp144</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -17436,7 +17436,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Reformulating Post-Training as Matrix Factorization for Joint Embedding Refinement</paper_title>
+
+-    <event_tracking_number>ZNTaUMWv8S</event_tracking_number>
+
++    <event_tracking_number>sp145</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -17498,7 +17498,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>HALO: Hyperbolic Adaptation via LoRA Overlay for Hierarchy-Aware Cross-Modal Retrieval</paper_title>
+
+-    <event_tracking_number>rCGz5Fi0Bz</event_tracking_number>
+
++    <event_tracking_number>sp146</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -17560,7 +17560,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Cross-Sensory Comparison of EEG Signals for Brain-Based Information Retrieval</paper_title>
+
+-    <event_tracking_number>MIpyta3c3k</event_tracking_number>
+
++    <event_tracking_number>sp147</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -17622,7 +17622,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>PEARL: Profile-based Explainable Agent for Edge LLM Recommendation via Latent Decomposition</paper_title>
+
+-    <event_tracking_number>WD1vqjvF6z</event_tracking_number>
+
++    <event_tracking_number>sp148</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -17684,7 +17684,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Enhancing Judgment Document Generation via Agentic Legal Information Collection and Rubric-Guided Optimization</paper_title>
+
+-    <event_tracking_number>vGcIymJZdX</event_tracking_number>
+
++    <event_tracking_number>sp149</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -17818,7 +17818,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>Partial Label Learning-Inspired Denoising Implicit Feedback for Recommendation</paper_title>
+
+-    <event_tracking_number>CsgjV6ypR3</event_tracking_number>
+
++    <event_tracking_number>sp150</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
+@@ -17952,7 +17952,7 @@
+     <art_submission_date>12-FEB-2026</art_submission_date>
+
+     <art_approval_date>02-APR-2026</art_approval_date>
+
+     <paper_title>L2Rec: Towards Dual-View Understanding of LLMs for Personalized Recommendation</paper_title>
+
+-    <event_tracking_number>mllkofK2x9</event_tracking_number>
+
++    <event_tracking_number>sp151</event_tracking_number>
+
+     <published_article_number />
+
+     <start_page />
+
+     <end_page />
+
