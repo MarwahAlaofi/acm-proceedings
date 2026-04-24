@@ -337,13 +337,11 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
         ET.SubElement(paper, "abstract").text = s.content.get("abstract", {}).get("value", "").strip()
         #  use sequence numbers as IDs, following the format: sp|fp000
         track_prefix = TRACK_MAP.get(paper_type, "na")
-        tracking_id = f"{track_prefix}{paper_seq:03d}"
-        #  test using event specific id numbers, following the format: sp|fp000
-        tracking_id_test = f"{track_prefix}{s.number:03d}"
+
+        # use the openreview submission ID, following the format: sp|fp000
+        tracking_id = f"{track_prefix}{s.number:03d}"
 
         ET.SubElement(paper, "event_tracking_number").text = tracking_id
-        # DEBUG ONLY – not part of ACM schema
-        ET.SubElement(paper, "event_tracking_number_testing").text = tracking_id_test
 
         ET.SubElement(paper, "published_article_number").text = ""
         ET.SubElement(paper, "start_page").text = ""
