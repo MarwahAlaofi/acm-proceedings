@@ -346,6 +346,7 @@ def export_acm_xml(venue_id, paper_type="Full Paper", output_file="acm_output.xm
         ET.SubElement(paper, "published_article_number").text = ""
         ET.SubElement(paper, "start_page").text = ""
         ET.SubElement(paper, "end_page").text = ""
+        ET.SubElement(paper, "sequence_no").text = paper_seq
         authors_xml = ET.SubElement(paper, "authors")
 
         ids = s.content.get("authorids", {}).get("value", [])
