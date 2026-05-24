@@ -2,9 +2,15 @@
 
 Loads every .xlsx file (every non-empty sheet), normalizes columns,
 prints reviewer counts per role per file, and reports cross-file
-inconsistencies (email/name collisions with diverging affiliation,
-country, or partial name matches). Each file is assumed to be already
-deduplicated, so all checks fire only when a match spans 2+ files.
+inconsistencies (EasyChair ID, email, or name collisions with diverging
+affiliation, country, or partial name matches). Each file is assumed to
+be already deduplicated, so all checks fire only when a match spans 2+
+files.
+
+The EasyChair-style files carry a "#" column with the reviewer's
+EasyChair user id — a strong identity signal. The fp_/sp_ files come
+from OpenReview and have no such column; for those we fall back to
+email/name matching.
 
 Output is colorized for human review: each finding shows the exact
 file/sheet/row coordinates so an editor can jump straight to the cell
@@ -42,6 +48,7 @@ COLUMN_ALIASES = {
     "institution": "affiliation",
     "role": "role",
     "profile": "profile",
+    "#": "easychair_id",
 }
 
 # Files where the column implying role is missing — derive role from file name.
@@ -62,6 +69,7 @@ FILE_TRACK_INFO: dict[str, tuple[str, str | None]] = {
     "SIGIR2026-DC-Reviewers.xlsx":                   ("Doctoral Consortium", None),
     "SIGIR26_Industry_Track_Reviewers.xlsx":         ("Industry", None),
     "SIGIR26_PC_LRE.xlsx":                           ("LRE", None),
+    "SIGIR 2026 workshop reviewers.xlsx":            ("Workshop", "PC"),
     "Tutorials-PCs.xlsx":                            ("Tutorials", None),
     "fp_area-chairs.xlsx":                           ("Full Papers", "AC"),
     "fp_program-committee-members.xlsx":             ("Full Papers", "PC"),
@@ -78,19 +86,45 @@ ROLE_CODE = {
     "track chair":      "Chair",
 }
 
+# Output worksheet ordering: tracks in this list come first (in this order),
+# anything else is appended after, sorted alphabetically. Within each track
+# roles follow ROLE_ORDER (AC → SPC → PC), then alphabetical.
+TRACK_ORDER = [
+    "Full Papers",
+    "Perspectives",
+    "Reproducibility",
+    "Short Papers",
+    "Resource",
+    "Industry",
+    "Demos",
+    "Tutorials",
+    "LRE",
+    "Doctoral Consortium",
+    "Workshop",
+]
+ROLE_ORDER = ["AC", "SPC", "PC"]
+
+
+def _sheet_sort_key(item: tuple[str, str]) -> tuple:
+    track, role = item
+    track_idx = TRACK_ORDER.index(track) if track in TRACK_ORDER else len(TRACK_ORDER)
+    role_idx = ROLE_ORDER.index(role) if role in ROLE_ORDER else len(ROLE_ORDER)
+    return (track_idx, role_idx, track, role)
+
 # Fields displayed for each reviewer record, in canonical order.
 DISPLAY_FIELDS = (
     "first_name", "middle_name", "last_name",
     "email", "affiliation", "country", "role",
 )
 FIELD_LABELS = {
-    "first_name":  "first",
-    "middle_name": "middle",
-    "last_name":   "last",
-    "email":       "email",
-    "affiliation": "aff",
-    "country":     "country",
-    "role":        "role",
+    "first_name":   "first",
+    "middle_name":  "middle",
+    "last_name":    "last",
+    "email":        "email",
+    "affiliation":  "aff",
+    "country":      "country",
+    "role":         "role",
+    "easychair_id": "ec_id",
 }
 
 
@@ -142,6 +176,7 @@ class Reviewer:
     affiliation: str = ""
     role: str = ""
     profile: str = ""
+    easychair_id: str = ""
 
     @property
     def full_name(self) -> str:
@@ -156,6 +191,10 @@ class Reviewer:
     def email_key(self) -> str:
         return self.email.lower().strip()
 
+    @property
+    def easychair_id_key(self) -> str:
+        return self.easychair_id.strip()
+
 
 # ---------------------------------------------------------------------------
 # Loading
@@ -166,6 +205,10 @@ def _clean(value) -> str:
         return ""
     if isinstance(value, float) and pd.isna(value):
         return ""
+    # pandas reads integer cells as floats when the column has any NaN — strip
+    # the trailing ".0" so EasyChair ids stay as plain integer strings.
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
     return str(value).strip()
 
 
@@ -280,6 +323,7 @@ def _df_to_reviewers(df: pd.DataFrame, source_file: str, sheet: str) -> list[Rev
         rec = {f: "" for f in (
             "first_name", "middle_name", "last_name",
             "email", "country", "affiliation", "role", "profile",
+            "easychair_id",
         )}
         for col in df.columns:
             if col in rec:
@@ -371,6 +415,17 @@ def _diff_field(values: Iterable[str]) -> list[str]:
 
 def _spans_multiple_files(group: Iterable[Reviewer]) -> bool:
     return len({r.source_file for r in group}) > 1
+
+
+def _has_distinct_easychair_ids(group: Iterable[Reviewer]) -> bool:
+    """True if the group contains 2+ distinct non-empty EasyChair ids.
+
+    A name match between records with different EC ids is a coincidence
+    (homonyms), not the same person — name-based reports skip these so
+    they don't drown out real inconsistencies.
+    """
+    ids = {r.easychair_id_key for r in group if r.easychair_id_key}
+    return len(ids) >= 2
 
 
 def _levenshtein(a: str, b: str) -> int:
@@ -482,6 +537,38 @@ def _diff_or_missing_fields_in(group: list[Reviewer], fields: Iterable[str]) -> 
 # Cross-file checks
 # ---------------------------------------------------------------------------
 
+def report_easychair_id_collisions(reviewers: list[Reviewer]) -> int:
+    """Same EasyChair user id across files = same person → flag any drift.
+
+    Only the EasyChair-source files carry a "#" column; sp_/fp_ files come
+    from OpenReview and have no id, so they're naturally excluded.
+    """
+    by_id: dict[str, list[Reviewer]] = defaultdict(list)
+    for r in reviewers:
+        if r.easychair_id_key:
+            by_id[r.easychair_id_key].append(r)
+
+    _banner("EASYCHAIR ID COLLISIONS — same '#', diverging name / email / affiliation / country",
+            C.MAG)
+    issues = 0
+    fields = ("first_name", "middle_name", "last_name",
+              "email", "affiliation", "country")
+    for ec_id, group in sorted(by_id.items()):
+        if not _spans_multiple_files(group):
+            continue
+        diffs = _diff_or_missing_fields_in(group, fields)
+        if not diffs:
+            continue
+        issues += 1
+        _issue_header("ec_id", ec_id, diff_fields=sorted(diffs, key=fields.index))
+        _print_records(group, diffs, fields)
+    if issues == 0:
+        print(f"  {C.GREEN}✓ no inconsistencies{C.RESET}")
+    else:
+        print(f"\n  {C.DIM}{issues} EasyChair id(s) with diverging fields{C.RESET}")
+    return issues
+
+
 def report_email_collisions(reviewers: list[Reviewer]) -> int:
     by_email: dict[str, list[Reviewer]] = defaultdict(list)
     for r in reviewers:
@@ -517,6 +604,8 @@ def report_same_name_diff_email(by_name: dict[tuple[str, str], list[Reviewer]]) 
     for key, group in sorted(by_name.items()):
         if not _spans_multiple_files(group):
             continue
+        if _has_distinct_easychair_ids(group):
+            continue
         emails = _diff_field((r.email for r in group))
         if len(emails) <= 1:
             continue
@@ -542,6 +631,8 @@ def report_same_name_diff_aff(by_name: dict[tuple[str, str], list[Reviewer]]) ->
     fields = ("email", "affiliation", "country")
     for key, group in sorted(by_name.items()):
         if not _spans_multiple_files(group):
+            continue
+        if _has_distinct_easychair_ids(group):
             continue
         affs = _diff_field((r.affiliation for r in group))
         countries = _diff_field((r.country for r in group))
@@ -588,6 +679,8 @@ def report_same_last_initial_diff_first(reviewers: list[Reviewer]) -> int:
                 b_recs = buckets[names[j]]
                 combined = a_recs + b_recs
                 if not _spans_multiple_files(combined):
+                    continue
+                if _has_distinct_easychair_ids(combined):
                     continue
                 a_affs = {r.affiliation.lower() for r in a_recs if r.affiliation}
                 b_affs = {r.affiliation.lower() for r in b_recs if r.affiliation}
@@ -704,7 +797,7 @@ def write_merged_workbook(reviewers: list[Reviewer], output_path: str) -> None:
     columns = ["first name", "middle name", "last name", "affiliation"]
     used_names: set[str] = set()
     with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
-        for (track, role_code) in sorted(grouped):
+        for (track, role_code) in sorted(grouped, key=_sheet_sort_key):
             sheet_label = f"{track} - {role_code}"
             sheet_name = _safe_sheet_name(sheet_label, used_names)
             rows = [
@@ -760,6 +853,7 @@ def main(argv: list[str] | None = None) -> int:
     report_per_file_role_counts(reviewers)
 
     total = 0
+    total += report_easychair_id_collisions(reviewers)
     total += report_email_collisions(reviewers)
 
     by_name: dict[tuple[str, str], list[Reviewer]] = defaultdict(list)
