@@ -399,6 +399,13 @@ def report_per_file_role_counts(reviewers: list[Reviewer]) -> None:
             print(f"    {role:40s} {C.GREEN}{per_role[role]:>5d}{C.RESET}")
         print(f"    {C.DIM}{'-- TOTAL --':40s} {len(recs):>5d}{C.RESET}")
 
+    chairs = sum(1 for r in reviewers if _is_track_chair(r))
+    non_chairs = len(reviewers) - chairs
+    print(f"\n  {C.BOLD}OVERALL{C.RESET}")
+    print(f"    {'reviewers (non-chairs)':40s} {C.GREEN}{non_chairs:>5d}{C.RESET}")
+    print(f"    {'track chairs':40s} {C.GREEN}{chairs:>5d}{C.RESET}")
+    print(f"    {C.DIM}{'-- TOTAL ROWS --':40s} {len(reviewers):>5d}{C.RESET}")
+
 
 # ---------------------------------------------------------------------------
 # Display helpers
