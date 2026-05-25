@@ -534,6 +534,70 @@ def _diff_or_missing_fields_in(group: list[Reviewer], fields: Iterable[str]) -> 
 
 
 # ---------------------------------------------------------------------------
+# Within-file duplicate check
+# ---------------------------------------------------------------------------
+
+def report_within_file_duplicates(reviewers: list[Reviewer]) -> int:
+    """Flag potential duplicates inside a single file.
+
+    Two tiers, in this order per file:
+      1. Full match — same first+last name and every displayed field agrees
+         (no missing values either).
+      2. Name match — same first+last name but other fields differ or are
+         partially filled.
+    """
+    by_file: dict[str, list[Reviewer]] = defaultdict(list)
+    for r in reviewers:
+        by_file[r.source_file].append(r)
+
+    _banner("WITHIN-FILE DUPLICATES — same reviewer repeated in one file", C.MAG)
+    fields = ("first_name", "middle_name", "last_name",
+              "email", "affiliation", "country", "role")
+    issues = 0
+
+    for fname in sorted(by_file):
+        recs = by_file[fname]
+        by_name: dict[tuple[str, str], list[Reviewer]] = defaultdict(list)
+        for r in recs:
+            if r.first_name or r.last_name:
+                by_name[r.name_key].append(r)
+
+        full_matches: list[tuple[tuple[str, str], list[Reviewer]]] = []
+        name_matches: list[tuple[tuple[str, str], list[Reviewer]]] = []
+        for key, group in by_name.items():
+            if len(group) < 2:
+                continue
+            diffs = _diff_or_missing_fields_in(group, fields)
+            if not diffs:
+                full_matches.append((key, group))
+            else:
+                name_matches.append((key, group))
+
+        if not full_matches and not name_matches:
+            continue
+
+        print(f"\n  {C.BOLD}{fname}{C.RESET}")
+
+        for key, group in sorted(full_matches):
+            issues += 1
+            _issue_header("full duplicate", f"{key[0]} {key[1]}".strip())
+            _print_records(group, set(), fields)
+
+        for key, group in sorted(name_matches):
+            issues += 1
+            diffs = _diff_or_missing_fields_in(group, fields)
+            _issue_header("name duplicate", f"{key[0]} {key[1]}".strip(),
+                           diff_fields=sorted(diffs, key=fields.index))
+            _print_records(group, diffs, fields)
+
+    if issues == 0:
+        print(f"  {C.GREEN}✓ no duplicates{C.RESET}")
+    else:
+        print(f"\n  {C.DIM}{issues} duplicate group(s) found{C.RESET}")
+    return issues
+
+
+# ---------------------------------------------------------------------------
 # Cross-file checks
 # ---------------------------------------------------------------------------
 
@@ -800,6 +864,10 @@ def write_merged_workbook(reviewers: list[Reviewer], output_path: str) -> None:
         for (track, role_code) in sorted(grouped, key=_sheet_sort_key):
             sheet_label = f"{track} - {role_code}"
             sheet_name = _safe_sheet_name(sheet_label, used_names)
+            sorted_recs = sorted(
+                grouped[(track, role_code)],
+                key=lambda r: (r.first_name.lower(), r.last_name.lower()),
+            )
             rows = [
                 {
                     "first name":  r.first_name,
@@ -807,7 +875,7 @@ def write_merged_workbook(reviewers: list[Reviewer], output_path: str) -> None:
                     "last name":   r.last_name,
                     "affiliation": r.affiliation,
                 }
-                for r in grouped[(track, role_code)]
+                for r in sorted_recs
             ]
             pd.DataFrame(rows, columns=columns).to_excel(
                 writer, sheet_name=sheet_name, index=False,
@@ -853,6 +921,7 @@ def main(argv: list[str] | None = None) -> int:
     report_per_file_role_counts(reviewers)
 
     total = 0
+    total += report_within_file_duplicates(reviewers)
     total += report_easychair_id_collisions(reviewers)
     total += report_email_collisions(reviewers)
 
