@@ -23,7 +23,9 @@ No file is modified.
 from __future__ import annotations
 
 import argparse
+import io
 import os
+import re
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
@@ -1038,6 +1040,110 @@ def write_merged_workbook(reviewers: list[Reviewer], output_path: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# ANSI capture → HTML report
+# ---------------------------------------------------------------------------
+
+
+# ANSI codes the script actually emits (see class C and the bare \033[1m used
+# in _banner). Each maps to inline CSS for the HTML report.
+_ANSI_STYLE = {
+    "0": None,  # reset
+    "1": "font-weight:bold",
+    "91": "color:#ff5555",  # bright red
+    "92": "color:#50fa7b",  # bright green
+    "93": "color:#f1fa8c",  # bright yellow
+    "94": "color:#8be9fd",  # bright blue
+    "95": "color:#ff79c6",  # bright magenta
+    "96": "color:#8be9fd",  # bright cyan
+    "97": "color:#ffffff",  # bright white
+    "38;5;250": "color:#bcbcbc",  # light grey
+    "38;5;253": "color:#dadada",  # near-white grey
+}
+
+_ANSI_RE = re.compile(r"\033\[([0-9;]*)m")
+
+
+class _Tee(io.TextIOBase):
+    """Write-through stream: forwards to the real stdout AND a capture buffer."""
+
+    def __init__(self, real: io.TextIOBase, capture: io.StringIO) -> None:
+        self._real = real
+        self._capture = capture
+
+    def write(self, s: str) -> int:
+        self._real.write(s)
+        self._capture.write(s)
+        return len(s)
+
+    def flush(self) -> None:
+        self._real.flush()
+
+    def isatty(self) -> bool:
+        return self._real.isatty()
+
+
+def _ansi_to_html(text: str) -> str:
+    """Convert ANSI-coded text to an HTML fragment with inline-styled spans."""
+    out: list[str] = []
+    open_spans = 0
+    i = 0
+    for m in _ANSI_RE.finditer(text):
+        chunk = text[i:m.start()]
+        if chunk:
+            out.append(
+                chunk.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            )
+        codes = [c for c in m.group(1).split(";") if c] or ["0"]
+        # Multi-part codes like "38;5;250" arrive as separate split tokens — try
+        # them as a triple first, then fall back to single codes.
+        triple = ";".join(codes[:3]) if len(codes) >= 3 else None
+        if triple and triple in _ANSI_STYLE:
+            style = _ANSI_STYLE[triple]
+            codes = codes[3:]
+            if style:
+                out.append(f'<span style="{style}">')
+                open_spans += 1
+        for code in codes:
+            style = _ANSI_STYLE.get(code)
+            if style is None:
+                # Reset → close every open span
+                out.append("</span>" * open_spans)
+                open_spans = 0
+            else:
+                out.append(f'<span style="{style}">')
+                open_spans += 1
+        i = m.end()
+    tail = text[i:]
+    if tail:
+        out.append(
+            tail.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        )
+    out.append("</span>" * open_spans)
+    return "".join(out)
+
+
+_HTML_TEMPLATE = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>scan_referees report</title>
+<style>
+  body {{ background:#1e1f29; color:#f8f8f2; font-family:
+         "SF Mono", Menlo, Consolas, monospace; padding:1.5rem; font-size:13px; }}
+  pre  {{ white-space:pre-wrap; word-break:break-word; margin:0; line-height:1.4; }}
+</style>
+</head>
+<body><pre>{body}</pre></body>
+</html>
+"""
+
+
+def _save_html_report(captured: str, path: str) -> None:
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(_HTML_TEMPLATE.format(body=_ansi_to_html(captured)))
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -1063,7 +1169,33 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Skip writing the merged xlsx; only print the inconsistency report.",
     )
+    p.add_argument(
+        "--report",
+        default=None,
+        help="Save the colorized console output as a self-contained HTML file.",
+    )
     return p.parse_args(argv)
+
+
+def _force_colors_on() -> None:
+    """Re-enable the C palette regardless of TTY detection.
+
+    Used when --report is set so the captured stream contains ANSI codes that
+    can be translated to HTML, even when stdout is being piped.
+    """
+    global _COLOR
+    _COLOR = True
+    C.RESET = "\033[0m"
+    C.BOLD = "\033[1m"
+    C.DIM = "\033[38;5;250m"
+    C.RED = "\033[91m"
+    C.GREEN = "\033[92m"
+    C.YEL = "\033[93m"
+    C.BLUE = "\033[94m"
+    C.MAG = "\033[95m"
+    C.CYAN = "\033[96m"
+    C.GREY = "\033[38;5;253m"
+    C.WHITE = "\033[97m"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1072,6 +1204,23 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Directory not found: {args.input}", file=sys.stderr)
         return 2
 
+    capture: io.StringIO | None = None
+    real_stdout = sys.stdout
+    if args.report:
+        capture = io.StringIO()
+        _force_colors_on()
+        sys.stdout = _Tee(real_stdout, capture)
+
+    try:
+        return _run(args)
+    finally:
+        if capture is not None:
+            sys.stdout = real_stdout
+            _save_html_report(capture.getvalue(), args.report)
+            print(f"{C.GREEN}✓ wrote HTML report to {args.report}{C.RESET}")
+
+
+def _run(args: argparse.Namespace) -> int:
     reviewers = load_all(args.input)
     normalize(reviewers)
     print(f"{C.BOLD}Loaded {len(reviewers)} reviewer rows from {args.input}/{C.RESET}")
