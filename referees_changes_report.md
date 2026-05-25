@@ -12,7 +12,7 @@ trimmed full string; non-matching values pass through unchanged.
 | Excel artifacts | Files starting with `~$` (lock files for open workbooks) are skipped. |
 | Empty rows | Rows with no first name, last name, email, or profile are dropped. |
 | Profile column | If `profile` looks like an email and `email` is empty, `email` is filled from `profile`. |
-| Whitespace | Every cell is `strip()`-ed; pandas `NaN`/`None` becomes `""`. |
+| Whitespace | Every cell collapses internal whitespace runs (line breaks, tabs, multi-space) into a single space and is `strip()`-ed; pandas `NaN`/`None` becomes `""`. Substitution lookups always see normalized strings, so the keys below never need newline variants. |
 | Name capitalization | First / middle / last name title-cased only when the cell is *entirely* lowercase or *entirely* uppercase. Mixed-case strings (`de Vries`, `McDonald`) are preserved. |
 | Track chairs | Records whose `role` is exactly `track chair` (case-insensitive) are kept for consistency checks but excluded from the merged `referees.xlsx`. |
 | Merged output | Per-sheet rows in `referees.xlsx` are sorted alphabetically by first name, then last name (case-insensitive). |
@@ -30,7 +30,7 @@ trimmed full string; non-matching values pass through unchanged.
 | `royal melbourne institute of technology` | `RMIT University` |
 | `adobe systems` | `Adobe` |
 | `vody` | `Vody, Inc.` |
-| `nask - national research institute` *(also double-space variant)* | `NASK National Research Institute` |
+| `nask - national research institute` | `NASK National Research Institute` |
 | `copenhagen university` | `University of Copenhagen` |
 | `shanghai jiaotong university` | `Shanghai Jiao Tong University` |
 | `aampe` | `Aampe` |
@@ -64,15 +64,24 @@ trimmed full string; non-matching values pass through unchanged.
 | `universidad da coruña` | `Universidade da Coruña` |
 | `it polytechnic university of bari` | `Polytechnic University of Bari` |
 | `polytechnic institute of bari` | `Polytechnic University of Bari` |
-| `th mittelhessen - university of applied sciences & herder\ninstitute for historical research on east central europe` *(also space-joined variant)* | `Technische Hochschule Mittelhessen` |
+| `th mittelhessen - university of applied sciences & herder institute for historical research on east central europe` | `TH Mittelhessen & Herder Institute for Historical Research on East Central Europe` |
 | `cmu, carnegie mellon university` | `Carnegie Mellon University` |
 | `department of informatics, national and kapodistrian university of athens` | `National and Kapodistrian University of Athens` |
 | `dept. of informatics and telecommunications, national and kapodistrian university of athens` | `National and Kapodistrian University of Athens` |
 | `technische universität wien` | `TU Wien` |
 | `university of innsbruck` | `Universität Innsbruck` |
 | `indian institute of science education and research, kolkata` | `IISER Kolkata` |
+| `indian institute of science education and research (iiser) kolkata, india` | `Indian Institute of Science Education and Research (IISER) Kolkata` |
 | `university of padua` | `Università degli Studi di Padova` |
 | `universita' degli studi di padova` | `Università degli Studi di Padova` |
 | `university grenoble alpes` | `Université Grenoble Alpes` |
 | `radboud university and spinque` | `Radboud University & Spinque` |
 | `inesc tec and faculty of engineering, university of porto` | `Universidade do Porto` |
+| `tongji university, shanghai, china` | `Tongji University` |
+| `computer science and systems laboratory, aix-marseille university` | `Aix-Marseille University` |
+| `department of information and electronic engineering, international hellenic university` | `International Hellenic University` |
+| `mixedbread and national institute of informtics (nii)` | `Mixedbread and National Institute of Informatics (NII)` |
+| `university of illinois at urbana-champaign` | `University of Illinois Urbana-Champaign` |
+| `universita della svizzera italiana` | `Università della Svizzera Italiana (USI)` |
+| `università della svizzera italiana` | `Università della Svizzera Italiana (USI)` |
+| `università della svizzera italiana, usi` | `Università della Svizzera Italiana (USI)` |
