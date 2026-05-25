@@ -1016,7 +1016,7 @@ def write_merged_workbook(reviewers: list[Reviewer], output_path: str) -> None:
             sheet_name = _safe_sheet_name(sheet_label, used_names)
             sorted_recs = sorted(
                 grouped[(track, role_code)],
-                key=lambda r: (r.first_name.lower(), r.last_name.lower()),
+                key=lambda r: (r.last_name.lower(), r.first_name.lower(), r.affiliation.lower()),
             )
             rows = [
                 {
