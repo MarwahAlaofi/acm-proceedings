@@ -63,27 +63,27 @@ FILE_IMPLIED_ROLE = {
 # Per-source-file track label, plus optional role override applied when the
 # whole file represents one role (used for the merged output).
 FILE_TRACK_INFO: dict[str, tuple[str, str | None]] = {
-    "Reproducibility PC proceedings.xlsx":           ("Reproducibility", None),
-    "SIGIR 2026 Demo Track Reviewer Info.xlsx":      ("Demos", None),
-    "SIGIR 2026 Resource Track PC.xlsx":             ("Resource", None),
-    "SIGIR2026-DC-Reviewers.xlsx":                   ("Doctoral Consortium", None),
-    "SIGIR26_Industry_Track_Reviewers.xlsx":         ("Industry", None),
-    "SIGIR26_PC_LRE.xlsx":                           ("LRE", None),
-    "SIGIR 2026 workshop reviewers.xlsx":            ("Workshop", "PC"),
-    "Tutorials-PCs.xlsx":                            ("Tutorials", None),
-    "fp_area-chairs.xlsx":                           ("Full Papers", "AC"),
-    "fp_program-committee-members.xlsx":             ("Full Papers", "PC"),
-    "fp_senior-program-committee-members.xlsx":      ("Full Papers", "SPC"),
-    "perspectivesPCaffiliationscheck.xlsx":          ("Perspectives", None),
-    "sp_program-committee-members.xlsx":             ("Short Papers", "PC"),
-    "sp_senior-program-committee-members.xlsx":      ("Short Papers", "SPC"),
+    "Reproducibility PC proceedings.xlsx": ("Reproducibility", None),
+    "SIGIR 2026 Demo Track Reviewer Info.xlsx": ("Demos", None),
+    "SIGIR 2026 Resource Track PC.xlsx": ("Resource", None),
+    "SIGIR2026-DC-Reviewers.xlsx": ("Doctoral Consortium", None),
+    "SIGIR26_Industry_Track_Reviewers.xlsx": ("Industry", None),
+    "SIGIR26_PC_LRE.xlsx": ("LRE", None),
+    "SIGIR 2026 workshop reviewers.xlsx": ("Workshop", "PC"),
+    "Tutorials-PCs.xlsx": ("Tutorials", None),
+    "fp_area-chairs.xlsx": ("Full Papers", "AC"),
+    "fp_program-committee-members.xlsx": ("Full Papers", "PC"),
+    "fp_senior-program-committee-members.xlsx": ("Full Papers", "SPC"),
+    "perspectivesPCaffiliationscheck.xlsx": ("Perspectives", None),
+    "sp_program-committee-members.xlsx": ("Short Papers", "PC"),
+    "sp_senior-program-committee-members.xlsx": ("Short Papers", "SPC"),
 }
 
 # Free-text role string → short canonical code for sheet naming.
 ROLE_CODE = {
-    "pc member":        "PC",
+    "pc member": "PC",
     "senior pc member": "SPC",
-    "track chair":      "Chair",
+    "track chair": "Chair",
 }
 
 # Output worksheet ordering: tracks in this list come first (in this order),
@@ -111,19 +111,25 @@ def _sheet_sort_key(item: tuple[str, str]) -> tuple:
     role_idx = ROLE_ORDER.index(role) if role in ROLE_ORDER else len(ROLE_ORDER)
     return (track_idx, role_idx, track, role)
 
+
 # Fields displayed for each reviewer record, in canonical order.
 DISPLAY_FIELDS = (
-    "first_name", "middle_name", "last_name",
-    "email", "affiliation", "country", "role",
+    "first_name",
+    "middle_name",
+    "last_name",
+    "email",
+    "affiliation",
+    "country",
+    "role",
 )
 FIELD_LABELS = {
-    "first_name":   "first",
-    "middle_name":  "middle",
-    "last_name":    "last",
-    "email":        "email",
-    "affiliation":  "aff",
-    "country":      "country",
-    "role":         "role",
+    "first_name": "first",
+    "middle_name": "middle",
+    "last_name": "last",
+    "email": "email",
+    "affiliation": "aff",
+    "country": "country",
+    "role": "role",
     "easychair_id": "ec_id",
 }
 
@@ -131,6 +137,7 @@ FIELD_LABELS = {
 # ---------------------------------------------------------------------------
 # Color helpers (auto-disabled if stdout is not a TTY or NO_COLOR is set)
 # ---------------------------------------------------------------------------
+
 
 def _color_enabled() -> bool:
     if os.environ.get("NO_COLOR"):
@@ -146,28 +153,29 @@ _COLOR = _color_enabled()
 class C:
     # Bright palette tuned for dark terminals: hi-intensity foregrounds (90–97)
     # for the eye-catching bits, plain grey (90) for muted labels.
-    RESET = "\033[0m"     if _COLOR else ""
-    BOLD  = "\033[1m"     if _COLOR else ""
-    DIM   = "\033[38;5;250m" if _COLOR else "" # light grey — readable on dark bg
-    RED   = "\033[91m"    if _COLOR else ""   # bright red
-    GREEN = "\033[92m"    if _COLOR else ""   # bright green
-    YEL   = "\033[93m"    if _COLOR else ""   # bright yellow
-    BLUE  = "\033[94m"    if _COLOR else ""   # bright blue
-    MAG   = "\033[95m"    if _COLOR else ""   # bright magenta
-    CYAN  = "\033[96m"    if _COLOR else ""   # bright cyan
-    GREY  = "\033[38;5;253m" if _COLOR else "" # near-white grey for file/sheet
-    WHITE = "\033[97m"    if _COLOR else ""   # bright white for row numbers
+    RESET = "\033[0m" if _COLOR else ""
+    BOLD = "\033[1m" if _COLOR else ""
+    DIM = "\033[38;5;250m" if _COLOR else ""  # light grey — readable on dark bg
+    RED = "\033[91m" if _COLOR else ""  # bright red
+    GREEN = "\033[92m" if _COLOR else ""  # bright green
+    YEL = "\033[93m" if _COLOR else ""  # bright yellow
+    BLUE = "\033[94m" if _COLOR else ""  # bright blue
+    MAG = "\033[95m" if _COLOR else ""  # bright magenta
+    CYAN = "\033[96m" if _COLOR else ""  # bright cyan
+    GREY = "\033[38;5;253m" if _COLOR else ""  # near-white grey for file/sheet
+    WHITE = "\033[97m" if _COLOR else ""  # bright white for row numbers
 
 
 # ---------------------------------------------------------------------------
 # Reviewer record
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class Reviewer:
     source_file: str
     sheet: str
-    row_number: int   # 1-based Excel row including the header (row 1 = header)
+    row_number: int  # 1-based Excel row including the header (row 1 = header)
     first_name: str = ""
     middle_name: str = ""
     last_name: str = ""
@@ -200,6 +208,7 @@ class Reviewer:
 # Loading
 # ---------------------------------------------------------------------------
 
+
 def _clean(value) -> str:
     if value is None:
         return ""
@@ -209,7 +218,9 @@ def _clean(value) -> str:
     # the trailing ".0" so EasyChair ids stay as plain integer strings.
     if isinstance(value, float) and value.is_integer():
         return str(int(value))
-    return str(value).strip()
+    # Collapse all whitespace runs (line breaks, tabs, multi-space) into a
+    # single space so downstream lookups don't need to know about variants.
+    return " ".join(str(value).split())
 
 
 # Affiliation / country canonicalizations (exact, case-insensitive whole-string).
@@ -217,7 +228,6 @@ AFFILIATION_REPLACEMENTS = {
     "royal melbourne institute of technology": "RMIT University",
     "adobe systems": "Adobe",
     "vody": "Vody, Inc.",
-    "nask -  national research institute": "NASK National Research Institute",
     "nask - national research institute": "NASK National Research Institute",
     "copenhagen university": "University of Copenhagen",
     "shanghai jiaotong university": "Shanghai Jiao Tong University",
@@ -227,21 +237,18 @@ AFFILIATION_REPLACEMENTS = {
     "gesis-leibniz institute for the social sciences": "GESIS – Leibniz Institute for the Social Sciences",
     "national institute of informatics": "National Institute of Informatics (NII)",
     "nii": "National Institute of Informatics (NII)",
-    "universidade federal de minas gerais, universidade federal de minas gerais":
-        "Universidade Federal de Minas Gerais",
+    "universidade federal de minas gerais, universidade federal de minas gerais": "Universidade Federal de Minas Gerais",
     "friedrich-schiller universität jena": "Friedrich-Schiller-Universität Jena",
     "mst": "Missouri University of Science and Technology",
     "service australia": "Services Australia",
     "university of stavanger and google deepmind": "University of Stavanger & Google DeepMind",
-    "saarland university of applied sciences":
-        "Saarland University of Applied Sciences (htw saar)",
+    "saarland university of applied sciences": "Saarland University of Applied Sciences (htw saar)",
     "uned": "Universidad Nacional de Educación a Distancia",
     "university de montreal": "University of Montreal",
     "city st george's, university of london uk": "City St George's, University of London",
     "university of passau": "Universität Passau",
     "technion, israel institute of technology": "Technion - Israel Institute of Technology",
-    "institut de recherche en informatique de toulouse":
-        "Institut de Recherche en Informatique de Toulouse (IRIT)",
+    "institut de recherche en informatique de toulouse": "Institut de Recherche en Informatique de Toulouse (IRIT)",
     "irit": "Institut de Recherche en Informatique de Toulouse (IRIT)",
     "university of tübingen": "Eberhard-Karls-Universität Tübingen",
     "university of massachusetts at amherst": "University of Massachusetts Amherst",
@@ -253,18 +260,14 @@ AFFILIATION_REPLACEMENTS = {
     "universidad da coruña": "Universidade da Coruña",
     "it polytechnic university of bari": "Polytechnic University of Bari",
     "polytechnic institute of bari": "Polytechnic University of Bari",
-    "th mittelhessen - university of applied sciences & herder\ninstitute for historical research on east central europe":
-        "TH Mittelhessen & Herder Institute for Historical Research on East Central Europe",
-    "th mittelhessen - university of applied sciences & herder institute for historical research on east central europe":
-        "TH Mittelhessen & Herder Institute for Historical Research on East Central Europe",
+    "th mittelhessen - university of applied sciences & herder institute for historical research on east central europe": "TH Mittelhessen & Herder Institute for Historical Research on East Central Europe",
     "cmu, carnegie mellon university": "Carnegie Mellon University",
-    "department of informatics, national and kapodistrian university of athens":
-        "National and Kapodistrian University of Athens",
-    "dept. of informatics and telecommunications, national and kapodistrian university of athens":
-        "National and Kapodistrian University of Athens",
+    "department of informatics, national and kapodistrian university of athens": "National and Kapodistrian University of Athens",
+    "dept. of informatics and telecommunications, national and kapodistrian university of athens": "National and Kapodistrian University of Athens",
     "technische universität wien": "TU Wien",
     "university of innsbruck": "Universität Innsbruck",
     "indian institute of science education and research, kolkata": "IISER Kolkata",
+    "indian institute of science education and research (iiser) kolkata, india": "IISER Kolkata",
     "university of milano bicocca": "University of Milano - Bicocca",
     "university of milan - bicocca": "University of Milano - Bicocca",
     "university of padua": "Università degli Studi di Padova",
@@ -272,6 +275,19 @@ AFFILIATION_REPLACEMENTS = {
     "university grenoble alpes": "Université Grenoble Alpes",
     "radboud university and spinque": "Radboud University & Spinque",
     "inesc tec and faculty of engineering, university of porto": "Universidade do Porto",
+    "tongji university, shanghai, china": "Tongji University",
+    "computer science and systems laboratory, aix-marseille university": "Aix-Marseille University",
+    "department of information and electronic engineering, international hellenic university": "International Hellenic University",
+    "mixedbread and national institute of informtics (nii)":
+        "Mixedbread and National Institute of Informatics (NII)",
+    "university of illinois at urbana-champaign":
+        "University of Illinois Urbana-Champaign",
+    "universita della svizzera italiana":
+        "Università della Svizzera Italiana (USI)",
+    "università della svizzera italiana":
+        "Università della Svizzera Italiana (USI)",
+    "università della svizzera italiana, usi":
+        "Università della Svizzera Italiana (USI)",
 }
 COUNTRY_REPLACEMENTS = {
     "netherlands": "The Netherlands",
@@ -320,11 +336,20 @@ def _df_to_reviewers(df: pd.DataFrame, source_file: str, sheet: str) -> list[Rev
     # df.index from read_excel is 0-based; Excel row = index + 2 (header is row 1).
     for idx, row in df.iterrows():
         excel_row = int(idx) + 2
-        rec = {f: "" for f in (
-            "first_name", "middle_name", "last_name",
-            "email", "country", "affiliation", "role", "profile",
-            "easychair_id",
-        )}
+        rec = {
+            f: ""
+            for f in (
+                "first_name",
+                "middle_name",
+                "last_name",
+                "email",
+                "country",
+                "affiliation",
+                "role",
+                "profile",
+                "easychair_id",
+            )
+        }
         for col in df.columns:
             if col in rec:
                 rec[col] = _clean(row[col])
@@ -334,9 +359,14 @@ def _df_to_reviewers(df: pd.DataFrame, source_file: str, sheet: str) -> list[Rev
         # If profile field looks like an email, populate email from it.
         if not rec["email"] and rec["profile"] and "@" in rec["profile"]:
             rec["email"] = rec["profile"]
-        reviewers.append(Reviewer(
-            source_file=source_file, sheet=sheet, row_number=excel_row, **rec,
-        ))
+        reviewers.append(
+            Reviewer(
+                source_file=source_file,
+                sheet=sheet,
+                row_number=excel_row,
+                **rec,
+            )
+        )
     return reviewers
 
 
@@ -365,7 +395,10 @@ def load_all(directory: str) -> list[Reviewer]:
                 continue
 
             # Special-case: Resource Track PC has unnamed first column = first_name
-            if fname == "SIGIR 2026 Resource Track PC.xlsx" and "Unnamed: 0" in df.columns:
+            if (
+                fname == "SIGIR 2026 Resource Track PC.xlsx"
+                and "Unnamed: 0" in df.columns
+            ):
                 df = df.rename(columns={"Unnamed: 0": "First name"})
 
             df = _normalize_columns(df)
@@ -381,6 +414,7 @@ def load_all(directory: str) -> list[Reviewer]:
 # ---------------------------------------------------------------------------
 # Per-file role counts
 # ---------------------------------------------------------------------------
+
 
 def report_per_file_role_counts(reviewers: list[Reviewer]) -> None:
     by_file: dict[str, list[Reviewer]] = defaultdict(list)
@@ -410,6 +444,7 @@ def report_per_file_role_counts(reviewers: list[Reviewer]) -> None:
 # ---------------------------------------------------------------------------
 # Display helpers
 # ---------------------------------------------------------------------------
+
 
 def _diff_field(values: Iterable[str]) -> list[str]:
     seen = []
@@ -449,9 +484,9 @@ def _levenshtein(a: str, b: str) -> int:
         for j, cb in enumerate(b, 1):
             cost = 0 if ca == cb else 1
             curr[j] = min(
-                curr[j - 1] + 1,        # insertion
-                prev[j] + 1,            # deletion
-                prev[j - 1] + cost,     # substitution
+                curr[j - 1] + 1,  # insertion
+                prev[j] + 1,  # deletion
+                prev[j - 1] + cost,  # substitution
             )
         prev = curr
     return prev[-1]
@@ -477,8 +512,9 @@ def _section(text: str) -> None:
     print(f"\n{C.BOLD}{C.BLUE}── {text}{C.RESET}")
 
 
-def _issue_header(label: str, key: str, note: str = "",
-                   diff_fields: Iterable[str] = ()) -> None:
+def _issue_header(
+    label: str, key: str, note: str = "", diff_fields: Iterable[str] = ()
+) -> None:
     extra = f"  {C.DIM}({note}){C.RESET}" if note else ""
     print(f"\n  {C.BOLD}{C.YEL}● {label}:{C.RESET} {C.BOLD}{key}{C.RESET}{extra}")
     diffs = list(diff_fields)
@@ -488,9 +524,11 @@ def _issue_header(label: str, key: str, note: str = "",
 
 
 def _location(r: Reviewer) -> str:
-    return (f"{C.BOLD}{C.GREY}{r.source_file}{C.RESET} "
-            f"{C.DIM}▸{C.RESET} {C.GREY}{r.sheet}{C.RESET} "
-            f"{C.DIM}▸ row{C.RESET} {C.BOLD}{C.WHITE}{r.row_number}{C.RESET}")
+    return (
+        f"{C.BOLD}{C.GREY}{r.source_file}{C.RESET} "
+        f"{C.DIM}▸{C.RESET} {C.GREY}{r.sheet}{C.RESET} "
+        f"{C.DIM}▸ row{C.RESET} {C.BOLD}{C.WHITE}{r.row_number}{C.RESET}"
+    )
 
 
 def _format_value(field_name: str, value: str, is_diff: bool) -> str:
@@ -502,7 +540,9 @@ def _format_value(field_name: str, value: str, is_diff: bool) -> str:
     return f"{C.DIM}{label}={C.RESET}{value!r}"
 
 
-def _print_records(group: list[Reviewer], diff_fields: set[str], fields: tuple[str, ...]) -> None:
+def _print_records(
+    group: list[Reviewer], diff_fields: set[str], fields: tuple[str, ...]
+) -> None:
     """Print each record on two lines: location, then field values.
 
     Fields named in `diff_fields` are highlighted; fields listed in `fields`
@@ -524,7 +564,9 @@ def _diff_fields_in(group: list[Reviewer], fields: Iterable[str]) -> set[str]:
     return diffs
 
 
-def _diff_or_missing_fields_in(group: list[Reviewer], fields: Iterable[str]) -> set[str]:
+def _diff_or_missing_fields_in(
+    group: list[Reviewer], fields: Iterable[str]
+) -> set[str]:
     """Like _diff_fields_in, but also flags fields where some records have a
     value and others don't. Use only when group identity is established
     (e.g., shared email) so 'missing' is a real gap, not legitimate variation.
@@ -544,6 +586,7 @@ def _diff_or_missing_fields_in(group: list[Reviewer], fields: Iterable[str]) -> 
 # Within-file duplicate check
 # ---------------------------------------------------------------------------
 
+
 def report_within_file_duplicates(reviewers: list[Reviewer]) -> int:
     """Flag potential duplicates inside a single file.
 
@@ -558,8 +601,15 @@ def report_within_file_duplicates(reviewers: list[Reviewer]) -> int:
         by_file[r.source_file].append(r)
 
     _banner("WITHIN-FILE DUPLICATES — same reviewer repeated in one file", C.MAG)
-    fields = ("first_name", "middle_name", "last_name",
-              "email", "affiliation", "country", "role")
+    fields = (
+        "first_name",
+        "middle_name",
+        "last_name",
+        "email",
+        "affiliation",
+        "country",
+        "role",
+    )
     issues = 0
 
     for fname in sorted(by_file):
@@ -593,8 +643,11 @@ def report_within_file_duplicates(reviewers: list[Reviewer]) -> int:
         for key, group in sorted(name_matches):
             issues += 1
             diffs = _diff_or_missing_fields_in(group, fields)
-            _issue_header("name duplicate", f"{key[0]} {key[1]}".strip(),
-                           diff_fields=sorted(diffs, key=fields.index))
+            _issue_header(
+                "name duplicate",
+                f"{key[0]} {key[1]}".strip(),
+                diff_fields=sorted(diffs, key=fields.index),
+            )
             _print_records(group, diffs, fields)
 
     if issues == 0:
@@ -608,6 +661,7 @@ def report_within_file_duplicates(reviewers: list[Reviewer]) -> int:
 # Cross-file checks
 # ---------------------------------------------------------------------------
 
+
 def report_easychair_id_collisions(reviewers: list[Reviewer]) -> int:
     """Same EasyChair user id across files = same person → flag any drift.
 
@@ -619,11 +673,19 @@ def report_easychair_id_collisions(reviewers: list[Reviewer]) -> int:
         if r.easychair_id_key:
             by_id[r.easychair_id_key].append(r)
 
-    _banner("EASYCHAIR ID COLLISIONS — same '#', diverging name / email / affiliation / country",
-            C.MAG)
+    _banner(
+        "EASYCHAIR ID COLLISIONS — same '#', diverging name / email / affiliation / country",
+        C.MAG,
+    )
     issues = 0
-    fields = ("first_name", "middle_name", "last_name",
-              "email", "affiliation", "country")
+    fields = (
+        "first_name",
+        "middle_name",
+        "last_name",
+        "email",
+        "affiliation",
+        "country",
+    )
     for ec_id, group in sorted(by_id.items()):
         if not _spans_multiple_files(group):
             continue
@@ -646,12 +708,13 @@ def report_email_collisions(reviewers: list[Reviewer]) -> int:
         if r.email_key:
             by_email[r.email_key].append(r)
 
-    _banner("EMAIL COLLISIONS — same email, diverging name / affiliation / country", C.MAG)
+    _banner(
+        "EMAIL COLLISIONS — same email, diverging name / affiliation / country", C.MAG
+    )
     issues = 0
     # Same email = same person → flag missing fields and any name drift.
     # Role is omitted: legitimate per-track variation, not an inconsistency.
-    fields = ("first_name", "middle_name", "last_name",
-              "affiliation", "country")
+    fields = ("first_name", "middle_name", "last_name", "affiliation", "country")
     for email, group in sorted(by_email.items()):
         if not _spans_multiple_files(group):
             continue
@@ -688,8 +751,11 @@ def report_same_name_diff_email(by_name: dict[tuple[str, str], list[Reviewer]]) 
         if len(diffs) >= 2:
             continue
         issues += 1
-        _issue_header("name", f"{key[0]} {key[1]}".strip(),
-                       diff_fields=sorted(diffs, key=fields.index))
+        _issue_header(
+            "name",
+            f"{key[0]} {key[1]}".strip(),
+            diff_fields=sorted(diffs, key=fields.index),
+        )
         _print_records(shown, diffs, fields)
     if issues == 0:
         print(f"  {C.GREEN}✓ no inconsistencies{C.RESET}")
@@ -715,8 +781,11 @@ def report_same_name_diff_aff(by_name: dict[tuple[str, str], list[Reviewer]]) ->
         if len(diffs) >= 2:
             continue
         issues += 1
-        _issue_header("name", f"{key[0]} {key[1]}".strip(),
-                       diff_fields=sorted(diffs, key=fields.index))
+        _issue_header(
+            "name",
+            f"{key[0]} {key[1]}".strip(),
+            diff_fields=sorted(diffs, key=fields.index),
+        )
         _print_records(group, diffs, fields)
     if issues == 0:
         print(f"  {C.GREEN}✓ no inconsistencies{C.RESET}")
@@ -724,8 +793,10 @@ def report_same_name_diff_aff(by_name: dict[tuple[str, str], list[Reviewer]]) ->
 
 
 def report_same_last_initial_diff_first(reviewers: list[Reviewer]) -> int:
-    _section("Same last name + first initial, different first name "
-             "(matching affiliation or email domain)")
+    _section(
+        "Same last name + first initial, different first name "
+        "(matching affiliation or email domain)"
+    )
     by_last_initial: dict[tuple[str, str], list[Reviewer]] = defaultdict(list)
     for r in reviewers:
         first, last = r.name_key
@@ -755,8 +826,12 @@ def report_same_last_initial_diff_first(reviewers: list[Reviewer]) -> int:
                     continue
                 a_affs = {r.affiliation.lower() for r in a_recs if r.affiliation}
                 b_affs = {r.affiliation.lower() for r in b_recs if r.affiliation}
-                a_dom = {r.email.split("@")[-1].lower() for r in a_recs if "@" in r.email}
-                b_dom = {r.email.split("@")[-1].lower() for r in b_recs if "@" in r.email}
+                a_dom = {
+                    r.email.split("@")[-1].lower() for r in a_recs if "@" in r.email
+                }
+                b_dom = {
+                    r.email.split("@")[-1].lower() for r in b_recs if "@" in r.email
+                }
                 shared_aff = a_affs & b_affs
                 shared_dom = a_dom & b_dom
                 if not (shared_aff or shared_dom):
@@ -803,11 +878,16 @@ def report_first_or_last_only(reviewers: list[Reviewer]) -> int:
         only_last_agrees = len(lasts) == 1 and len(firsts) > 1
         if not (only_first_agrees or only_last_agrees):
             continue
-        which = "first matches, last differs" if only_first_agrees else "last matches, first differs"
+        which = (
+            "first matches, last differs"
+            if only_first_agrees
+            else "last matches, first differs"
+        )
         issues += 1
         diffs = _diff_or_missing_fields_in(group, fields)
-        _issue_header("email", email, note=which,
-                       diff_fields=sorted(diffs, key=fields.index))
+        _issue_header(
+            "email", email, note=which, diff_fields=sorted(diffs, key=fields.index)
+        )
         _print_records(group, diffs, fields)
     if issues == 0:
         print(f"  {C.GREEN}✓ no inconsistencies{C.RESET}")
@@ -817,6 +897,7 @@ def report_first_or_last_only(reviewers: list[Reviewer]) -> int:
 # ---------------------------------------------------------------------------
 # Unique reviewer estimate
 # ---------------------------------------------------------------------------
+
 
 def estimate_unique_reviewers(reviewers: list[Reviewer]) -> int:
     """Cluster rows that *could* refer to the same person and count clusters.
@@ -870,10 +951,11 @@ def estimate_unique_reviewers(reviewers: list[Reviewer]) -> int:
     roots = {find(i) for i in range(n)}
     unique = len(roots)
 
-    _banner(f"ESTIMATED UNIQUE REVIEWERS — {unique} (from {n} non-chair rows)",
-            C.CYAN)
-    print(f"  {C.DIM}clustered by EasyChair id, email, or "
-          f"(full name + affiliation){C.RESET}")
+    _banner(f"ESTIMATED UNIQUE REVIEWERS — {unique} (from {n} non-chair rows)", C.CYAN)
+    print(
+        f"  {C.DIM}clustered by EasyChair id, email, or "
+        f"(full name + affiliation){C.RESET}"
+    )
     print(f"  {C.DIM}rows merged: {n - unique}{C.RESET}")
     return unique
 
@@ -932,7 +1014,7 @@ def write_merged_workbook(reviewers: list[Reviewer], output_path: str) -> None:
     columns = ["first name", "middle name", "last name", "affiliation"]
     used_names: set[str] = set()
     with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
-        for (track, role_code) in sorted(grouped, key=_sheet_sort_key):
+        for track, role_code in sorted(grouped, key=_sheet_sort_key):
             sheet_label = f"{track} - {role_code}"
             sheet_name = _safe_sheet_name(sheet_label, used_names)
             sorted_recs = sorted(
@@ -941,39 +1023,49 @@ def write_merged_workbook(reviewers: list[Reviewer], output_path: str) -> None:
             )
             rows = [
                 {
-                    "first name":  r.first_name,
+                    "first name": r.first_name,
                     "middle name": r.middle_name,
-                    "last name":   r.last_name,
+                    "last name": r.last_name,
                     "affiliation": r.affiliation,
                 }
                 for r in sorted_recs
             ]
             pd.DataFrame(rows, columns=columns).to_excel(
-                writer, sheet_name=sheet_name, index=False,
+                writer,
+                sheet_name=sheet_name,
+                index=False,
             )
-    print(f"\n{C.GREEN}✓ wrote {len(kept)} rows to {output_path}"
-          f" across {len(grouped)} sheets"
-          f" ({dropped} track chair row(s) dropped){C.RESET}")
+    print(
+        f"\n{C.GREEN}✓ wrote {len(kept)} rows to {output_path}"
+        f" across {len(grouped)} sheets"
+        f" ({dropped} track chair row(s) dropped){C.RESET}"
+    )
 
 
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
+
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="Scan referees/ for cross-file inconsistencies and merge into one workbook.",
     )
     p.add_argument(
-        "--input", "-i", default=DEFAULT_INPUT_DIR,
+        "--input",
+        "-i",
+        default=DEFAULT_INPUT_DIR,
         help=f"Input directory containing per-track xlsx files (default: {DEFAULT_INPUT_DIR})",
     )
     p.add_argument(
-        "--output", "-o", default=DEFAULT_OUTPUT_FILE,
+        "--output",
+        "-o",
+        default=DEFAULT_OUTPUT_FILE,
         help=f"Output xlsx file with one sheet per source file (default: {DEFAULT_OUTPUT_FILE})",
     )
     p.add_argument(
-        "--no-merge", action="store_true",
+        "--no-merge",
+        action="store_true",
         help="Skip writing the merged xlsx; only print the inconsistency report.",
     )
     return p.parse_args(argv)
@@ -1008,8 +1100,10 @@ def main(argv: list[str] | None = None) -> int:
 
     total += report_first_or_last_only(reviewers)
 
-    _banner(f"SUMMARY — {total} potential inconsistency group(s) found",
-            C.GREEN if total == 0 else C.YEL)
+    _banner(
+        f"SUMMARY — {total} potential inconsistency group(s) found",
+        C.GREEN if total == 0 else C.YEL,
+    )
 
     if not args.no_merge:
         write_merged_workbook(reviewers, args.output)
