@@ -278,16 +278,11 @@ AFFILIATION_REPLACEMENTS = {
     "tongji university, shanghai, china": "Tongji University",
     "computer science and systems laboratory, aix-marseille university": "Aix-Marseille University",
     "department of information and electronic engineering, international hellenic university": "International Hellenic University",
-    "mixedbread and national institute of informtics (nii)":
-        "Mixedbread and National Institute of Informatics (NII)",
-    "university of illinois at urbana-champaign":
-        "University of Illinois Urbana-Champaign",
-    "universita della svizzera italiana":
-        "Università della Svizzera Italiana (USI)",
-    "università della svizzera italiana":
-        "Università della Svizzera Italiana (USI)",
-    "università della svizzera italiana, usi":
-        "Università della Svizzera Italiana (USI)",
+    "mixedbread and national institute of informtics (nii)": "Mixedbread and National Institute of Informatics (NII)",
+    "university of illinois at urbana-champaign": "University of Illinois Urbana-Champaign",
+    "universita della svizzera italiana": "Università della Svizzera Italiana (USI)",
+    "università della svizzera italiana": "Università della Svizzera Italiana (USI)",
+    "università della svizzera italiana, usi": "Università della Svizzera Italiana (USI)",
 }
 COUNTRY_REPLACEMENTS = {
     "netherlands": "The Netherlands",
