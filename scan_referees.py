@@ -815,6 +815,70 @@ def report_first_or_last_only(reviewers: list[Reviewer]) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Unique reviewer estimate
+# ---------------------------------------------------------------------------
+
+def estimate_unique_reviewers(reviewers: list[Reviewer]) -> int:
+    """Cluster rows that *could* refer to the same person and count clusters.
+
+    Two rows are unioned when they agree on a strong identity signal:
+      • same non-empty EasyChair id, or
+      • same non-empty email (case-insensitive), or
+      • same non-empty full name and same non-empty affiliation
+        (case-insensitive).
+
+    Missing fields don't contradict; non-empty differing fields are simply
+    never unioned, so two rows with the same name but different emails stay
+    in separate clusters. Track chairs are excluded.
+    """
+    pool = [r for r in reviewers if not _is_track_chair(r)]
+    n = len(pool)
+
+    parent = list(range(n))
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a: int, b: int) -> None:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+
+    by_ec: dict[str, list[int]] = defaultdict(list)
+    by_email: dict[str, list[int]] = defaultdict(list)
+    by_name_aff: dict[tuple[str, str], list[int]] = defaultdict(list)
+
+    for i, r in enumerate(pool):
+        if r.easychair_id_key:
+            by_ec[r.easychair_id_key].append(i)
+        if r.email_key:
+            by_email[r.email_key].append(i)
+        name = r.full_name.lower().strip()
+        aff = r.affiliation.lower().strip()
+        if name and aff:
+            by_name_aff[(name, aff)].append(i)
+
+    for buckets in (by_ec.values(), by_email.values(), by_name_aff.values()):
+        for idxs in buckets:
+            first = idxs[0]
+            for j in idxs[1:]:
+                union(first, j)
+
+    roots = {find(i) for i in range(n)}
+    unique = len(roots)
+
+    _banner(f"ESTIMATED UNIQUE REVIEWERS — {unique} (from {n} non-chair rows)",
+            C.CYAN)
+    print(f"  {C.DIM}clustered by EasyChair id, email, or "
+          f"(full name + affiliation){C.RESET}")
+    print(f"  {C.DIM}rows merged: {n - unique}{C.RESET}")
+    return unique
+
+
+# ---------------------------------------------------------------------------
 # Merge to single workbook
 # ---------------------------------------------------------------------------
 
@@ -949,6 +1013,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.no_merge:
         write_merged_workbook(reviewers, args.output)
+
+    estimate_unique_reviewers(reviewers)
     return 0
 
 
