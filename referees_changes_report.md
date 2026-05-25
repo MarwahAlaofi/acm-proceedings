@@ -14,7 +14,8 @@ trimmed full string; non-matching values pass through unchanged.
 | Profile column | If `profile` looks like an email and `email` is empty, `email` is filled from `profile`. |
 | Whitespace | Every cell is `strip()`-ed; pandas `NaN`/`None` becomes `""`. |
 | Name capitalization | First / middle / last name title-cased only when the cell is *entirely* lowercase or *entirely* uppercase. Mixed-case strings (`de Vries`, `McDonald`) are preserved. |
-| Track chairs | Records with `role` containing `chair` are kept for consistency checks but excluded from the merged `referees.xlsx`. |
+| Track chairs | Records whose `role` is exactly `track chair` (case-insensitive) are kept for consistency checks but excluded from the merged `referees.xlsx`. |
+| Merged output | Per-sheet rows in `referees.xlsx` are sorted alphabetically by first name, then last name (case-insensitive). |
 
 ## Country substitutions
 
@@ -46,7 +47,7 @@ trimmed full string; non-matching values pass through unchanged.
 | `university of stavanger and google deepmind` | `University of Stavanger & Google DeepMind` |
 | `saarland university of applied sciences` | `Saarland University of Applied Sciences (htw saar)` |
 | `uned` | `Universidad Nacional de Educación a Distancia` |
-| `university of montreal` | `University de Montreal` |
+| `university de montreal` | `University of Montreal` |
 | `city st george's, university of london uk` | `City St George's, University of London` |
 | `university of passau` | `Universität Passau` |
 | `institut de recherche en informatique de toulouse` | `Institut de Recherche en Informatique de Toulouse (IRIT)` |
