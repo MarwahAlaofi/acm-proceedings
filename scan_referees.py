@@ -236,7 +236,7 @@ AFFILIATION_REPLACEMENTS = {
     "saarland university of applied sciences":
         "Saarland University of Applied Sciences (htw saar)",
     "uned": "Universidad Nacional de Educación a Distancia",
-    "university of montreal": "University de Montreal",
+    "university de montreal": "University of Montreal",
     "city st george's, university of london uk": "City St George's, University of London",
     "university of passau": "Universität Passau",
     "technion, israel institute of technology": "Technion - Israel Institute of Technology",
@@ -254,9 +254,9 @@ AFFILIATION_REPLACEMENTS = {
     "it polytechnic university of bari": "Polytechnic University of Bari",
     "polytechnic institute of bari": "Polytechnic University of Bari",
     "th mittelhessen - university of applied sciences & herder\ninstitute for historical research on east central europe":
-        "Technische Hochschule Mittelhessen",
+        "TH Mittelhessen & Herder Institute for Historical Research on East Central Europe",
     "th mittelhessen - university of applied sciences & herder institute for historical research on east central europe":
-        "Technische Hochschule Mittelhessen",
+        "TH Mittelhessen & Herder Institute for Historical Research on East Central Europe",
     "cmu, carnegie mellon university": "Carnegie Mellon University",
     "department of informatics, national and kapodistrian university of athens":
         "National and Kapodistrian University of Athens",
