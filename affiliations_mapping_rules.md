@@ -28,13 +28,78 @@ Affiliations must be mapped strictly to the **University** or
 
 - **Remove departments.** Strip `Department of Computer Science`,
   `Faculty of Engineering`, `School of Information`, etc.
-- **Remove countries / cities.** Strip geographic locations unless they are
-  an official part of the institution's name.
+- **Remove countries / cities** that are *not* part of the institution's name.
   - Example: `"Tongji University, Shanghai, China"` → `"Tongji University"`.
-- **Preserve corporate suffixes.** Keep legal entity suffixes like
-  `Inc.`, `Ltd.`, `LLC`, `Corp.`, `Co., Ltd.`, `LP`, `SE`, or `Group`
-  exactly as the author submitted them — they are part of the institution's
-  preferred presentation name.
+  - Example: `"Donghua University, Shanghai"` → `"Donghua University"`.
+  - Example: `"Hansung University Seoul"` → `"Hansung University"`.
+- **Preserve campus qualifiers** that distinguish one campus of a
+  multi-campus institution. The qualifier is part of the official name and
+  must stay. When authors submit a bare flagship name, normalize it to the
+  qualified flagship campus.
+  - `University of Maryland` / `…, College Park` → `University of Maryland, College Park`.
+  - `University of Michigan` / `…, Ann Arbor` / `… - Ann Arbor` →
+    `University of Michigan - Ann Arbor`.
+  - `University of Minnesota` / `…, Twin Cities` / `… - Twin Cities` →
+    `University of Minnesota - Twin Cities`.
+  - `University of Virginia` / `…, Charlottesville` →
+    `University of Virginia, Charlottesville`.
+  - `New York University, Abu Dhabi` → `New York University Abu Dhabi`
+    (its own degree-granting campus, distinct from NYU New York).
+  - `The University of Nottingham Ningbo China` — already preserved as a
+    distinct branch campus.
+- **Corporate suffixes — case-by-case, prefer the data-majority form.**
+  Legal entity suffixes like `Inc.`, `Ltd.`, `LLC`, `Corp.`, `Co., Ltd.`,
+  `LP`, `SE`, `Group` are *sometimes* dropped and sometimes kept. The
+  rule is: pick the form most common in the raw submissions, falling
+  back to the company's own self-presentation when raw counts are tied
+  or absent. Marwah's hand-edited preference breaks remaining ties.
+  - **Bare brand wins** (data-majority used the unsuffixed form):
+    - `Adobe`, `Adobe Inc.`, `Adobe Systems` → `Adobe`
+    - `Apple Inc`, `Apple Inc.` → `Apple`
+    - `Baidu Inc.` → `Baidu`
+    - `Google LLC` → `Google`
+    - `Kuaishou Tech`, `Kuaishou Technology` → `Kuaishou`
+  - **Suffix kept** (data-majority used the suffixed form, or the
+    suffix is the official self-presentation):
+    - `Alibaba` → `Alibaba Group`
+    - `Bloomberg` → `Bloomberg LP`
+    - `Booking` → `Booking.com`
+    - `eBay Inc` → `eBay Inc.`
+    - `Huawei Technologies Co Ltd` → `Huawei Technologies Ltd.`
+- **Drop `(ACRONYM)` parenthetical suffixes** when no raw record
+  actually uses the parenthesized form. The acronym is implicit in
+  context and not part of the institution's day-to-day branding.
+  Decision basis: **data-majority** (no raw record carries the
+  acronym), **official branding** (institutions don't include their
+  own acronym in their published name on their website), and Marwah's
+  edits consistently strip the suffix.
+  - `Agency for Science, Technology and Research (A*STAR)` →
+    `Agency for Science, Technology and Research`
+  - `Institut National de la Recherche Scientifique (INRS)` →
+    `Institut National de la Recherche Scientifique`
+  - `Massachusetts Institute of Technology (MIT)` →
+    `Massachusetts Institute of Technology`
+  - `Mohamed bin Zayed University of Artificial Intelligence (MBZUAI)` →
+    `Mohamed bin Zayed University of Artificial Intelligence`
+  - `National Institute of Advanced Industrial Science and Technology (AIST)` →
+    `National Institute of Advanced Industrial Science and Technology`
+  - `Norwegian University of Science and Technology (NTNU)` →
+    `Norwegian University of Science and Technology`
+  - `Pohang University of Science and Technology (POSTECH)` →
+    `Pohang University of Science and Technology`
+  - `Tomorrow Advancing Life (TAL)` → `Tomorrow Advancing Life`
+  - `Ulsan National Institute of Science and Technology (UNIST)` →
+    `Ulsan National Institute of Science and Technology`
+  - `Universidade Estadual de Campinas (UNICAMP)` →
+    `Universidade Estadual de Campinas`
+  
+  Exception — keep `(qualifier)` when the parenthetical is a *campus
+  or location qualifier* (Rule 1) rather than an acronym, e.g.
+  `Harbin Institute of Technology (Shenzhen)`,
+  `Hong Kong University of Science and Technology (Guangzhou)`,
+  `Qilu University of Technology (Shandong Academy of Sciences)`
+  (the parenthetical here is part of the legal merged name, not an
+  acronym).
 
 ---
 
@@ -50,12 +115,22 @@ to the parent corporation.
 - `Huawei Ireland Research Center` stays distinct from `Huawei`.
 - `Facebook` and `Meta` remain distinct if submitted as such.
 
-### Exception — ICT-CAS preservation
+### Exception — CAS sub-institute preservation
 
-`Institute of Computing Technology (ICT), Chinese Academy of Sciences`
-and its variants **must always be preserved in their detailed form**.
-Do not flatten ICT entries into the generic `Chinese Academy of Sciences`
-parent.
+Named institutes of the Chinese Academy of Sciences (ICT, IIE, IA, CNIC,
+etc.) are distinct, heavily branded research entities and **must always
+be preserved in their detailed form**. Do not flatten them into the
+generic `Chinese Academy of Sciences` parent.
+
+- `Institute of Computing Technology, Chinese Academy of Sciences`
+  (ICT-CAS) — also catches the typo variants
+  `Institute of Computing Technolgy, ...` and
+  `Intitute of Computing Technology, ...`.
+- `Institute of Information Engineering, Chinese Academy of Sciences`
+  (IIE-CAS).
+- `Institute of Automation, Chinese Academy of Sciences` (IA-CAS).
+- `Computer Network Information Center, Chinese Academy of Sciences`
+  (CNIC-CAS).
 
 ### Exception — generic subdivisions are still flattened
 
