@@ -2,10 +2,33 @@
 
 Applied automatically by `scan_referees.py` after loading every `.xlsx`
 in the input directory and before any cross-file consistency check or
-merge into `referees.xlsx`. All matches are case-insensitive on the
-trimmed full string; non-matching values pass through unchanged.
+merge into `referees.xlsx`.
 
-## General rules (non-substitution)
+The general rules below (whitespace cleanup, capitalization, row/file
+filtering) **always run**. The affiliation substitutions are loaded from
+an external JSON file (`affiliations_mapping.json`) and **only applied
+when `--mappings PATH` is passed on the command line**. Without that
+flag, only the general rules run and affiliation strings pass through
+unchanged.
+
+All substitution lookups are case-insensitive on the trimmed full
+string; non-matching values pass through unchanged.
+
+## CLI
+
+```bash
+# General cleanup only (no substitutions)
+python scan_referees.py
+
+# General cleanup + affiliation substitutions from the JSON map
+python scan_referees.py --mappings affiliations_mapping.json
+```
+
+The JSON file has shape `{"affiliations": {"<lowercase from>": "<to>", ...}}`.
+Edit it directly to add, remove, or change replacements — no code change
+needed.
+
+## General rules (non-substitution, always applied)
 
 | Scope | Rule |
 |---|---|
@@ -17,13 +40,10 @@ trimmed full string; non-matching values pass through unchanged.
 | Track chairs | Records whose `role` is exactly `track chair` (case-insensitive) are kept for consistency checks but excluded from the merged `referees.xlsx`. |
 | Merged output | Per-sheet rows in `referees.xlsx` are sorted alphabetically by first name, then last name (case-insensitive). |
 
-## Country substitutions
-
-| From | To |
-|---|---|
-| `netherlands` | `The Netherlands` |
-
 ## Affiliation substitutions
+
+Sourced from `affiliations_mapping.json`. Applied only when
+`--mappings affiliations_mapping.json` is passed.
 
 | From | To |
 |---|---|

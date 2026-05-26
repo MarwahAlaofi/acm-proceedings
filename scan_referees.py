@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import json
 import os
 import re
 import sys
@@ -68,7 +69,7 @@ FILE_TRACK_INFO: dict[str, tuple[str, str | None]] = {
     "Reproducibility PC proceedings.xlsx": ("Reproducibility", None),
     "SIGIR 2026 Demo Track Reviewer Info.xlsx": ("Demos", None),
     "SIGIR 2026 Resource Track PC.xlsx": ("Resource", None),
-    "SIGIR2026-DC-Reviewers.xlsx": ("Doctoral Consortium", None),
+    "SIGIR2026-DC-Reviewers.xlsx": ("Doctoral Colloquium", None),
     "SIGIR26_Industry_Track_Reviewers.xlsx": ("Industry", None),
     "SIGIR26_PC_LRE.xlsx": ("LRE", None),
     "SIGIR 2026 workshop reviewers.xlsx": ("Workshop", "PC"),
@@ -101,7 +102,7 @@ TRACK_ORDER = [
     "Demos",
     "Tutorials",
     "LRE",
-    "Doctoral Consortium",
+    "Doctoral Colloquium",
     "Workshop",
 ]
 ROLE_ORDER = ["AC", "SPC", "PC"]
@@ -225,70 +226,15 @@ def _clean(value) -> str:
     return " ".join(str(value).split())
 
 
-# Affiliation / country canonicalizations (exact, case-insensitive whole-string).
-AFFILIATION_REPLACEMENTS = {
-    "royal melbourne institute of technology": "RMIT University",
-    "adobe systems": "Adobe",
-    "vody": "Vody, Inc.",
-    "nask - national research institute": "NASK National Research Institute",
-    "copenhagen university": "University of Copenhagen",
-    "shanghai jiaotong university": "Shanghai Jiao Tong University",
-    "aampe": "Aampe",
-    "technion": "Technion - Israel Institute of Technology",
-    "department of mechanical and industrial engineering, university of toronto": "University of Toronto",
-    "gesis-leibniz institute for the social sciences": "GESIS – Leibniz Institute for the Social Sciences",
-    "national institute of informatics": "National Institute of Informatics (NII)",
-    "nii": "National Institute of Informatics (NII)",
-    "universidade federal de minas gerais, universidade federal de minas gerais": "Universidade Federal de Minas Gerais",
-    "friedrich-schiller universität jena": "Friedrich-Schiller-Universität Jena",
-    "mst": "Missouri University of Science and Technology",
-    "service australia": "Services Australia",
-    "university of stavanger and google deepmind": "University of Stavanger & Google DeepMind",
-    "saarland university of applied sciences": "Saarland University of Applied Sciences (htw saar)",
-    "uned": "Universidad Nacional de Educación a Distancia",
-    "university de montreal": "University of Montreal",
-    "city st george's, university of london uk": "City St George's, University of London",
-    "university of passau": "Universität Passau",
-    "technion, israel institute of technology": "Technion - Israel Institute of Technology",
-    "institut de recherche en informatique de toulouse": "Institut de Recherche en Informatique de Toulouse (IRIT)",
-    "irit": "Institut de Recherche en Informatique de Toulouse (IRIT)",
-    "university of tübingen": "Eberhard-Karls-Universität Tübingen",
-    "university of massachusetts at amherst": "University of Massachusetts Amherst",
-    "university of milano-bicocca": "University of Milano - Bicocca",
-    "university of rome": "Sapienza University of Rome",
-    "laboratoire informatique d'avignon- université d'avignon": "Avignon Université",
-    "university of california santa cruz": "University of California, Santa Cruz",
-    "universidad de la coruña": "Universidade da Coruña",
-    "universidad da coruña": "Universidade da Coruña",
-    "it polytechnic university of bari": "Polytechnic University of Bari",
-    "polytechnic institute of bari": "Polytechnic University of Bari",
-    "th mittelhessen - university of applied sciences & herder institute for historical research on east central europe": "TH Mittelhessen & Herder Institute for Historical Research on East Central Europe",
-    "cmu, carnegie mellon university": "Carnegie Mellon University",
-    "department of informatics, national and kapodistrian university of athens": "National and Kapodistrian University of Athens",
-    "dept. of informatics and telecommunications, national and kapodistrian university of athens": "National and Kapodistrian University of Athens",
-    "technische universität wien": "TU Wien",
-    "university of innsbruck": "Universität Innsbruck",
-    "indian institute of science education and research, kolkata": "IISER Kolkata",
-    "indian institute of science education and research (iiser) kolkata, india": "IISER Kolkata",
-    "university of milano bicocca": "University of Milano - Bicocca",
-    "university of milan - bicocca": "University of Milano - Bicocca",
-    "university of padua": "Università degli Studi di Padova",
-    "universita' degli studi di padova": "Università degli Studi di Padova",
-    "university grenoble alpes": "Université Grenoble Alpes",
-    "radboud university and spinque": "Radboud University & Spinque",
-    "inesc tec and faculty of engineering, university of porto": "Universidade do Porto",
-    "tongji university, shanghai, china": "Tongji University",
-    "computer science and systems laboratory, aix-marseille university": "Aix-Marseille University",
-    "department of information and electronic engineering, international hellenic university": "International Hellenic University",
-    "mixedbread and national institute of informtics (nii)": "Mixedbread and National Institute of Informatics (NII)",
-    "university of illinois at urbana-champaign": "University of Illinois Urbana-Champaign",
-    "universita della svizzera italiana": "Università della Svizzera Italiana (USI)",
-    "università della svizzera italiana": "Università della Svizzera Italiana (USI)",
-    "università della svizzera italiana, usi": "Università della Svizzera Italiana (USI)",
-}
-COUNTRY_REPLACEMENTS = {
-    "netherlands": "The Netherlands",
-}
+def load_mappings(path: str) -> dict[str, str]:
+    """Load affiliation canonicalization mappings from a JSON file.
+
+    Expected shape: {"affiliations": {...}}. Keys are matched
+    case-insensitively against the whole stripped affiliation value.
+    """
+    with open(path, encoding="utf-8") as fh:
+        data = json.load(fh)
+    return {k.lower(): v for k, v in (data.get("affiliations") or {}).items()}
 
 
 def _fix_capitalization(name: str) -> str:
@@ -303,20 +249,25 @@ def _fix_capitalization(name: str) -> str:
     return name
 
 
-def normalize(reviewers: list[Reviewer]) -> None:
-    """Apply known fixups in place: capitalization, affiliation/country substitutions."""
+def normalize(
+    reviewers: list[Reviewer],
+    affiliation_replacements: dict[str, str] | None = None,
+) -> None:
+    """Apply known fixups in place: capitalization and affiliation substitutions.
+
+    Whitespace cleanup happens earlier in `_clean`, and name capitalization
+    always runs. The affiliation substitutions only apply when the caller
+    passes a mapping — callers without a mappings file get no replacements.
+    """
+    affiliation_replacements = affiliation_replacements or {}
     for r in reviewers:
         r.first_name = _fix_capitalization(r.first_name)
         r.middle_name = _fix_capitalization(r.middle_name)
         r.last_name = _fix_capitalization(r.last_name)
 
-        aff_repl = AFFILIATION_REPLACEMENTS.get(r.affiliation.strip().lower())
+        aff_repl = affiliation_replacements.get(r.affiliation.strip().lower())
         if aff_repl:
             r.affiliation = aff_repl
-
-        country_repl = COUNTRY_REPLACEMENTS.get(r.country.strip().lower())
-        if country_repl:
-            r.country = country_repl
 
 
 def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -1174,6 +1125,15 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="Save the colorized console output as a self-contained HTML file.",
     )
+    p.add_argument(
+        "--mappings",
+        default=None,
+        help=(
+            "Path to a JSON file with an 'affiliations' canonicalization map. "
+            "If omitted, only whitespace cleanup and name capitalization are "
+            "applied — no substitutions."
+        ),
+    )
     return p.parse_args(argv)
 
 
@@ -1222,7 +1182,14 @@ def main(argv: list[str] | None = None) -> int:
 
 def _run(args: argparse.Namespace) -> int:
     reviewers = load_all(args.input)
-    normalize(reviewers)
+    aff_map: dict[str, str] = {}
+    if args.mappings:
+        aff_map = load_mappings(args.mappings)
+        print(
+            f"{C.DIM}Loaded {len(aff_map)} affiliation replacement(s) "
+            f"from {args.mappings}{C.RESET}"
+        )
+    normalize(reviewers, aff_map)
     print(f"{C.BOLD}Loaded {len(reviewers)} reviewer rows from {args.input}/{C.RESET}")
 
     report_per_file_role_counts(reviewers)
