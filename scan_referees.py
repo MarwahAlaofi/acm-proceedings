@@ -252,22 +252,31 @@ def _fix_capitalization(name: str) -> str:
 def normalize(
     reviewers: list[Reviewer],
     affiliation_replacements: dict[str, str] | None = None,
-) -> None:
+) -> dict[str, list[tuple[str, Reviewer]]]:
     """Apply known fixups in place: capitalization and affiliation substitutions.
 
     Whitespace cleanup happens earlier in `_clean`, and name capitalization
     always runs. The affiliation substitutions only apply when the caller
     passes a mapping — callers without a mappings file get no replacements.
+
+    Returns a mapping {lower-cased original affiliation → [(original
+    affiliation as it appeared in the source, reviewer), ...]} so callers
+    can report what was changed using the value from the original file.
     """
     affiliation_replacements = affiliation_replacements or {}
+    matches: dict[str, list[tuple[str, Reviewer]]] = defaultdict(list)
     for r in reviewers:
         r.first_name = _fix_capitalization(r.first_name)
         r.middle_name = _fix_capitalization(r.middle_name)
         r.last_name = _fix_capitalization(r.last_name)
 
-        aff_repl = affiliation_replacements.get(r.affiliation.strip().lower())
+        original_aff = r.affiliation
+        aff_key = original_aff.strip().lower()
+        aff_repl = affiliation_replacements.get(aff_key)
         if aff_repl:
+            matches[aff_key].append((original_aff, r))
             r.affiliation = aff_repl
+    return matches
 
 
 def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -357,6 +366,50 @@ def load_all(directory: str) -> list[Reviewer]:
                     r.role = implied
             all_reviewers.extend(recs)
     return all_reviewers
+
+
+# ---------------------------------------------------------------------------
+# Affiliation-mapping report
+# ---------------------------------------------------------------------------
+
+
+def report_affiliation_replacements(
+    matches: dict[str, list[tuple[str, Reviewer]]],
+    replacements: dict[str, str],
+) -> None:
+    """Print, per mapping key, every reviewer whose affiliation was replaced,
+    grouped by source file. Shows the original affiliation as it appeared in
+    the source file (before normalization)."""
+    _banner("AFFILIATION REPLACEMENTS APPLIED", C.CYAN)
+    if not matches:
+        print(f"  {C.GREEN}✓ no affiliation replacements applied{C.RESET}")
+        return
+
+    total = sum(len(v) for v in matches.values())
+    print(
+        f"  {C.DIM}{total} reviewer record(s) across "
+        f"{len(matches)} mapping key(s){C.RESET}"
+    )
+    for key in sorted(matches):
+        replacement = replacements.get(key, "")
+        entries = matches[key]
+        print(
+            f"\n  {C.BOLD}{C.YEL}● {key!r}{C.RESET} "
+            f"{C.DIM}→{C.RESET} {C.BOLD}{replacement!r}{C.RESET} "
+            f"{C.DIM}({len(entries)} record(s)){C.RESET}"
+        )
+        by_file: dict[str, list[tuple[str, Reviewer]]] = defaultdict(list)
+        for original_aff, r in entries:
+            by_file[r.source_file].append((original_aff, r))
+        for fname in sorted(by_file):
+            print(f"    {C.BOLD}{C.GREY}{fname}{C.RESET}")
+            for original_aff, r in by_file[fname]:
+                print(
+                    f"      {C.DIM}▸ {r.sheet} ▸ row{C.RESET} "
+                    f"{C.BOLD}{C.WHITE}{r.row_number}{C.RESET}  "
+                    f"{C.DIM}name={C.RESET}{r.full_name!r}  "
+                    f"{C.DIM}original aff={C.RESET}{original_aff!r}"
+                )
 
 
 # ---------------------------------------------------------------------------
@@ -1189,8 +1242,11 @@ def _run(args: argparse.Namespace) -> int:
             f"{C.DIM}Loaded {len(aff_map)} affiliation replacement(s) "
             f"from {args.mappings}{C.RESET}"
         )
-    normalize(reviewers, aff_map)
+    aff_matches = normalize(reviewers, aff_map)
     print(f"{C.BOLD}Loaded {len(reviewers)} reviewer rows from {args.input}/{C.RESET}")
+
+    if aff_map:
+        report_affiliation_replacements(aff_matches, aff_map)
 
     report_per_file_role_counts(reviewers)
 
