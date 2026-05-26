@@ -53,6 +53,8 @@ This project hosts scripts for preparing ACM proceedings from conference managem
 ├── easychair_to_acm_xml_v2.py         # EasyChair v2 (Pydantic)
 ├── acm_xml_to_ms_word.py              # XML to Word converter
 ├── validate_acm_xml.py                # XML validation & analysis
+├── scan_referees.py                   # Referee xlsx scanner & merger
+├── affiliations_mapping.json          # Optional affiliation canonicalization map
 │
 ├── lib/                                # Core library modules (v2)
 │   ├── README.md                      # Library documentation
@@ -714,6 +716,30 @@ The validation script performs comprehensive checks and analysis:
 This script works with XML files generated from:
 - OpenReview exports (`openreview_to_acm_xml.py`)
 - EasyChair exports (`easychair_to_acm_xml.py`, `easychair_to_acm_xml_v2.py`)
+
+---
+
+# Scan and Merge Referee Lists
+
+For conferences that collect program-committee data across multiple
+spreadsheets (one per track), `scan_referees.py` loads every `.xlsx`
+in a directory, normalizes whitespace and name capitalization, reports
+within-file duplicates and cross-file inconsistencies (EasyChair id /
+email / name collisions), and merges everything into a single workbook
+with one sheet per (track, role).
+
+Optional affiliation canonicalization is loaded from an external JSON
+file when `--mappings` is supplied; without that flag only the general
+cleanup runs. See `referees_changes_report.md` for the rules and the
+substitution table.
+
+```bash
+# General cleanup + merge to referees.xlsx
+python scan_referees.py
+
+# Same plus affiliation substitutions from the JSON map
+python scan_referees.py --mappings affiliations_mapping.json
+```
 
 ---
 
