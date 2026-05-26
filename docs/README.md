@@ -60,3 +60,4 @@ This directory contains detailed documentation for the EasyChair to ACM converte
 - Main README: [`../readme.md`](../readme.md)
 - Library documentation: [`../lib/README.md`](../lib/README.md)
 - Test documentation: [`../tests/README.md`](../tests/README.md)
+- Referee scanner rules: [`../referees_changes_report.md`](../referees_changes_report.md)
