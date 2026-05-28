@@ -858,6 +858,106 @@ def report_same_last_initial_diff_first(reviewers: list[Reviewer]) -> int:
     return issues
 
 
+def report_missing_affiliations(reviewers: list[Reviewer]) -> int:
+    """Flag reviewers without an affiliation, plus any matching records from
+    other files so an editor can copy an affiliation from a sibling row.
+
+    Records are linked by EasyChair id, email, or (first+last) name. The
+    name-based link can over-link homonyms, but for this report that's a
+    feature: reviewers see every plausibly-related row and decide.
+    """
+    _banner("MISSING AFFILIATIONS — reviewers with no affiliation set", C.MAG)
+
+    n = len(reviewers)
+    parent = list(range(n))
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a: int, b: int) -> None:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+
+    by_ec: dict[str, list[int]] = defaultdict(list)
+    by_email: dict[str, list[int]] = defaultdict(list)
+    by_name: dict[tuple[str, str], list[int]] = defaultdict(list)
+    for i, r in enumerate(reviewers):
+        if r.easychair_id_key:
+            by_ec[r.easychair_id_key].append(i)
+        if r.email_key:
+            by_email[r.email_key].append(i)
+        if r.first_name or r.last_name:
+            by_name[r.name_key].append(i)
+
+    for buckets in (by_ec.values(), by_email.values(), by_name.values()):
+        for idxs in buckets:
+            first = idxs[0]
+            for j in idxs[1:]:
+                union(first, j)
+
+    clusters: dict[int, list[int]] = defaultdict(list)
+    for i in range(n):
+        clusters[find(i)].append(i)
+
+    fields = (
+        "first_name",
+        "middle_name",
+        "last_name",
+        "email",
+        "affiliation",
+        "country",
+        "role",
+    )
+    issues = 0
+    missing_records = 0
+    for root, idxs in sorted(
+        clusters.items(),
+        key=lambda kv: (
+            reviewers[kv[1][0]].last_name.lower(),
+            reviewers[kv[1][0]].first_name.lower(),
+        ),
+    ):
+        group = [reviewers[i] for i in idxs]
+        missing = [r for r in group if not r.affiliation.strip()]
+        if not missing:
+            continue
+        issues += 1
+        missing_records += len(missing)
+        # Order: missing-affiliation rows first (to draw the eye), then siblings.
+        ordered = missing + [r for r in group if r.affiliation.strip()]
+        sample = missing[0]
+        label_name = sample.full_name or sample.email_key or "(unnamed)"
+        note_bits = []
+        if len(missing) < len(group):
+            note_bits.append(
+                f"{len(missing)} missing of {len(group)} record(s) — "
+                "check siblings for an affiliation to copy"
+            )
+        else:
+            note_bits.append(f"{len(missing)} record(s), none have an affiliation")
+        _issue_header(
+            "reviewer",
+            label_name,
+            note="; ".join(note_bits),
+            diff_fields=("affiliation",),
+        )
+        _print_records(ordered, {"affiliation"}, fields)
+
+    if issues == 0:
+        print(f"  {C.GREEN}✓ no missing affiliations{C.RESET}")
+        return 0
+
+    print(
+        f"\n  {C.DIM}{missing_records} reviewer record(s) missing an affiliation "
+        f"across {issues} reviewer cluster(s){C.RESET}"
+    )
+    return issues
+
+
 def report_first_or_last_only(reviewers: list[Reviewer]) -> int:
     _banner(
         "FIRST-OR-LAST-NAME ONLY MATCHES — same email, partial name agreement",
@@ -1266,6 +1366,7 @@ def _run(args: argparse.Namespace) -> int:
     total += report_same_last_initial_diff_first(reviewers)
 
     total += report_first_or_last_only(reviewers)
+    total += report_missing_affiliations(reviewers)
 
     _banner(
         f"SUMMARY — {total} potential inconsistency group(s) found",
