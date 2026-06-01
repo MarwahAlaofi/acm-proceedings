@@ -27,7 +27,10 @@ Affiliations must be mapped strictly to the **University** or
 **Company / Institute** level.
 
 - **Remove departments.** Strip `Department of Computer Science`,
-  `Faculty of Engineering`, `School of Information`, etc.
+  `Faculty of Engineering`, `School of Information`,
+  `Graduate School of Information Science`,
+  `College of Information Science and Engineering`,
+  `Dipartimento di Informatica` (Italian dept prefix), etc.
 - **Remove countries / cities** that are *not* part of the institution's name.
   - Example: `"Tongji University, Shanghai, China"` → `"Tongji University"`.
   - Example: `"Donghua University, Shanghai"` → `"Donghua University"`.
@@ -177,6 +180,18 @@ credit.
   formatting for specific major international universities.
   - `"University de Montreal"` / `"University of Montreal"` → `"Université de Montréal"`.
   - `"Technische Universität Wien"` → `"TU Wien"`.
+- **Hyphen / spacing normalization.** When the canonical form joins
+  tokens with a hyphen (no surrounding spaces), or with a space
+  instead of a hyphen, add explicit keys for the wrong-spacing
+  variants. The script does not normalize hyphenation on its own.
+  - `"ISTI CNR"` → `"ISTI-CNR"`.
+  - `"University of Milano - Bicocca"` → `"University of Milano-Bicocca"`.
+- **Affiliation case fixing.** The script title-cases *names* only,
+  not affiliations. If an entry arrives in lower- or mixed-case (e.g.
+  `"the university of texas at austin"`), add a key whose value is
+  the properly capitalized form. The same applies to internal-token
+  case fixes (e.g. `"Université d'aix-Marseille, CNRS"` →
+  `"Université d'Aix-Marseille, CNRS"`).
 
 ---
 
