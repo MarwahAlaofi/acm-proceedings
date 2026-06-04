@@ -51,6 +51,7 @@ COLUMN_ALIASES = {
     "institution": "affiliation",
     "role": "role",
     "profile": "profile",
+    "openreview id": "profile",
     "#": "easychair_id",
 }
 
@@ -290,6 +291,13 @@ def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 def _df_to_reviewers(df: pd.DataFrame, source_file: str, sheet: str) -> list[Reviewer]:
     reviewers: list[Reviewer] = []
+    # Sources with a single "Name" column (e.g., OpenReview CSV exports) — split
+    # into first/middle/last when no separate name columns are present.
+    has_split_names = any(c in df.columns for c in ("first_name", "last_name"))
+    name_col = next(
+        (c for c in df.columns if str(c).strip().lower() == "name"),
+        None,
+    )
     # df.index from read_excel is 0-based; Excel row = index + 2 (header is row 1).
     for idx, row in df.iterrows():
         excel_row = int(idx) + 2
@@ -310,6 +318,16 @@ def _df_to_reviewers(df: pd.DataFrame, source_file: str, sheet: str) -> list[Rev
         for col in df.columns:
             if col in rec:
                 rec[col] = _clean(row[col])
+        if not has_split_names and name_col is not None:
+            full = _clean(row[name_col])
+            tokens = full.split()
+            if len(tokens) == 1:
+                rec["first_name"] = tokens[0]
+            elif len(tokens) >= 2:
+                rec["first_name"] = tokens[0]
+                rec["last_name"] = tokens[-1]
+                if len(tokens) > 2:
+                    rec["middle_name"] = " ".join(tokens[1:-1])
         # Skip rows that are entirely empty for identity fields.
         if not any([rec["first_name"], rec["last_name"], rec["email"], rec["profile"]]):
             continue
@@ -330,11 +348,29 @@ def _df_to_reviewers(df: pd.DataFrame, source_file: str, sheet: str) -> list[Rev
 def load_all(directory: str) -> list[Reviewer]:
     all_reviewers: list[Reviewer] = []
     for fname in sorted(os.listdir(directory)):
-        if not fname.lower().endswith(".xlsx"):
-            continue
+        lower = fname.lower()
         if fname.startswith("~$"):  # Excel lock files for open workbooks
             continue
+        if not (lower.endswith(".xlsx") or lower.endswith(".csv")):
+            continue
         path = os.path.join(directory, fname)
+
+        if lower.endswith(".csv"):
+            try:
+                df = pd.read_csv(path)
+            except Exception as exc:
+                print(f"[WARN] Cannot read {fname}: {exc}", file=sys.stderr)
+                continue
+            if df.empty:
+                continue
+            df = _normalize_columns(df)
+            recs = _df_to_reviewers(df, fname, sheet="")
+            implied = FILE_IMPLIED_ROLE.get(fname, "")
+            for r in recs:
+                if not r.role and implied:
+                    r.role = implied
+            all_reviewers.extend(recs)
+            continue
 
         try:
             xl = pd.ExcelFile(path)
@@ -1111,6 +1147,13 @@ def write_merged_workbook(reviewers: list[Reviewer], output_path: str) -> None:
     grouped: dict[tuple[str, str], list[Reviewer]] = defaultdict(list)
     for r in kept:
         grouped[_track_and_role(r)].append(r)
+
+    if not grouped:
+        print(
+            f"\n{C.YEL}⚠ no reviewer rows to write — skipped {output_path}"
+            f" ({dropped} track chair row(s) dropped){C.RESET}"
+        )
+        return
 
     columns = ["first name", "middle name", "last name", "affiliation"]
     used_names: set[str] = set()
